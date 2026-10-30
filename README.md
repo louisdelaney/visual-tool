@@ -17,7 +17,17 @@ You need a laptop or desktop with a keyboard, a bank card to measure the screen,
 3. **Motion task**, then **form task**: adaptive staircases that find each threshold.
 4. **Results**: thresholds, sensitivities, staircase charts and the session data.
 
-The page is also published as a claude.ai artifact. There, the Save CSV and Save JSON buttons use claude.ai's downloads API. Opened from this repo, those buttons are hidden; use **Copy session data** instead.
+Nothing is sent anywhere. On the results page, **Save session (JSON)** downloads the raw session data, **Save trials (CSV)** downloads the trial table, and **Copy session data** copies the JSON to the clipboard.
+
+### Hosting on S3
+
+The app is static, so any static host works. For S3, upload `index.html` to a bucket and serve it through S3 static website hosting or CloudFront:
+
+```sh
+aws s3 cp index.html s3://YOUR-BUCKET/index.html --content-type "text/html; charset=utf-8"
+```
+
+The only outside requests are for the Google Fonts stylesheets. If they're blocked, the page falls back to system fonts.
 
 ## Method
 
@@ -40,7 +50,7 @@ The page's **Method and sources** table lists every parameter and where it comes
 
 ## Data
 
-Sessions can be copied as JSON (or, on claude.ai, saved as JSON or CSV), with every trial, the calibration and the full protocol parameters. Each session's `version` and `settings` record how it was run. Version 0.1.0 sessions may have `settings.motionDisplay: "until-answer"`: the dots stayed on until the answer, so viewing time varied between people. Don't pool them with 0.2.0 sessions.
+Sessions can be saved as JSON or CSV, or copied as JSON, with every trial, the calibration and the full protocol parameters. Each session's `version` and `settings` record how it was run. Version 0.1.0 sessions may have `settings.motionDisplay: "until-answer"`: the dots stayed on until the answer, so viewing time varied between people. Don't pool them with 0.2.0 sessions.
 
 Keep exported sessions in `data/`, which git ignores, so people's results don't end up in commits.
 

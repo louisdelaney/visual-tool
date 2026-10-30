@@ -1,6 +1,10 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Form–Motion Coherence Test</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<style>body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;700;800&display=swap">
@@ -234,6 +238,8 @@ th{color:var(--ink-2);font-weight:700}
   *,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}
 }
 </style>
+</head>
+<body>
 
 <div class="wrap">
   <header class="masthead">
@@ -393,8 +399,8 @@ th{color:var(--ink-2);font-weight:700}
         <hr class="section-rule">
         <h3>Your data</h3>
         <div class="actions">
-          <button type="button" class="btn needs-downloads" id="save-csv" hidden>Save trials (CSV)</button>
-          <button type="button" class="btn needs-downloads" id="save-json" hidden>Save session (JSON)</button>
+          <button type="button" class="btn" id="save-csv">Save trials (CSV)</button>
+          <button type="button" class="btn" id="save-json">Save session (JSON)</button>
           <button type="button" class="btn secondary" id="copy-json">Copy session data</button>
         </div>
         <p class="status" id="data-status" role="status" aria-live="polite"></p>
@@ -2050,31 +2056,19 @@ if (typeof document !== "undefined") (() => {
   }
   const fileBase = s => `form-motion-coherence-${s.startedAt.slice(0, 16).replace(/[:T]/g, "-")}${s.simulated ? "-simulated" : ""}`;
 
-  let downloads = null;
-  (async () => {
-    try {
-      if (window.claude && typeof window.claude.use === "function") downloads = await window.claude.use("downloads");
-    } catch (e) { downloads = null; }
-    for (const el of $$(".needs-downloads")) el.hidden = !downloads;
-  })();
-  async function offerFile(filename, data) {
-    if (!downloads) return;
-    const status = $("#data-status");
-    try {
-      const r = await downloads.save({ filename, data });
-      status.textContent = r && r.status === "saved" ? `Saved ${filename}.` : "";
-    } catch (e) {
-      const code = e && e.code;
-      if (code === "declined") status.textContent = "Save cancelled.";
-      else if (code === "rate_limited") status.textContent = "A save prompt is already open. Finish that one first.";
-      else {
-        status.textContent = "Saving files isn't available here. Use Copy session data instead.";
-        for (const el of $$(".needs-downloads")) el.hidden = true;
-      }
-    }
+  function offerFile(filename, data, type) {
+    const url = URL.createObjectURL(new Blob([data], { type }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    $("#data-status").textContent = `Saved ${filename}.`;
   }
-  $("#save-csv").addEventListener("click", () => { const s = state.session; if (s) offerFile(`${fileBase(s)}.csv`, Core.toCSV(s.trials, CSV_COLUMNS)); });
-  $("#save-json").addEventListener("click", () => { const s = state.session; if (s) offerFile(`${fileBase(s)}.json`, JSON.stringify(exportObject(s), null, 2)); });
+  $("#save-csv").addEventListener("click", () => { const s = state.session; if (s) offerFile(`${fileBase(s)}.csv`, Core.toCSV(s.trials, CSV_COLUMNS), "text/csv"); });
+  $("#save-json").addEventListener("click", () => { const s = state.session; if (s) offerFile(`${fileBase(s)}.json`, JSON.stringify(exportObject(s), null, 2), "application/json"); });
   $("#copy-json").addEventListener("click", () => {
     const s = state.session;
     if (!s) return;
