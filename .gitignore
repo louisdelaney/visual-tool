@@ -1,0 +1,7 @@
+node_modules/
+tests/output/
+
+# Exported sessions are people's results: keep them out of git.
+data/
+
+.DS_Store

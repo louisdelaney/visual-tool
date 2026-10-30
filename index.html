@@ -1,0 +1,2168 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Form–Motion Coherence Test</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  /* Layout: one 780px protocol column. A masthead carries the six real stages as a stepper; each stage gets a single working panel. The tasks themselves run on a full-viewport black stage, as in the lab. */
+  --bg:#ECEFED;
+  --surface:#FBFCFB;
+  --surface-2:#F1F4F2;
+  --ink:#121715;
+  --ink-2:#47514D;
+  --muted:#6C7671;
+  --rule:#D4DAD6;
+  --grid:#E3E7E4;
+  --axis:#BCC5C0;
+  --accent:#8A5200;
+  --accent-ink:#FFFFFF;
+  --accent-wash:#F6E8D0;
+  --series-motion:#2A78D6;
+  --series-form:#EB6834;
+  --warning:#FAB219;
+  --stage:#000000;
+  --stage-ink:#EDEDED;
+  --stage-dim:#6E6E6E;
+  --stage-panel:#121212;
+  --stage-rule:#3A3A3A;
+  --stage-key:#1E1E1E;
+  --stage-accent:#FFB547;
+  --stage-accent-ink:#1B1203;
+  --font-ui:"Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-data:"Atkinson Hyperlegible Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --t-sm:14px;
+  --t-base:16px;
+  --t-md:19px;
+  --t-lg:24px;
+  --t-xl:44px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C0F0E;
+    --surface:#151918;
+    --surface-2:#1B201E;
+    --ink:#E8EDEA;
+    --ink-2:#B3BCB7;
+    --muted:#88928D;
+    --rule:#2A312E;
+    --grid:#232926;
+    --axis:#3A423E;
+    --accent:#FFB547;
+    --accent-ink:#1B1203;
+    --accent-wash:#3A2B12;
+    --series-motion:#3987E5;
+    --series-form:#D95926;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C0F0E;
+  --surface:#151918;
+  --surface-2:#1B201E;
+  --ink:#E8EDEA;
+  --ink-2:#B3BCB7;
+  --muted:#88928D;
+  --rule:#2A312E;
+  --grid:#232926;
+  --axis:#3A423E;
+  --accent:#FFB547;
+  --accent-ink:#1B1203;
+  --accent-wash:#3A2B12;
+  --series-motion:#3987E5;
+  --series-form:#D95926;
+  color-scheme:dark;
+}
+
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--font-ui);font-size:var(--t-base);line-height:1.55;-webkit-font-smoothing:antialiased}
+html.staging,html.staging body{overflow:hidden}
+[hidden]{display:none!important}
+
+.wrap{max-width:780px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 64px;display:flex;flex-direction:column;gap:28px}
+
+.masthead{display:grid;gap:14px}
+.eyebrow{margin:0;font:700 12px/1.3 var(--font-ui);letter-spacing:.09em;text-transform:uppercase;color:var(--accent)}
+h1{margin:0;font-size:var(--t-xl);line-height:1.05;font-weight:800;letter-spacing:-.015em;text-wrap:balance}
+.lede{margin:0;font-size:var(--t-md);color:var(--ink-2);max-width:60ch}
+.stepper{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px 20px;font-size:var(--t-sm);color:var(--muted)}
+.stepper li{display:flex;align-items:center;gap:8px;padding-bottom:6px;border-bottom:2px solid transparent}
+.stepper .n{font:500 12px/1 var(--font-data);width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;border:1px solid var(--axis);box-sizing:border-box}
+.stepper li[aria-current="step"]{color:var(--ink);font-weight:700;border-bottom-color:var(--accent)}
+.stepper li[aria-current="step"] .n{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.stepper li.done{color:var(--ink-2)}
+.stepper li.done .n{background:var(--surface-2)}
+
+.flash{margin:0;background:var(--accent-wash);border-radius:6px;padding:12px 16px;font-weight:700}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding-block:24px;padding-inline:clamp(16px,4vw,28px);display:flex;flex-direction:column;gap:18px;min-width:0}
+.panel h2{margin:0;font-size:var(--t-lg);line-height:1.2;text-wrap:balance}
+.panel h3{margin:0;font-size:var(--t-md);line-height:1.25}
+.panel p{margin:0;max-width:65ch}
+.section-rule{border:0;border-top:1px solid var(--rule);margin:4px 0 0;width:100%}
+
+.previews{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px}
+figure{margin:0;display:flex;flex-direction:column;gap:8px;min-width:0}
+figcaption{font-size:var(--t-sm);color:var(--ink-2)}
+.stim-canvas{display:block;width:100%;max-width:100%;aspect-ratio:31/25;background:var(--stage);border-radius:4px}
+.caption{font-size:var(--t-sm);color:var(--muted)}
+
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font:700 15px/1 var(--font-ui);display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;min-height:44px;box-sizing:border-box;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn:hover{filter:brightness(1.08)}
+.btn.secondary{background:transparent;color:var(--ink);border-color:var(--axis)}
+.btn.secondary:hover{background:var(--surface-2);filter:none}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.btn.icon{width:44px;padding:0;font-size:20px;font-family:var(--font-data)}
+.linkish{font:inherit;background:none;border:0;padding:0;color:var(--accent);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.btn:focus-visible,.linkish:focus-visible,summary:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.notice{background:var(--accent-wash);border-radius:6px;padding:14px 16px;font-size:15px;color:var(--ink);max-width:none}
+.checklist{margin:0;padding-left:1.2em;display:grid;gap:6px}
+details.settings{border-top:1px solid var(--rule);padding-top:14px}
+summary{cursor:pointer;font-weight:700}
+fieldset{border:0;margin:14px 0 0;padding:0;display:grid;gap:6px;min-width:0}
+legend{font-weight:700;font-size:var(--t-sm);color:var(--ink-2);margin-bottom:4px;padding:0}
+.opt{display:flex;gap:10px;align-items:flex-start;font-size:15px}
+.opt input{margin-top:4px}
+input[type="radio"],input[type="checkbox"],input[type="range"]{accent-color:var(--accent)}
+.small-note{font-size:var(--t-sm);color:var(--ink-2)}
+
+.card-stage{background:var(--surface-2);border-radius:6px;padding:28px 20px;overflow-x:auto;display:flex;justify-content:center}
+.card{--card-w:323px;position:relative;flex:none;width:var(--card-w);aspect-ratio:85.6/53.98;border:2px solid var(--ink);border-radius:calc(var(--card-w) * .0371);box-sizing:border-box;background:repeating-linear-gradient(135deg,transparent 0 10px,var(--grid) 10px 11px)}
+.card .chip{position:absolute;left:11%;top:35%;width:13%;aspect-ratio:1.33;border:1.5px solid var(--ink-2);border-radius:4px;box-sizing:border-box}
+.card .card-label{position:absolute;left:8%;right:8%;bottom:9%;font:500 12px/1.3 var(--font-data);color:var(--ink-2)}
+.slider-row{display:flex;align-items:center;gap:10px}
+.slider-row input[type="range"]{flex:1;min-width:0}
+.readout{font:500 15px/1.4 var(--font-data);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.hint{font-size:var(--t-sm);color:var(--muted)}
+
+.result{font-size:17px}
+.manual{display:grid;gap:8px}
+.manual label{font-weight:700;font-size:15px}
+.inline{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+input[type="number"]{font:500 16px var(--font-data);width:6em;padding:10px;border:1px solid var(--axis);border-radius:6px;background:var(--surface);color:var(--ink);box-sizing:border-box;min-height:44px}
+.fit{font-size:15px;color:var(--ink-2)}
+.field-msg{font-size:var(--t-sm);color:var(--ink)}
+
+.keys{display:flex;flex-wrap:wrap;gap:8px 20px;list-style:none;padding:0;margin:0;font-size:var(--t-sm);color:var(--ink-2)}
+kbd{font:500 13px var(--font-data);border:1px solid var(--axis);border-bottom-width:2px;border-radius:4px;padding:1px 6px;background:var(--surface-2);color:var(--ink)}
+.inline-check{display:inline-flex;gap:6px;align-items:center;font-size:var(--t-sm);color:var(--ink-2)}
+
+.banner{background:var(--accent-wash);border:1px solid var(--accent);border-radius:6px;padding:12px 16px;font-weight:700;margin:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:12px}
+.tile{background:var(--surface-2);border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.tile .label{display:flex;align-items:center;gap:8px;font-size:var(--t-sm);color:var(--ink-2)}
+.tile .key{width:14px;height:3px;border-radius:2px;background:var(--c)}
+.tile .value{font-size:34px;font-weight:700;line-height:1.1;color:var(--ink)}
+.tile .sub{font:400 13px/1.4 var(--font-data);color:var(--muted)}
+.pill{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--surface);border:1px solid var(--rule);color:var(--ink)}
+.pill .pip{width:8px;height:8px;border-radius:50%;background:var(--warning)}
+.interp{font-size:15px;color:var(--ink-2)}
+.charts{display:grid;grid-template-columns:minmax(0,1fr);gap:26px}
+.chart-box figcaption{display:flex;flex-direction:column;gap:2px}
+.chart-title{font-weight:700;font-size:15px;color:var(--ink)}
+.chart-sub{font-size:13px;color:var(--muted)}
+.chart-host{min-width:0}
+.chart-host svg{display:block;max-width:100%;height:auto}
+.chart .grid{stroke:var(--grid);stroke-width:1}
+.chart .axis{stroke:var(--axis);stroke-width:1}
+.chart .xtick{stroke:var(--axis);stroke-width:1}
+.chart .tick,.chart .axis-label{fill:var(--muted);font:11px var(--font-data)}
+.chart .line{fill:none;stroke:var(--c);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .mk.ok{fill:var(--c);stroke:var(--surface);stroke-width:2}
+.chart .mk.miss{fill:var(--surface);stroke:var(--c);stroke-width:2}
+.chart .rev{fill:none;stroke:var(--ink-2);stroke-width:1.25}
+.chart .thr{stroke:var(--ink);stroke-width:1}
+.chart .thr-label{fill:var(--ink-2);font:11px var(--font-ui)}
+.chart .thr-value{fill:var(--ink);font:500 12px var(--font-data)}
+.chart .hover-zone{fill:transparent;cursor:crosshair}
+.chart .crosshair{stroke:var(--axis);stroke-width:1}
+.chart.motion,.key-motion{--c:var(--series-motion)}
+.chart.form,.key-form{--c:var(--series-form)}
+.chart-key{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--ink-2);align-items:center}
+.chart-key svg{vertical-align:middle;margin-right:6px}
+.chart-key .k-ok{fill:var(--ink-2);stroke:var(--surface);stroke-width:2}
+.chart-key .k-miss{fill:var(--surface);stroke:var(--ink-2);stroke-width:2}
+.chart-key .k-rev{fill:none;stroke:var(--ink-2);stroke-width:1.25}
+.chart-key .k-thr{stroke:var(--ink);stroke-width:1}
+.meta{display:grid;grid-template-columns:minmax(0,max-content) minmax(0,1fr);gap:6px 18px;margin:0;font-size:var(--t-sm)}
+.meta dt{color:var(--ink-2)}
+.meta dd{margin:0;font-family:var(--font-data);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.status{min-height:1.4em;font-size:var(--t-sm);color:var(--ink)}
+textarea{width:100%;box-sizing:border-box;font:12px/1.5 var(--font-data);background:var(--surface-2);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:10px;resize:vertical;margin-top:10px}
+.table-wrap{overflow-x:auto;margin-top:10px}
+table{border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;width:100%}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--rule);white-space:nowrap}
+th{color:var(--ink-2);font-weight:700}
+.tip{position:fixed;z-index:200;pointer-events:none;background:var(--ink);color:var(--surface);font:500 12px/1.3 var(--font-data);padding:6px 8px;border-radius:4px;white-space:nowrap;left:0;top:0}
+
+.foot{display:grid;gap:10px;font-size:var(--t-sm);color:var(--ink-2)}
+.foot p{margin:0}
+.foot a{color:var(--accent)}
+.protocol td:nth-child(2){white-space:normal;min-width:16em}
+.protocol td:first-child{white-space:normal;min-width:10em}
+.protocol th[scope="rowgroup"]{padding-top:18px;color:var(--ink);text-align:left}
+
+.stage{position:fixed;inset:0;z-index:100;background:var(--stage);color:var(--stage-ink);font-family:var(--font-ui)}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage.hide-cursor,.stage.hide-cursor canvas{cursor:none}
+.stage.light{background:#B4B4B4}
+.stage.light .hud{color:#2B2B2B}
+.hud{position:absolute;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom,0px));text-align:center;font:500 13px var(--font-data);color:var(--stage-dim);pointer-events:none;letter-spacing:.04em;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.stage-msg,.pause-box{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 32px));box-sizing:border-box;background:var(--stage-panel);border:1px solid var(--stage-rule);border-radius:8px;padding:24px;display:grid;gap:12px;color:var(--stage-ink)}
+.stage-msg h2,.pause-box h2{margin:0;font-size:22px;line-height:1.2}
+.stage-msg p,.pause-box p{margin:0}
+.stage-msg ol{margin:0;padding-left:1.2em;display:grid;gap:6px}
+.msg-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px}
+.stage .hint{color:var(--stage-dim)}
+.stage .btn{background:var(--stage-accent);border-color:var(--stage-accent);color:var(--stage-accent-ink)}
+.stage .btn.secondary{background:transparent;color:var(--stage-ink);border-color:var(--stage-rule)}
+.stage .btn:focus-visible{outline-color:var(--stage-accent)}
+.stage kbd{background:var(--stage-key);color:var(--stage-ink);border-color:var(--stage-rule)}
+.stage-fb{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:700 22px/1.3 var(--font-ui);color:var(--stage-ink);text-align:center;pointer-events:none;width:min(560px,calc(100% - 32px))}
+.stage-note{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:500 15px var(--font-data);color:var(--stage-dim)}
+.stage-note.prompt{top:38%;font:700 20px var(--font-ui);color:var(--stage-ink)}
+
+@media (max-width:560px){
+  h1{font-size:34px}
+  .meta{grid-template-columns:1fr;gap:2px}
+  .meta dd{margin-bottom:8px}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">Vision research prototype</p>
+    <h1>Form–Motion Coherence Test</h1>
+    <p class="lede">Two short tasks from vision research. Each finds your coherence threshold, the smallest share of organised dots you can still pick out from random ones. One task uses moving dots, the other a pattern hidden among random dots.</p>
+    <ol class="stepper" id="stepper" aria-label="Stages"></ol>
+  </header>
+
+  <main id="main" style="display:flex;flex-direction:column;gap:20px">
+    <p class="flash" id="flash" role="status" hidden></p>
+
+    <section class="view panel" data-view="setup" aria-labelledby="setup-h">
+      <h2 id="setup-h">What you'll see</h2>
+      <div class="previews">
+        <figure>
+          <canvas id="pv-motion" class="stim-canvas" aria-label="Animated example of the motion task"></canvas>
+          <figcaption><span id="pv-motion-cap"></span> <button type="button" class="linkish" id="pv-play">Pause</button></figcaption>
+        </figure>
+        <figure>
+          <canvas id="pv-form" class="stim-canvas" aria-label="Example of the form task"></canvas>
+          <figcaption id="pv-form-cap"></figcaption>
+        </figure>
+      </div>
+      <p class="caption" id="pv-caption"></p>
+
+      <h3>Before you start</h3>
+      <ul class="checklist">
+        <li>A laptop or desktop with a keyboard. Phones and tablets won't work.</li>
+        <li>A bank card, or any card the same size, to measure your screen.</li>
+        <li>About 10 minutes in a dim room, sitting about an arm's length (50 cm) from the screen.</li>
+        <li>Your usual glasses or contact lenses.</li>
+      </ul>
+      <p class="notice"><strong>Please read.</strong> This is a research prototype, not a medical test. It can't diagnose HPPD, visual snow or any other condition, and there's no reference data for results taken in a browser yet. The tasks show moving and flickering dots: don't run them if you have photosensitive epilepsy, and press Esc to stop if they make you feel unwell. Results stay in this browser unless you save or copy them.</p>
+      <p class="small-note" id="small-note" hidden>This window is too small to run the tasks. Open the page on a laptop or desktop and maximise the window. You can still look at the example results.</p>
+
+      <details class="settings" id="settings">
+        <summary>Test settings</summary>
+        <fieldset>
+          <legend>Version</legend>
+          <label class="opt"><input type="radio" name="protocol" value="clinic" id="proto-clinic"><span>Clinic-style: a 200 ms flash of dots drifting up or down, and a flickering spiral flashed twice. Built from published tasks to match the clinic test as you remember it, with the same display times for everyone.</span></label>
+          <label class="opt"><input type="radio" name="protocol" value="atkinson" id="proto-atkinson"><span>Atkinson et al. (2006): find the side with a band of opposite motion, then the side with a patch of circles.</span></label>
+        </fieldset>
+        <div id="settings-clinic">
+          <fieldset>
+            <legend>Spiral dots</legend>
+            <label class="opt"><input type="radio" name="spiralDots" value="flicker" id="sd-flicker"><span>Flickering: 12 new patterns in each flash, as you remember it</span></label>
+            <label class="opt"><input type="radio" name="spiralDots" value="still" id="sd-still"><span>Still: one pattern per flash</span></label>
+          </fieldset>
+        </div>
+        <div id="settings-atkinson">
+          <fieldset>
+            <legend>Form task elements</legend>
+            <label class="opt"><input type="radio" name="element" value="dipoles" id="el-dipoles"><span>Dot pairs (a Glass pattern)</span></label>
+            <label class="opt"><input type="radio" name="element" value="lines" id="el-lines"><span>Short lines, as in Atkinson et al. (2006)</span></label>
+          </fieldset>
+        </div>
+        <fieldset>
+          <legend>Task order</legend>
+          <label class="opt"><input type="radio" name="order" value="motion-first" id="ord-motion"><span id="order-motion-label">Motion first</span></label>
+          <label class="opt"><input type="radio" name="order" value="form-first" id="ord-form"><span>Form first</span></label>
+        </fieldset>
+        <fieldset>
+          <legend>Run length</legend>
+          <label class="opt"><input type="radio" name="run" value="published" id="run-published"><span id="run-published-label"></span></label>
+          <label class="opt"><input type="radio" name="run" value="long" id="run-long"><span id="run-long-label"></span></label>
+        </fieldset>
+      </details>
+
+      <div class="actions">
+        <button type="button" class="btn" id="start">Start</button>
+        <button type="button" class="btn secondary" id="simulate">Show example results</button>
+      </div>
+    </section>
+
+    <section class="view panel" data-view="screen" aria-labelledby="screen-h" hidden>
+      <h2 id="screen-h">Measure your screen</h2>
+      <p>Hold a bank card, or any card the same size, flat against the screen over the outline. Move the slider until the outline is exactly as wide as the card.</p>
+      <div class="card-stage">
+        <div class="card" id="card"><span class="chip"></span><span class="card-label">ISO/IEC 7810 ID-1 · 85.60 × 53.98 mm</span></div>
+      </div>
+      <div class="slider-row">
+        <button type="button" class="btn secondary icon" id="card-minus" aria-label="Make the outline smaller">−</button>
+        <input type="range" id="card-size" min="160" max="900" step="0.5" aria-label="Card outline width">
+        <button type="button" class="btn secondary icon" id="card-plus" aria-label="Make the outline larger">+</button>
+      </div>
+      <p class="readout" id="card-readout"></p>
+      <p class="hint" id="saved-calib" hidden>The outline is set to the size saved on this browser. Check it still matches your card.</p>
+      <p class="hint">Don't change the browser zoom after this step, and keep the window on this screen.</p>
+      <div class="actions">
+        <button type="button" class="btn" id="screen-next">The outline matches my card</button>
+        <button type="button" class="btn secondary" id="screen-back">Back</button>
+      </div>
+    </section>
+
+    <section class="view panel" data-view="distance" aria-labelledby="distance-h" hidden>
+      <h2 id="distance-h">Measure your viewing distance</h2>
+      <p>The tasks are specified in degrees of visual angle, so the page needs to know how far your eyes are from the screen. It works this out from your blind spot, which sits about 13.5° from wherever you look. Sit centred in front of the screen, as you will for the tasks: the maths assumes it.</p>
+      <p class="notice" id="window-note" hidden></p>
+      <div class="actions"><button type="button" class="btn" id="bs-start">Start blind-spot check</button></div>
+      <p class="result" id="distance-result">Not measured yet.</p>
+      <div class="manual">
+        <label for="manual-cm">Or enter a distance you've measured, eye to screen</label>
+        <div class="inline">
+          <input type="number" id="manual-cm" min="25" max="150" step="1" inputmode="numeric">
+          <span>cm</span>
+          <button type="button" class="btn secondary" id="manual-use">Use this distance</button>
+        </div>
+        <p class="field-msg" id="manual-msg" role="status"></p>
+      </div>
+      <p class="fit" id="fit" hidden></p>
+      <div class="actions">
+        <button type="button" class="btn" id="distance-next" disabled>Continue to the tasks</button>
+        <button type="button" class="btn secondary" id="fs-btn">Go full screen</button>
+        <button type="button" class="btn secondary" id="distance-back">Back</button>
+      </div>
+    </section>
+
+    <section class="view panel" data-view="task" aria-labelledby="task-title" hidden>
+      <p class="eyebrow" id="task-eyebrow">Task 1 of 2</p>
+      <h2 id="task-title">Motion task</h2>
+      <div id="task-copy" style="display:grid;gap:10px"></div>
+      <figure id="task-fig-motion">
+        <canvas id="task-canvas-motion" class="stim-canvas" aria-label="Example of the motion task"></canvas>
+        <figcaption id="task-cap-motion"></figcaption>
+      </figure>
+      <figure id="task-fig-form">
+        <canvas id="task-canvas-form" class="stim-canvas" aria-label="Example of the form task"></canvas>
+        <figcaption id="task-cap-form"></figcaption>
+      </figure>
+      <label class="inline-check" id="task-outline-row"><input type="checkbox" id="task-outline" checked> Outline the target in the example</label>
+      <ul class="keys" id="task-keys"></ul>
+      <div class="actions">
+        <button type="button" class="btn" id="task-start">Start practice</button>
+        <button type="button" class="btn secondary" id="task-fs">Go full screen</button>
+      </div>
+    </section>
+
+    <section class="view" data-view="results" aria-labelledby="results-h" hidden style="display:flex;flex-direction:column;gap:20px">
+      <p class="banner" id="sim-banner" hidden>Example results from a simulated observer. These are not real data.</p>
+      <div class="panel">
+        <h2 id="results-h">Results</h2>
+        <div class="tiles" id="tiles"></div>
+        <p class="interp" id="interpretation"></p>
+        <hr class="section-rule">
+        <h3>Staircases</h3>
+        <div class="charts" id="charts"></div>
+        <div class="chart-key" aria-hidden="true">
+          <span><svg width="14" height="14" viewBox="0 0 14 14"><circle class="k-ok" cx="7" cy="7" r="4"/></svg>Correct</span>
+          <span><svg width="14" height="14" viewBox="0 0 14 14"><circle class="k-miss" cx="7" cy="7" r="4"/></svg>Wrong</span>
+          <span><svg width="18" height="18" viewBox="0 0 18 18"><circle class="k-rev" cx="9" cy="9" r="7.5"/></svg>Reversal</span>
+          <span><svg width="20" height="10" viewBox="0 0 20 10"><line class="k-thr" x1="0" x2="20" y1="5" y2="5"/></svg>Threshold, mean of the last reversals</span>
+        </div>
+        <hr class="section-rule">
+        <h3>Session</h3>
+        <dl class="meta" id="meta"></dl>
+        <hr class="section-rule">
+        <h3>Your data</h3>
+        <div class="actions">
+          <button type="button" class="btn needs-downloads" id="save-csv" hidden>Save trials (CSV)</button>
+          <button type="button" class="btn needs-downloads" id="save-json" hidden>Save session (JSON)</button>
+          <button type="button" class="btn secondary" id="copy-json">Copy session data</button>
+        </div>
+        <p class="status" id="data-status" role="status" aria-live="polite"></p>
+        <details id="raw"><summary>Show the raw data</summary><textarea id="raw-json" readonly rows="10" aria-label="Session data as JSON"></textarea></details>
+        <details><summary>Trial table</summary><div class="table-wrap"><table id="trial-table"></table></div></details>
+      </div>
+      <div class="actions"><button type="button" class="btn" id="again">Run the test again</button></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <details>
+      <summary>Method and sources</summary>
+      <div class="table-wrap">
+        <table class="protocol">
+          <thead><tr><th scope="col">Parameter</th><th scope="col">Value</th><th scope="col">Source</th></tr></thead>
+          <tbody>
+            <tr><th scope="rowgroup" colspan="3">Clinic-style version (default)</th></tr>
+            <tr><td>Basis</td><td>The published tasks closest to the clinic test as remembered: dots drifting up or down, and a flickering spiral flashed twice. The clinic called its test "Glass Patterns" and reported motion sensitivity, form sensitivity and their difference</td><td>Pavan 2013; Roccato 2024; Seu &amp; Ferrera 2001</td></tr>
+            <tr><td>Motion: display</td><td>250 white dots, 0.03° (drawn at least 1 pixel), in an 8° × 8° square on black; red 0.4° fixation point, shown alone for 1 s first</td><td>Pavan 2013</td></tr>
+            <tr><td>Motion: signal and noise</td><td>A share of dots drift up or down at 20.1°/s; the rest are replotted at random every frame; every dot lives 83.3 ms</td><td>Pavan 2013</td></tr>
+            <tr><td>Motion: timing and answer</td><td>After the 1 s fixation, the dots show for 200 ms, the same for everyone; the red point stays on. Say up or down from the moment the dots appear; an early answer doesn't cut the 200 ms short</td><td>Pavan 2013 (they removed the fixation point when the dots appeared)</td></tr>
+            <tr><td>Form: pattern</td><td>2146 dot pairs in a 10.7° circle; dots 0.04°, 0.25° apart; white on black; grey 0.3° fixation point</td><td>Roccato 2024</td></tr>
+            <tr><td>Form: spiral</td><td>Signal pairs at 45° to the radius, turning one way or the other at random; the other pairs point anywhere</td><td>45° chosen here (not given in Roccato 2024); spiral Glass patterns from Seu &amp; Ferrera 2001</td></tr>
+            <tr><td>Form: flicker</td><td>12 new patterns in each 200 ms flash, or one still pattern</td><td>Roccato 2024</td></tr>
+            <tr><td>Form: trial</td><td>1 s fixation, flash, 0.5 s gap, flash; one flash holds the spiral, the other only random pairs; say which flash had the spiral</td><td>Roccato 2024</td></tr>
+            <tr><td>Coherence</td><td>Share of dots or dot pairs carrying the signal; no lifetime correction</td><td>Pavan 2013; Roccato 2024</td></tr>
+            <tr><td>Staircase</td><td>Start at 100%; ×0.84 after each correct answer until the first error, then ×0.84 after three in a row correct and ÷0.84 after an error, which targets 79% correct</td><td>Rule chosen here; the 79% target matches Roccato 2024</td></tr>
+            <tr><td>Stop and threshold</td><td>Stop at 10 reversals; threshold is the mean of the last 8</td><td>Chosen here</td></tr>
+            <tr><td>Easy trials and practice</td><td>A 100% trial after every eighth, not scored; 4 practice trials with feedback</td><td>Chosen here</td></tr>
+            <tr><td>Sensitivity</td><td>1 ÷ threshold in percent, the scale the clinic reported</td><td>Clinic report</td></tr>
+            <tr><th scope="rowgroup" colspan="3">Atkinson et al. (2006) version</th></tr>
+            <tr><td>Reference viewing distance</td><td>50 cm</td><td>Atkinson 2006</td></tr>
+            <tr><td>Display area</td><td>30° × 24°, white elements on black</td><td>Atkinson 2006</td></tr>
+            <tr><td>Form: density and target</td><td>1.9 elements per deg²; target a 12° circle centred 7.5° from the midline, where a share of elements lie tangent to concentric circles</td><td>Atkinson 2006</td></tr>
+            <tr><td>Form: element size</td><td>Lines 0.5° × 0.08°; dot pairs 0.3° apart, dots 0.12° across</td><td>Chosen here, not given in the source</td></tr>
+            <tr><td>Motion: fields</td><td>Two fields of 13° × 18°, each split into three 6° bands; 4° apart</td><td>Atkinson 2006; the gap is inferred from the 30° display</td></tr>
+            <tr><td>Motion: dots</td><td>5.9 per deg², 0.29° squares</td><td>Atkinson 2006; square shape chosen here</td></tr>
+            <tr><td>Motion: signal</td><td>Horizontal at 6.9°/s, reversing every 240 ms; the middle band on the target side moves the other way</td><td>Atkinson 2006</td></tr>
+            <tr><td>Motion: lifetime and noise</td><td>Dots live 82 ms, then reappear at random. Noise dots move at the same speed in a random direction, also with an 82 ms life</td><td>Atkinson 2006 for signal dots; noise details chosen here</td></tr>
+            <tr><td>Motion coherence reported</td><td>Nominal share × (1 − frame time ÷ 82 ms), allowing for the noise from dots that reappear</td><td>Correction from Atkinson 2006; formula chosen here</td></tr>
+            <tr><td>Trial</td><td>Target left or right at random; display stays until you answer; a spot at the centre between trials</td><td>Atkinson 2006</td></tr>
+            <tr><td>Staircase</td><td>Start at 100%; ×0.84 after each correct answer until the first error, then ×0.84 after two correct and ÷0.84 after an error</td><td>Atkinson 2006</td></tr>
+            <tr><td>Easy trials</td><td>A 100% trial after every fourth, not scored</td><td>Atkinson 2006</td></tr>
+            <tr><td>Stop and threshold</td><td>Stop at 6 reversals; threshold is the mean of the last 4</td><td>Atkinson 2006</td></tr>
+            <tr><td>Practice</td><td>3 trials at 100% with feedback</td><td>Atkinson 2006 used 2 to 6; feedback chosen here</td></tr>
+            <tr><th scope="rowgroup" colspan="3">Both versions</th></tr>
+            <tr><td>Screen size</td><td>Match an ID-1 card, 85.60 mm wide</td><td>Li 2020</td></tr>
+            <tr><td>Viewing distance</td><td>Blind spot at 13.5° from fixation, where the dot starts to vanish; mean of 5 readings. The fixation square sits 3 cm right of centre on windows at least 43 cm wide and at the right edge on narrower ones, so the dot always travels past the blind spot's centre at up to about 80 cm. Each reading is solved for off-axis viewing with the left eye assumed 3.15 cm left of centre. The dot is red and darker than its light grey background, so nothing bright falls in the blind spot</td><td>Li 2020 for the method and the 13.5° entry angle; layout, off-axis solve and colours chosen here</td></tr>
+            <tr><td>Window</td><td>The check and the tasks switch to full screen when they start, because both assume you sit centred on what the page draws</td><td>Chosen here</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:10px">Atkinson J, Braddick O, Rose FE, Searcy YM, Wattam-Bell J, Bellugi U (2006). Dorsal-stream motion processing deficits persist into adulthood in Williams syndrome. <i>Neuropsychologia</i> 44:828–833. <a href="https://doi.org/10.1016/j.neuropsychologia.2005.08.002" target="_blank" rel="noopener">doi:10.1016/j.neuropsychologia.2005.08.002</a></p>
+      <p style="margin-top:6px">Pavan A, Skujevskis M, Baggio G (2013). Motion words selectively modulate direction discrimination sensitivity for threshold motion. <i>Frontiers in Human Neuroscience</i> 7:134. <a href="https://doi.org/10.3389/fnhum.2013.00134" target="_blank" rel="noopener">doi:10.3389/fnhum.2013.00134</a></p>
+      <p style="margin-top:6px">Roccato M, Campana G, Vicovaro M, Donato R, Pavan A (2024). Perception of complex Glass patterns through spatial summation across unique frames. <i>Vision Research</i> 216:108364. <a href="https://doi.org/10.1016/j.visres.2024.108364" target="_blank" rel="noopener">doi:10.1016/j.visres.2024.108364</a></p>
+      <p style="margin-top:6px">Seu L, Ferrera VP (2001). Detection thresholds for spiral Glass patterns. <i>Vision Research</i> 41:3785–3790. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4487671" target="_blank" rel="noopener">PMC4487671</a></p>
+      <p style="margin-top:6px">Li Q, Joo SJ, Yeatman JD, Reinecke K (2020). Controlling for participants' viewing distance in large-scale, psychophysical online experiments using a virtual chinrest. <i>Scientific Reports</i>. <a href="https://doi.org/10.1038/s41598-019-57204-1" target="_blank" rel="noopener">doi:10.1038/s41598-019-57204-1</a></p>
+    </details>
+    <p>Version 0.2 · Research prototype, not a medical device · Nothing leaves this browser unless you save or copy it.</p>
+  </footer>
+</div>
+
+<div class="stage" id="stage" hidden>
+  <canvas id="stage-canvas"></canvas>
+  <p class="stage-note" id="stage-note" hidden></p>
+  <p class="stage-fb" id="stage-fb" hidden></p>
+  <div class="stage-msg" id="stage-msg" role="dialog" aria-modal="true" hidden></div>
+  <div class="pause-box" id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-h" hidden>
+    <h2 id="pause-h">Paused</h2>
+    <p>When you resume, this trial starts again with a new pattern at the same level.</p>
+    <div class="msg-actions">
+      <button type="button" class="btn" id="pause-resume">Resume</button>
+      <button type="button" class="btn secondary" id="pause-end">End and see results</button>
+    </div>
+  </div>
+  <p class="hud" id="hud"></p>
+</div>
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+<script>
+"use strict";
+const PAGE_VERSION = "0.2.0"; // 0.2.0: clinic-style motion fixed at a 200 ms flash (0.1.0 defaulted to until-you-answer)
+
+/* ---------- Core: protocol, stimuli and staircase. No DOM, so it runs in Node for tests. ---------- */
+const Core = (() => {
+  const PROTOCOL = Object.freeze({
+    source: "Atkinson J, Braddick O, Rose FE, Searcy YM, Wattam-Bell J, Bellugi U (2006). Neuropsychologia 44:828-833. doi:10.1016/j.neuropsychologia.2005.08.002",
+    referenceDistanceCm: 50,
+    field: Object.freeze({ w: 30, h: 24 }),
+    form: Object.freeze({ fieldW: 30, fieldH: 24, density: 1.9, targetDiameter: 12, targetOffset: 7.5, lineLength: 0.5, lineWidth: 0.08, dipoleSeparation: 0.3, dotDiameter: 0.12 }),
+    motion: Object.freeze({ panelW: 13, panelH: 18, strips: 3, gap: 4, density: 5.9, dotSize: 0.29, speed: 6.9, reversalMs: 240, lifetimeMs: 82 }),
+    staircase: Object.freeze({ start: 100, factor: 0.84, min: 1, max: 100, catchEvery: 4, practiceTrials: 3, maxTrials: 100 }),
+    runs: Object.freeze({
+      published: Object.freeze({ stopReversals: 6, meanOfLast: 4 }),
+      long: Object.freeze({ stopReversals: 10, meanOfLast: 6 }),
+    }),
+    itiMs: 700,
+    blindSpotDeg: 13.5,
+    blindSpotReps: 5,
+    blindSpotSquareCm: 3,
+    ipdCm: 6.3,
+    cardMm: Object.freeze({ w: 85.6, h: 53.98 }),
+  });
+
+  const DEG = Math.PI / 180;
+
+  function mulberry32(seed) {
+    let a = seed | 0;
+    return function () {
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), a | 1);
+      t = (t + Math.imul(t ^ (t >>> 7), t | 61)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function mixSeed(...parts) {
+    let h = 0x811C9DC5;
+    for (const p of parts) {
+      h ^= (p >>> 0);
+      h = Math.imul(h, 0x01000193);
+      h ^= h >>> 15;
+    }
+    return h >>> 0;
+  }
+
+  function shuffle(arr, rng) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  // 1-down until the first error, then N-down/1-up with multiplicative steps. N = 2 is Atkinson
+  // et al. (2006) and converges on 70.7% correct; N = 3 converges on 79.4%.
+  class Staircase {
+    constructor(opts = {}) {
+      this.opts = Object.assign({ start: 100, factor: 0.84, down: 2, min: 1, max: 100, stopReversals: 6, meanOfLast: 4, maxTrials: 100 }, opts);
+      if (!(this.opts.down >= 1)) this.opts.down = 2;
+      this.level = this.opts.start;
+      this.initial = true;
+      this.streak = 0;
+      this.lastStep = 0;
+      this.reversals = [];
+      this.history = [];
+    }
+    get done() {
+      return this.reversals.length >= this.opts.stopReversals || this.history.length >= this.opts.maxTrials;
+    }
+    get threshold() {
+      const r = this.reversals.slice(-this.opts.meanOfLast);
+      return r.length ? r.reduce((s, v) => s + v.level, 0) / r.length : null;
+    }
+    record(correct) {
+      const level = this.level;
+      let step = 0;
+      if (this.initial) {
+        if (correct) step = -1;
+        else { this.initial = false; step = 1; }
+      } else if (correct) {
+        this.streak += 1;
+        if (this.streak >= this.opts.down) { this.streak = 0; step = -1; }
+      } else {
+        this.streak = 0;
+        step = 1;
+      }
+      let reversal = false;
+      if (step !== 0) {
+        if (this.lastStep !== 0 && step !== this.lastStep) {
+          reversal = true;
+          this.reversals.push({ index: this.history.length, level });
+        }
+        this.lastStep = step;
+        const next = step < 0 ? level * this.opts.factor : level / this.opts.factor;
+        this.level = Math.min(this.opts.max, Math.max(this.opts.min, next));
+      }
+      this.history.push({ level, correct: !!correct, reversal });
+      return { level, reversal, next: this.level };
+    }
+  }
+
+  // Static array; inside the target circle a share of elements is set tangent to circles about its centre.
+  function buildFormStimulus({ rng, coherence, side, fieldW, fieldH, density, targetDiameter, targetOffset }) {
+    const n = Math.round(fieldW * fieldH * density);
+    const cx = side * targetOffset, cy = 0, r = targetDiameter / 2;
+    const elements = new Array(n);
+    const inTarget = [];
+    for (let i = 0; i < n; i++) {
+      const x = (rng() - 0.5) * fieldW;
+      const y = (rng() - 0.5) * fieldH;
+      elements[i] = { x, y, theta: rng() * Math.PI, signal: false };
+      const dx = x - cx, dy = y - cy;
+      if (dx * dx + dy * dy <= r * r) inTarget.push(i);
+    }
+    shuffle(inTarget, rng);
+    const nSignal = Math.round(Math.max(0, Math.min(1, coherence)) * inTarget.length);
+    for (let k = 0; k < nSignal; k++) {
+      const e = elements[inTarget[k]];
+      e.theta = Math.atan2(e.y - cy, e.x - cx) + Math.PI / 2;
+      e.signal = true;
+    }
+    return { elements, nTarget: inTarget.length, nSignal, target: { x: cx, y: cy, r } };
+  }
+
+  // Two fields of dots split into horizontal bands. Signal dots oscillate horizontally;
+  // on the target side the middle band moves against the outer bands.
+  class MotionStimulus {
+    constructor({ rng, coherence, side, panelW, panelH, strips, gap, density, dotSize, speed, reversalMs, lifetimeMs }) {
+      this.cfg = { panelW, panelH, strips, gap, density, dotSize, speed, reversalMs, lifetimeMs };
+      this.rng = rng;
+      this.t = 0;
+      this.initialSign = rng() < 0.5 ? -1 : 1;
+      const n = Math.round(panelW * panelH * density);
+      const c = Math.max(0, Math.min(1, coherence));
+      this.panels = [-1, 1].map(pside => {
+        const order = shuffle(Array.from({ length: n }, (_, i) => i), rng);
+        const nSignal = Math.round(c * n);
+        const isSignal = new Uint8Array(n);
+        for (let k = 0; k < nSignal; k++) isSignal[order[k]] = 1;
+        const dots = new Array(n);
+        for (let i = 0; i < n; i++) {
+          dots[i] = { x: rng() * panelW, y: rng() * panelH, age: rng() * lifetimeMs, signal: isSignal[i] === 1, dir: rng() * Math.PI * 2 };
+        }
+        return { side: pside, isTarget: pside === side, dots, nSignal };
+      });
+    }
+    direction(t) {
+      const phase = Math.floor(t / this.cfg.reversalMs) % 2;
+      return phase === 0 ? this.initialSign : -this.initialSign;
+    }
+    step(dtMs) {
+      const { panelW, panelH, strips, speed, lifetimeMs } = this.cfg;
+      this.t += dtMs;
+      const D = this.direction(this.t);
+      const dist = speed * dtMs / 1000;
+      const bandH = panelH / strips;
+      const middle = Math.floor(strips / 2);
+      let respawned = 0;
+      for (const p of this.panels) {
+        for (const d of p.dots) {
+          d.age += dtMs;
+          if (d.age >= lifetimeMs) {
+            d.age %= lifetimeMs;
+            d.x = this.rng() * panelW;
+            d.y = this.rng() * panelH;
+            d.dir = this.rng() * Math.PI * 2;
+            respawned += 1;
+            continue;
+          }
+          if (d.signal) {
+            const band = Math.min(strips - 1, Math.floor(d.y / bandH));
+            d.x += (p.isTarget && band === middle ? -D : D) * dist;
+          } else {
+            d.x += Math.cos(d.dir) * dist;
+            d.y += Math.sin(d.dir) * dist;
+          }
+          if (d.x < 0) d.x += panelW; else if (d.x >= panelW) d.x -= panelW;
+          if (d.y < 0) d.y += panelH; else if (d.y >= panelH) d.y -= panelH;
+        }
+      }
+      return respawned;
+    }
+  }
+
+  // Clinic-style version: the published tasks closest to the clinic test as remembered (dots
+  // drifting up or down; a flickering spiral flashed twice, pick the flash). Motion: Pavan,
+  // Skujevskis & Baggio (2013). Form: Roccato, Campana, Vicovaro, Donato & Pavan (2024), dynamic
+  // spiral Glass patterns in two-interval forced choice. The 45° spiral angle is chosen here.
+  const CLINIC = Object.freeze({
+    field: Object.freeze({ w: 11, h: 11 }),
+    motion: Object.freeze({ apertureDeg: 8, dots: 250, dotDeg: 0.03, speed: 20.1, lifetimeMs: 83.3, fixationDeg: 0.4, fixationMs: 1000, briefMs: 200 }),
+    form: Object.freeze({ radiusDeg: 5.35, dipoles: 2146, dotDeg: 0.04, separationDeg: 0.25, spiralDeg: 45, uniqueFrames: 12, intervalMs: 200, gapMs: 500, fixationMs: 1000, fixationDeg: 0.3 }),
+    staircase: Object.freeze({ start: 100, factor: 0.84, down: 3, min: 1, max: 100, catchEvery: 8, practiceTrials: 4, maxTrials: 150 }),
+    runs: Object.freeze({
+      published: Object.freeze({ stopReversals: 10, meanOfLast: 8 }), // "published" = this version's standard length
+      long: Object.freeze({ stopReversals: 14, meanOfLast: 12 }),
+    }),
+  });
+
+  const clamp01 = v => Math.max(0, Math.min(1, v));
+
+  // Pavan et al. (2013): signal dots translate up or down inside a square aperture; noise dots are
+  // replotted at random every frame; every dot lives 83.3 ms, with staggered starting ages.
+  // Positions are degrees from the aperture centre, y down. direction: -1 up, +1 down.
+  class UpDownMotion {
+    constructor({ rng, coherence, direction, apertureDeg, dots, speed, lifetimeMs }) {
+      this.rng = rng; this.size = apertureDeg; this.speed = speed; this.lifetimeMs = lifetimeMs; this.direction = direction;
+      const order = shuffle(Array.from({ length: dots }, (_, i) => i), rng);
+      this.nSignal = Math.round(clamp01(coherence) * dots);
+      const isSignal = new Uint8Array(dots);
+      for (let k = 0; k < this.nSignal; k++) isSignal[order[k]] = 1;
+      this.dots = Array.from({ length: dots }, (_, i) => ({ x: (rng() - 0.5) * apertureDeg, y: (rng() - 0.5) * apertureDeg, age: rng() * lifetimeMs, signal: isSignal[i] === 1 }));
+    }
+    step(dtMs) {
+      const size = this.size, half = size / 2, dist = this.speed * dtMs / 1000;
+      let replotted = 0;
+      for (const d of this.dots) {
+        d.age += dtMs;
+        if (d.age >= this.lifetimeMs) {
+          d.age %= this.lifetimeMs;
+          d.x = (this.rng() - 0.5) * size; d.y = (this.rng() - 0.5) * size;
+          replotted += 1;
+        } else if (d.signal) {
+          d.y += this.direction * dist;
+          if (d.y < -half) d.y += size; else if (d.y >= half) d.y -= size;
+        } else {
+          d.x = (this.rng() - 0.5) * size; d.y = (this.rng() - 0.5) * size;
+        }
+      }
+      return replotted;
+    }
+  }
+
+  // One frame of a Glass pattern in a disc. Dipole centres are uniform over the disc; signal
+  // dipoles lie at spiralDeg to the radius (0 radial, 90 concentric; handed ±1 sets the turn),
+  // noise dipoles point anywhere. Dot coordinates in degrees, y down: [x1, y1, x2, y2, ...].
+  function glassFrame({ rng, coherence, radiusDeg, dipoles, separationDeg, spiralDeg, handed = 1 }) {
+    const nSignal = Math.round(clamp01(coherence) * dipoles);
+    const rMax = radiusDeg - separationDeg / 2, h = separationDeg / 2, sp = handed * spiralDeg * DEG;
+    const pts = new Float32Array(dipoles * 4);
+    for (let i = 0; i < dipoles; i++) {
+      const r = rMax * Math.sqrt(rng()), a = rng() * 2 * Math.PI;
+      const x = r * Math.cos(a), y = r * Math.sin(a);
+      const theta = i < nSignal ? a + sp : rng() * Math.PI;
+      const dx = Math.cos(theta) * h, dy = Math.sin(theta) * h;
+      pts[i * 4] = x - dx; pts[i * 4 + 1] = y - dy; pts[i * 4 + 2] = x + dx; pts[i * 4 + 3] = y + dy;
+    }
+    return { pts, dipoles, nSignal };
+  }
+
+  function weibull2afc(c, alpha, beta = 2, lapse = 0.02) {
+    return 0.5 + (0.5 - lapse) * (1 - Math.exp(-Math.pow(c / alpha, beta)));
+  }
+
+  // Runs the published procedure against a simulated observer (used for the example results and tests).
+  function simulateRun({ alpha, beta = 2, lapse = 0.02, rng, run, staircase = PROTOCOL.staircase }) {
+    const sc = new Staircase({ start: staircase.start, factor: staircase.factor, down: staircase.down || 2, min: staircase.min, max: staircase.max, maxTrials: staircase.maxTrials, ...run });
+    const trials = [];
+    let sinceCatch = 0;
+    while (!sc.done) {
+      if (sinceCatch === staircase.catchEvery) {
+        trials.push({ phase: "catch", level: 100, correct: rng() < weibull2afc(100, alpha, beta, lapse), reversal: false });
+        sinceCatch = 0;
+        continue;
+      }
+      const level = sc.level;
+      const correct = rng() < weibull2afc(level, alpha, beta, lapse);
+      const { reversal } = sc.record(correct);
+      trials.push({ phase: "test", level, correct, reversal });
+      sinceCatch += 1;
+    }
+    return { staircase: sc, trials };
+  }
+
+  function pxPerDeg(pxPerCm, distanceCm) { return pxPerCm * distanceCm * Math.tan(DEG); }
+  // Li et al. (2020): exact only when the eye is straight in front of the fixation square.
+  function distanceFromBlindSpot(offsetCm, angleDeg = PROTOCOL.blindSpotDeg) { return offsetCm / Math.tan(angleDeg * DEG); }
+  // Off-axis version. squareCm and dotCm are horizontal screen positions relative to the foot of
+  // the perpendicular from the fixating eye. Solves atan(s/d) − atan(x/d) = α for d:
+  // tanα·d² − (s − x)·d + tanα·s·x = 0, taking the larger root. When s and x lie on the same side
+  // of the eye, a second root exists below √(s·x); it would mean fixating more than 45° off-axis,
+  // which no layout here asks for, so it is discarded. Null when no distance fits.
+  function distanceFromBlindSpotGeometry(squareCm, dotCm, angleDeg = PROTOCOL.blindSpotDeg) {
+    const t = Math.tan(angleDeg * DEG), o = squareCm - dotCm;
+    if (!(o > 0)) return null;
+    const disc = o * o - 4 * t * t * squareCm * dotCm;
+    return disc < 0 ? null : (o + Math.sqrt(disc)) / (2 * t);
+  }
+  function angularExtentDeg(sizeCm, distanceCm) { return 2 * Math.atan(sizeCm / (2 * distanceCm)) / DEG; }
+  function fitScale(viewW, viewH, ppd, needW = PROTOCOL.field.w, needH = PROTOCOL.field.h, margin = 10) {
+    if (!(ppd > 0)) return 1;
+    return Math.min(1, (viewW - 2 * margin) / (needW * ppd), (viewH - 2 * margin) / (needH * ppd));
+  }
+  function median(values) {
+    const v = values.filter(Number.isFinite).slice().sort((a, b) => a - b);
+    if (!v.length) return null;
+    const m = v.length >> 1;
+    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+  }
+  function mean(values) { return values.length ? values.reduce((s, v) => s + v, 0) / values.length : null; }
+  function effectiveCoherenceFactor(frameMs, lifetimeMs = PROTOCOL.motion.lifetimeMs) { return Math.max(0, Math.min(1, 1 - frameMs / lifetimeMs)); }
+  // 1 / threshold in %, the scale the clinic's own report uses: a 10% threshold is 0.1.
+  function sensitivity(thresholdPct) { return thresholdPct > 0 ? 1 / thresholdPct : null; }
+  function toCSV(rows, columns) {
+    const esc = v => {
+      if (v === null || v === undefined) return "";
+      const s = String(v);
+      return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    return [columns.join(","), ...rows.map(r => columns.map(c => esc(r[c])).join(","))].join("\n");
+  }
+
+  return { PROTOCOL, CLINIC, mulberry32, mixSeed, shuffle, Staircase, buildFormStimulus, MotionStimulus, UpDownMotion, glassFrame, weibull2afc, simulateRun, pxPerDeg, distanceFromBlindSpot, distanceFromBlindSpotGeometry, angularExtentDeg, fitScale, median, mean, effectiveCoherenceFactor, sensitivity, toCSV };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = Core;
+
+/* ---------- App: calibration, task flow, results ---------- */
+if (typeof document !== "undefined") (() => {
+  const P = Core.PROTOCOL;
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const TASK_LABEL = { motion: "Motion task", form: "Form task" };
+  const STAGE_MARK = "#FFB547";
+  const CSV_COLUMNS = ["protocol", "task", "phase", "trial", "level_pct", "effective_level_pct", "target", "response", "correct", "rt_ms", "reversal", "frames", "median_frame_ms", "dropped_frames", "display_ms", "flash1_ms", "flash2_ms", "spiral_deg", "scale", "px_per_deg", "seed", "at"];
+  const FIX_RED = "#E0302A", FIX_GREY = "#808080";
+  const round = (v, d) => Math.round(v * Math.pow(10, d)) / Math.pow(10, d);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const esc = s => String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+
+  const fmt = {
+    pct(v) { if (v == null || !Number.isFinite(v)) return "–"; return (v >= 10 ? v.toFixed(1) : v.toFixed(2)) + "%"; },
+    fixed(v, d) { return v == null || !Number.isFinite(v) ? "–" : v.toFixed(d); },
+    signed(v, d) {
+      if (v == null || !Number.isFinite(v)) return "–";
+      const r = Number(v.toFixed(d));
+      return (r > 0 ? "+" : r < 0 ? "−" : "") + Math.abs(r).toFixed(d);
+    },
+    int(v) { return v == null ? "–" : Math.round(v).toLocaleString("en-GB"); },
+    time(iso) { try { return new Date(iso).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }); } catch (e) { return iso; } },
+  };
+
+  /* ----- state and storage ----- */
+  const STORE_KEY = "form-motion-coherence/v1";
+  // motionDisplay is fixed at the 200 ms flash and can't be changed. It stays in settings so exports
+  // say which display was used: version 0.1.0 exports may say "until-answer".
+  const state = { view: "setup", settings: { protocol: "clinic", motionDisplay: "brief", spiralDots: "flicker", element: "dipoles", order: "motion-first", run: "published" }, calib: null, distance: null, session: null };
+  const store = {
+    load() { try { return JSON.parse(window.localStorage.getItem(STORE_KEY) || "null"); } catch (e) { return null; } },
+    save() { try { window.localStorage.setItem(STORE_KEY, JSON.stringify({ settings: state.settings, calib: state.calib })); } catch (e) { /* storage blocked */ } },
+  };
+  const saved = store.load();
+  if (saved && typeof saved === "object") {
+    // Not motionDisplay: a value saved by version 0.1.0 must not bring back the until-you-answer display.
+    const allowed = { protocol: ["clinic", "atkinson"], spiralDots: ["flicker", "still"], element: ["dipoles", "lines"], order: ["motion-first", "form-first"], run: ["published", "long"] };
+    if (saved.settings) for (const k of Object.keys(allowed)) if (allowed[k].includes(saved.settings[k])) state.settings[k] = saved.settings[k];
+    if (saved.calib && saved.calib.pxPerMm > 0 && saved.calib.cardPx > 0) state.calib = saved.calib;
+  }
+  const taskOrder = () => state.settings.order === "form-first" ? ["form", "motion"] : ["motion", "form"];
+  const isClinic = (settings = state.settings) => settings.protocol === "clinic";
+  const SPEC = (settings = state.settings) => (isClinic(settings) ? Core.CLINIC : P);
+  const PROTOCOL_LABEL = { clinic: "Clinic-style", atkinson: "Atkinson et al. (2006)" };
+  const dpr = () => window.devicePixelRatio || 1;
+  const calibMatchesScreen = () => !!(state.calib && Math.abs((state.calib.dpr || 1) - dpr()) < 0.01);
+
+  /* ----- views ----- */
+  function flash(text) { const f = $("#flash"); f.textContent = text || ""; f.hidden = !text; }
+
+  function renderStepper() {
+    const o = taskOrder();
+    const list = [["setup", "Set up"], ["screen", "Screen size"], ["distance", "Viewing distance"], [o[0], TASK_LABEL[o[0]]], [o[1], TASK_LABEL[o[1]]], ["results", "Results"]];
+    const cur = list.findIndex(s => s[0] === state.view);
+    $("#stepper").innerHTML = list.map(([, label], i) => {
+      const done = i < cur, here = i === cur;
+      return `<li class="${done ? "done" : ""}"${here ? ' aria-current="step"' : ""}><span class="n" aria-hidden="true">${done ? "✓" : i + 1}</span><span>${label}</span></li>`;
+    }).join("");
+  }
+
+  function show(view, message) {
+    state.view = view;
+    const section = view === "motion" || view === "form" ? "task" : view;
+    for (const el of $$(".view")) el.hidden = el.dataset.view !== section;
+    flash(message || "");
+    renderStepper();
+    if (section === "task") renderTaskIntro(view);
+    if (view === "screen") renderCard();
+    if (view === "distance") renderDistance();
+    if (view === "results") renderResults();
+    if (view === "setup") $("#small-note").hidden = window.innerWidth >= 760;
+    refreshPreviews();
+    window.scrollTo(0, 0);
+  }
+
+  /* ----- drawing (shared by previews and the stage) ----- */
+  function drawForm(ctx, stim, g, element, outline) {
+    const F = P.form;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, g.w, g.h);
+    const fx = g.cx - (F.fieldW / 2) * g.ppd, fy = g.cy - (F.fieldH / 2) * g.ppd;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(fx, fy, F.fieldW * g.ppd, F.fieldH * g.ppd);
+    ctx.clip();
+    if (element === "lines") {
+      const half = (F.lineLength / 2) * g.ppd;
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = Math.max(1.25, F.lineWidth * g.ppd);
+      ctx.lineCap = "butt";
+      ctx.beginPath();
+      for (const e of stim.elements) {
+        const x = g.cx + e.x * g.ppd, y = g.cy + e.y * g.ppd;
+        const dx = Math.cos(e.theta) * half, dy = Math.sin(e.theta) * half;
+        ctx.moveTo(x - dx, y - dy);
+        ctx.lineTo(x + dx, y + dy);
+      }
+      ctx.stroke();
+    } else {
+      const r = Math.max(0.9, (F.dotDiameter / 2) * g.ppd);
+      const half = (F.dipoleSeparation / 2) * g.ppd;
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      for (const e of stim.elements) {
+        const x = g.cx + e.x * g.ppd, y = g.cy + e.y * g.ppd;
+        const dx = Math.cos(e.theta) * half, dy = Math.sin(e.theta) * half;
+        ctx.moveTo(x - dx + r, y - dy);
+        ctx.arc(x - dx, y - dy, r, 0, Math.PI * 2);
+        ctx.moveTo(x + dx + r, y + dy);
+        ctx.arc(x + dx, y + dy, r, 0, Math.PI * 2);
+      }
+      ctx.fill();
+    }
+    ctx.restore();
+    if (outline) {
+      ctx.save();
+      ctx.strokeStyle = STAGE_MARK;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.arc(g.cx + stim.target.x * g.ppd, g.cy + stim.target.y * g.ppd, stim.target.r * g.ppd, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function drawMotion(ctx, stim, g, outline) {
+    const M = P.motion;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, g.w, g.h);
+    const size = Math.max(1.5, M.dotSize * g.ppd), half = size / 2;
+    ctx.fillStyle = "#fff";
+    for (const p of stim.panels) {
+      const x0 = g.cx + (p.side < 0 ? -(M.gap / 2 + M.panelW) : M.gap / 2) * g.ppd;
+      const y0 = g.cy - (M.panelH / 2) * g.ppd;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x0, y0, M.panelW * g.ppd, M.panelH * g.ppd);
+      ctx.clip();
+      for (const d of p.dots) ctx.fillRect(x0 + d.x * g.ppd - half, y0 + d.y * g.ppd - half, size, size);
+      ctx.restore();
+      if (outline && p.isTarget) {
+        const bandH = M.panelH / M.strips;
+        ctx.save();
+        ctx.strokeStyle = STAGE_MARK;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 4]);
+        ctx.strokeRect(x0, y0 + Math.floor(M.strips / 2) * bandH * g.ppd, M.panelW * g.ppd, bandH * g.ppd);
+        ctx.restore();
+      }
+    }
+  }
+
+  // Clinic-style stimuli: square dots at least one CSS pixel, snapped to device pixels so they stay crisp.
+  function dotPainter(ctx, g, dotDeg) {
+    const ratio = dpr(), size = Math.max(1, Math.round(dotDeg * g.ppd * ratio)) / ratio;
+    const snap = v => Math.round(v * ratio) / ratio;
+    return (x, y) => ctx.rect(snap(g.cx + x * g.ppd - size / 2), snap(g.cy + y * g.ppd - size / 2), size, size);
+  }
+  function drawSpot(ctx, g, diamDeg, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(g.cx, g.cy, Math.max(1.5, (diamDeg * g.ppd) / 2), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  function drawUpDown(ctx, stim, g, visible = true) {
+    const M = Core.CLINIC.motion;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, g.w, g.h);
+    if (visible) {
+      const dot = dotPainter(ctx, g, M.dotDeg);
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      for (const d of stim.dots) dot(d.x, d.y);
+      ctx.fill();
+    }
+    drawSpot(ctx, g, M.fixationDeg, FIX_RED);
+  }
+  function drawGlass(ctx, frame, g) {
+    const F = Core.CLINIC.form;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, g.w, g.h);
+    if (frame) {
+      const dot = dotPainter(ctx, g, F.dotDeg), p = frame.pts;
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      for (let i = 0; i < p.length; i += 2) dot(p[i], p[i + 1]);
+      ctx.fill();
+    }
+    drawSpot(ctx, g, F.fixationDeg, FIX_GREY);
+  }
+
+  /* ----- previews ----- */
+  const previews = [];
+  function makePreview(canvas, kind, seed, outline) {
+    const it = { canvas, kind, seed, outline, playing: !reduceMotion, ctx: canvas.getContext("2d", { alpha: false }), paint: null, step: null, g: null, w: 0, key: "" };
+    previews.push(it);
+    return it;
+  }
+  const outlineOn = it => (typeof it.outline === "function" ? it.outline() : it.outline);
+  const previewKey = () => [state.settings.protocol, state.settings.spiralDots, state.settings.element].join("|");
+  function buildPreview(it) {
+    const r = it.canvas.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const ratio = dpr();
+    it.canvas.width = Math.round(r.width * ratio);
+    it.canvas.height = Math.round(r.height * ratio);
+    it.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    const field = SPEC().field;
+    it.g = { w: r.width, h: r.height, cx: r.width / 2, cy: r.height / 2, ppd: Math.min(r.width / (field.w + 1), r.height / (field.h + 1)) };
+    const rng = Core.mulberry32(it.seed);
+    if (isClinic() && it.kind === "motion") {
+      const stim = new Core.UpDownMotion({ rng, coherence: 1, direction: -1, ...Core.CLINIC.motion });
+      it.step = dt => stim.step(dt);
+      it.paint = () => drawUpDown(it.ctx, stim, it.g);
+    } else if (isClinic()) {
+      const F = Core.CLINIC.form, n = state.settings.spiralDots === "still" ? 1 : F.uniqueFrames;
+      const frames = Array.from({ length: n }, () => Core.glassFrame({ rng, coherence: 1, ...F, handed: 1 }));
+      let t = 0;
+      it.step = n > 1 ? dt => { t += dt; } : null;
+      it.paint = () => drawGlass(it.ctx, frames[Math.floor(t / (F.intervalMs / F.uniqueFrames)) % n], it.g);
+    } else if (it.kind === "motion") {
+      const stim = new Core.MotionStimulus({ rng, coherence: 1, side: 1, ...P.motion });
+      it.step = dt => stim.step(dt);
+      it.paint = () => drawMotion(it.ctx, stim, it.g, outlineOn(it));
+    } else {
+      const stim = Core.buildFormStimulus({ rng, coherence: 1, side: 1, ...P.form });
+      it.step = null;
+      it.paint = () => drawForm(it.ctx, stim, it.g, state.settings.element, outlineOn(it));
+    }
+    it.w = r.width;
+    it.key = previewKey();
+    it.paint();
+  }
+  function refreshPreviews(force) {
+    const key = previewKey();
+    for (const it of previews) {
+      if (it.canvas.offsetParent === null) continue;
+      const w = it.canvas.getBoundingClientRect().width;
+      if (force || !it.paint || it.key !== key || Math.abs(w - it.w) > 0.5) buildPreview(it);
+      else it.paint();
+    }
+  }
+  let previewLast = null;
+  function previewTick(ts) {
+    const dt = previewLast == null ? 0 : Math.min(50, ts - previewLast);
+    previewLast = ts;
+    if (!stage.open) {
+      for (const it of previews) {
+        if (!it.step || !it.playing || !it.paint || it.canvas.offsetParent === null) continue;
+        it.step(dt);
+        it.paint();
+      }
+    }
+    requestAnimationFrame(previewTick);
+  }
+
+  /* ----- stage ----- */
+  const stage = { el: $("#stage"), canvas: $("#stage-canvas"), ctx: null, w: 0, h: 0, open: false, redraw: null, bg: "#000" };
+  stage.ctx = stage.canvas.getContext("2d", { alpha: false });
+  function clearStage() { stage.ctx.fillStyle = stage.bg; stage.ctx.fillRect(0, 0, stage.w, stage.h); }
+  function stageResize() {
+    const ratio = dpr();
+    stage.w = window.innerWidth;
+    stage.h = window.innerHeight;
+    stage.canvas.width = Math.max(1, Math.round(stage.w * ratio));
+    stage.canvas.height = Math.max(1, Math.round(stage.h * ratio));
+    stage.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    clearStage();
+    if (stage.redraw) stage.redraw();
+  }
+  let wakeLock = null;
+  function openStage() {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    $(".wrap").inert = true;
+    stage.el.hidden = false;
+    stage.open = true;
+    document.documentElement.classList.add("staging");
+    stageResize();
+    if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request("screen").then(l => { wakeLock = l; }, () => {});
+  }
+  function closeStage() {
+    stage.el.hidden = true;
+    stage.open = false;
+    stage.redraw = null;
+    stage.bg = "#000";
+    stage.el.classList.remove("light");
+    $(".wrap").inert = false;
+    document.documentElement.classList.remove("staging");
+    setHud("");
+    $("#stage-msg").hidden = true;
+    $("#stage-fb").hidden = true;
+    $("#stage-note").hidden = true;
+    $("#pause").hidden = true;
+    stage.el.classList.remove("hide-cursor");
+    if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+  }
+  function setHud(text) { $("#hud").textContent = text; }
+  function stageNote(text, prompt = false) { const n = $("#stage-note"); n.textContent = text || ""; n.hidden = !text; n.classList.toggle("prompt", !!prompt); }
+  function stageGeom() {
+    const spec = SPEC(state.session ? state.session.settings : state.settings);
+    const ppd0 = Core.pxPerDeg(state.calib.pxPerMm * 10, state.distance.cm);
+    const scale = Core.fitScale(stage.w, stage.h, ppd0, spec.field.w, spec.field.h);
+    return { w: stage.w, h: stage.h, cx: stage.w / 2, cy: stage.h / 2, ppd0, scale, ppd: ppd0 * scale };
+  }
+
+  let keyHandler = null, pointerHandler = null, escHandler = null, msgEsc = null;
+  window.addEventListener("keydown", e => {
+    if (!stage.open) return;
+    if (e.key === "Escape") {
+      const h = msgEsc || escHandler;
+      if (h) { e.preventDefault(); h(); }
+      return;
+    }
+    if (keyHandler && keyHandler(e)) e.preventDefault();
+  });
+  stage.canvas.addEventListener("pointerdown", e => { if (pointerHandler) { e.preventDefault(); pointerHandler(e); } });
+
+  // Resolves "go" for the main button (Space or Enter) and "alt" for the optional second one (Esc).
+  function stageMessage(html, { go = "Continue", alt = null, altVerb = "" } = {}) {
+    return new Promise(resolve => {
+      const box = $("#stage-msg");
+      const hint = `<kbd>Space</kbd> to continue${alt ? ` · <kbd>Esc</kbd> to ${esc(altVerb || alt.toLowerCase())}` : ""}`;
+      box.innerHTML = `${html}<div class="msg-actions"><button class="btn" type="button" id="stage-msg-go">${esc(go)}</button>${alt ? `<button class="btn secondary" type="button" id="stage-msg-alt">${esc(alt)}</button>` : ""}<span class="hint">${hint}</span></div>`;
+      box.hidden = false;
+      stage.el.classList.remove("hide-cursor");
+      setHud("");
+      let done = false;
+      const finish = v => { if (done) return; done = true; box.hidden = true; keyHandler = null; msgEsc = null; resolve(v); };
+      $("#stage-msg-go").addEventListener("click", () => finish("go"));
+      if (alt) $("#stage-msg-alt").addEventListener("click", () => finish("alt"));
+      keyHandler = e => {
+        if (e.target && e.target.id === "stage-msg-alt") return false;
+        if ((e.key === " " || e.key === "Enter") && !e.repeat) { finish("go"); return true; }
+        return false;
+      };
+      msgEsc = alt ? () => finish("alt") : null;
+      setTimeout(() => { const b = $("#stage-msg-go"); if (b && !done) b.focus({ preventScroll: true }); }, 0);
+    });
+  }
+
+  function answerPhrase(t) {
+    if (t.target === "up" || t.target === "down") return `The dots were drifting ${t.target}.`;
+    if (t.target === "1" || t.target === "2") return `The spiral was in the ${t.target === "1" ? "first" : "second"} flash.`;
+    return `The target was on the ${t.target}.`;
+  }
+  async function feedback(correct, what) {
+    const fb = $("#stage-fb");
+    fb.textContent = correct ? "Correct" : `Not quite. ${what}`;
+    fb.hidden = false;
+    await sleep(correct ? 700 : 1400);
+    fb.hidden = true;
+  }
+
+  // Atkinson: an oscillating spot between trials, cleared at the end. Clinic-style: a steady point
+  // that stays on into the stimulus.
+  function fixation(ms, { pulse = true, color = "#8C8C8C", diamPx = 0 } = {}) {
+    return new Promise(resolve => {
+      const start = performance.now();
+      const frame = ts => {
+        const t = Math.max(0, ts - start);
+        clearStage();
+        const r = pulse ? (reduceMotion ? 4 : 3 + 2 * (0.5 + 0.5 * Math.sin(t / 90))) : Math.max(1.5, diamPx / 2);
+        stage.ctx.fillStyle = color;
+        stage.ctx.beginPath();
+        stage.ctx.arc(stage.w / 2, stage.h / 2, r, 0, Math.PI * 2);
+        stage.ctx.fill();
+        if (t >= ms) { if (pulse) clearStage(); resolve(); return; }
+        requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    });
+  }
+
+  function measureFrame(n = 90) {
+    return new Promise(resolve => {
+      const ts = [];
+      const tick = t => {
+        ts.push(t);
+        if (ts.length < n) { requestAnimationFrame(tick); return; }
+        const d = [];
+        for (let i = 1; i < ts.length; i++) d.push(ts[i] - ts[i - 1]);
+        resolve(Core.median(d) || 1000 / 60);
+      };
+      requestAnimationFrame(tick);
+    });
+  }
+
+  /* ----- pause ----- */
+  const pause = { open: false, requested: false, abortTrial: null, decide: null, pending: null };
+  let inTrial = false;
+  function openPause() {
+    if (pause.open) return;
+    pause.open = true;
+    pause.requested = true;
+    pause.pending = null;
+    if (pause.abortTrial) pause.abortTrial();
+    $("#pause").hidden = false;
+    stage.el.classList.remove("hide-cursor");
+    setTimeout(() => $("#pause-resume").focus({ preventScroll: true }), 0);
+  }
+  function decidePause(choice) {
+    $("#pause").hidden = true;
+    pause.open = false;
+    if (pause.decide) { const d = pause.decide; pause.decide = null; pause.requested = false; d(choice); }
+    else pause.pending = choice;
+  }
+  function waitForPauseDecision() {
+    return new Promise(resolve => {
+      if (pause.pending) { const c = pause.pending; pause.pending = null; pause.requested = false; resolve(c); }
+      else pause.decide = resolve;
+    });
+  }
+  $("#pause-resume").addEventListener("click", () => decidePause("resume"));
+  $("#pause-end").addEventListener("click", () => decidePause("end"));
+  const taskEsc = () => { if (pause.open) decidePause("resume"); else if (inTrial) openPause(); };
+
+  /* ----- one trial ----- */
+  // A presenter shows one trial and resolves {aborted} or {target, response, t0, t1, g, dts, extra}.
+  // The first rng() draw decides the target in every task (the test harness relies on this).
+  let trialRaf = 0;
+  const RESPONSE_HUD = {
+    bands: "Left: ← or F  ·  Right: → or J  ·  Pause: Esc",
+    updown: "Up: ↑  ·  Down: ↓  ·  Pause: Esc",
+    spiral: "First flash: 1 or ←  ·  Second flash: 2 or →  ·  Pause: Esc",
+  };
+  function awaitAnswer(map, fromPointer) {
+    return new Promise(resolve => {
+      let settled = false;
+      const settle = v => { if (!settled) { settled = true; resolve(v); } };
+      pause.abortTrial = () => settle({ aborted: true });
+      keyHandler = e => {
+        if (e.repeat) return false;
+        const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+        if (!Object.prototype.hasOwnProperty.call(map, k)) return false;
+        settle({ response: map[k], t1: performance.now() });
+        return true;
+      };
+      pointerHandler = e => settle({ response: fromPointer(e), t1: performance.now() });
+    });
+  }
+  // Runs frameFn on every frame until it returns false or the trial ends; resolves after the first frame.
+  function startLoop(frameFn) {
+    return new Promise(resolve => {
+      let last = null;
+      const tick = ts => {
+        const more = frameFn(last === null ? null : ts - last, ts) !== false;
+        if (last === null) resolve(ts);
+        last = ts;
+        if (more) trialRaf = requestAnimationFrame(tick);
+      };
+      trialRaf = requestAnimationFrame(tick);
+    });
+  }
+
+  async function presentAtkinson(task, { s, rng, first, coherence }) {
+    await fixation(P.itiMs);
+    if (pause.requested) return { aborted: true };
+    const side = first ? -1 : 1, g = stageGeom(), dts = [];
+    if (task === "form") {
+      const stim = Core.buildFormStimulus({ rng, coherence, side, ...P.form });
+      stage.redraw = () => drawForm(stage.ctx, stim, stageGeom(), s.settings.element, false);
+      stage.redraw();
+    } else {
+      const stim = new Core.MotionStimulus({ rng, coherence, side, ...P.motion });
+      await startLoop(dt => {
+        if (dt != null) { dts.push(dt); stim.step(Math.min(dt, 50)); }
+        drawMotion(stage.ctx, stim, stageGeom(), false);
+      });
+    }
+    if (pause.requested) return { aborted: true };
+    const t0 = performance.now();
+    setHud(RESPONSE_HUD.bands);
+    const res = await awaitAnswer({ ArrowLeft: "left", f: "left", ArrowRight: "right", j: "right" }, e => (e.clientX < stage.w / 2 ? "left" : "right"));
+    if (res.aborted) return res;
+    return { target: first ? "left" : "right", response: res.response, t0, t1: res.t1, g, dts };
+  }
+
+  // Clinic-style motion: 1 s fixation, then dots drifting up or down for a fixed 200 ms (Pavan et al. 2013).
+  // Answers count from the moment the dots appear, but an early answer doesn't cut the flash short,
+  // so every trial shows the same 200 ms.
+  async function presentUpDown({ s, rng, first, coherence }) {
+    const M = Core.CLINIC.motion, g = stageGeom();
+    await fixation(M.fixationMs, { pulse: false, color: FIX_RED, diamPx: M.fixationDeg * g.ppd });
+    if (pause.requested) return { aborted: true };
+    const stim = new Core.UpDownMotion({ rng, coherence, direction: first ? -1 : 1, ...M });
+    const dts = [];
+    let ts0 = null, shownMs = null, endFlash;
+    const flashOver = new Promise(resolve => { endFlash = resolve; });
+    await startLoop((dt, ts) => {
+      if (ts0 === null) ts0 = ts;
+      if (dt != null) { dts.push(dt); stim.step(Math.min(dt, 50)); }
+      if (ts - ts0 >= M.briefMs - s.frameMs / 2) {
+        shownMs = ts - ts0;
+        stage.redraw = () => drawUpDown(stage.ctx, stim, stageGeom(), false);
+        stage.redraw();
+        endFlash();
+        return false;
+      }
+      drawUpDown(stage.ctx, stim, stageGeom(), true);
+      return true;
+    });
+    if (pause.requested) return { aborted: true };
+    const t0 = performance.now();
+    setHud(RESPONSE_HUD.updown);
+    const res = await awaitAnswer({ ArrowUp: "up", ArrowDown: "down" }, e => (e.clientY < stage.h / 2 ? "up" : "down"));
+    if (res.aborted) return res;
+    await flashOver; // a pause aborts above, so the loop is still running and this always resolves
+    return { target: first ? "up" : "down", response: res.response, t0, t1: res.t1, g, dts, extra: { display_ms: round(shownMs, 1) } };
+  }
+
+  // Shows Glass-pattern frames for durMs (each unique frame for durMs / uniqueFrames), then blanks
+  // to the fixation point. Resolves the measured on-time, or null if a pause arrives mid-flash.
+  function flashFrames(frames, durMs, frameMs, log) {
+    const per = durMs / Core.CLINIC.form.uniqueFrames;
+    return new Promise(resolve => {
+      let ts0 = null, last = null, done = false;
+      pause.abortTrial = () => { if (!done) { done = true; cancelAnimationFrame(trialRaf); resolve(null); } };
+      const tick = ts => {
+        if (done) return;
+        if (ts0 === null) ts0 = ts;
+        if (last !== null) log.dts.push(ts - last);
+        last = ts;
+        const el = ts - ts0;
+        if (el >= durMs - frameMs / 2) {
+          done = true;
+          pause.abortTrial = null;
+          drawGlass(stage.ctx, null, stageGeom());
+          resolve(el);
+          return;
+        }
+        drawGlass(stage.ctx, frames[Math.min(frames.length - 1, Math.floor(el / per))], stageGeom());
+        log.frames += 1;
+        trialRaf = requestAnimationFrame(tick);
+      };
+      trialRaf = requestAnimationFrame(tick);
+    });
+  }
+
+  // Clinic-style form: 1 s fixation, flash, 0.5 s gap, flash; one flash holds the spiral, the other
+  // the same number of randomly oriented dipoles. Which flash had the spiral?
+  async function presentSpiral({ s, rng, first, coherence }) {
+    const F = Core.CLINIC.form, g = stageGeom();
+    const fix = { pulse: false, color: FIX_GREY, diamPx: F.fixationDeg * g.ppd };
+    const n = s.settings.spiralDots === "still" ? 1 : F.uniqueFrames;
+    const handed = rng() < 0.5 ? 1 : -1;
+    const make = c => Array.from({ length: n }, () => Core.glassFrame({ rng, coherence: c, ...F, handed }));
+    const signal = make(coherence), noise = make(0);
+    const order = first ? [signal, noise] : [noise, signal];
+    await fixation(F.fixationMs, fix);
+    if (pause.requested) return { aborted: true };
+    const log = { dts: [], frames: 0 }, shown = [];
+    for (let k = 0; k < 2; k++) {
+      const ms = await flashFrames(order[k], F.intervalMs, s.frameMs, log);
+      if (ms == null || pause.requested) return { aborted: true };
+      shown.push(ms);
+      if (k === 0) {
+        await fixation(F.gapMs, fix);
+        if (pause.requested) return { aborted: true };
+      }
+    }
+    stage.redraw = () => drawGlass(stage.ctx, null, stageGeom());
+    stage.redraw();
+    stageNote("Which flash had the spiral?  1 or 2", true);
+    const t0 = performance.now();
+    setHud(RESPONSE_HUD.spiral);
+    const res = await awaitAnswer({ "1": "1", ArrowLeft: "1", "2": "2", ArrowRight: "2" }, e => (e.clientX < stage.w / 2 ? "1" : "2"));
+    if (res.aborted) return res;
+    return {
+      target: first ? "1" : "2", response: res.response, t0, t1: res.t1, g, dts: log.dts,
+      extra: { frames: log.frames, flash1_ms: round(shown[0], 1), flash2_ms: round(shown[1], 1), spiral_deg: handed * F.spiralDeg },
+    };
+  }
+
+  async function runTrial(task, level, phase, trialNo) {
+    const s = state.session;
+    s.attempts += 1;
+    const seed = Core.mixSeed(s.seed, task === "motion" ? 1 : 2, s.attempts);
+    const rng = Core.mulberry32(seed);
+    const first = rng() < 0.5;
+    inTrial = true;
+    stage.el.classList.add("hide-cursor");
+    setHud("");
+    const clinic = isClinic(s.settings);
+    const args = { s, rng, first, coherence: level / 100 };
+    let out;
+    try {
+      out = clinic ? await (task === "motion" ? presentUpDown(args) : presentSpiral(args)) : await presentAtkinson(task, args);
+    } finally {
+      cancelAnimationFrame(trialRaf);
+      keyHandler = null;
+      pointerHandler = null;
+      pause.abortTrial = null;
+      stage.redraw = null;
+      inTrial = false;
+      setHud("");
+      stageNote("");
+      clearStage();
+    }
+    if (out.aborted) return { aborted: true };
+    const factor = task === "motion" && !clinic ? s.effFactor : 1;
+    const dts = out.dts || [];
+    return Object.assign({
+      protocol: s.settings.protocol, task, phase, trial: trialNo,
+      level_pct: round(level, 3),
+      effective_level_pct: round(level * factor, 3),
+      target: out.target, response: out.response, correct: out.response === out.target,
+      rt_ms: Math.round(out.t1 - out.t0),
+      reversal: false,
+      frames: dts.length ? dts.length + 1 : null,
+      median_frame_ms: dts.length ? round(Core.median(dts), 2) : null,
+      dropped_frames: dts.length ? dts.filter(d => d > 1.5 * s.frameMs).length : null,
+      display_ms: null, flash1_ms: null, flash2_ms: null, spiral_deg: null,
+      scale: round(out.g.scale, 4),
+      px_per_deg: round(out.g.ppd, 3),
+      seed,
+      at: new Date().toISOString(),
+    }, out.extra || {});
+  }
+
+  /* ----- one task: practice, then the staircase ----- */
+  async function runTask(task) {
+    const s = state.session;
+    const spec = SPEC(s.settings), S = spec.staircase, clinic = isClinic(s.settings);
+    const how = !clinic
+      ? "Answer with <kbd>←</kbd> or <kbd>→</kbd>, or click that side of the screen."
+      : task === "motion"
+        ? "Answer with <kbd>↑</kbd> or <kbd>↓</kbd>, or click the top or bottom half of the screen."
+        : "Each trial is two quick flashes. Then press <kbd>1</kbd> or <kbd>2</kbd> (or <kbd>←</kbd> or <kbd>→</kbd>) for the flash that had the spiral.";
+    const choice = await stageMessage(`<h2>${TASK_LABEL[task]}: practice</h2><p>${S.practiceTrials} easy examples first, with feedback. ${how}</p>`, { go: "Start practice", alt: "Back", altVerb: "go back" });
+    if (choice !== "go") return null;
+    const sc = new Core.Staircase({ start: S.start, factor: S.factor, down: S.down || 2, min: S.min, max: S.max, maxTrials: S.maxTrials, ...spec.runs[s.settings.run] });
+    const rec = { task, staircase: sc, trials: [], endedEarly: false };
+    s.tasks[task] = rec;
+    let trialNo = 0;
+    const attempt = async (level, phase) => {
+      for (;;) {
+        const r = await runTrial(task, level, phase, trialNo + 1);
+        if (!r.aborted) { trialNo += 1; rec.trials.push(r); s.trials.push(r); return r; }
+        const choice = await waitForPauseDecision();
+        if (choice === "end") return null;
+      }
+    };
+    for (let i = 0; i < S.practiceTrials; i++) {
+      const r = await attempt(100, "practice");
+      if (!r) { rec.endedEarly = true; return rec; }
+      await feedback(r.correct, answerPhrase(r));
+    }
+    await stageMessage("<h2>Practice done</h2><p>Now the test. It gets harder until it's hard to tell. That's expected: answer every time, and guess when you're unsure. An easy one appears every few trials.</p><p>Press <kbd>Esc</kbd> to pause.</p>", { go: "Start the test" });
+    let sinceCatch = 0;
+    while (!sc.done) {
+      const isCatch = sinceCatch === S.catchEvery;
+      const r = await attempt(isCatch ? 100 : sc.level, isCatch ? "catch" : "test");
+      if (!r) { rec.endedEarly = true; break; }
+      if (isCatch) { sinceCatch = 0; continue; }
+      r.reversal = sc.record(r.correct).reversal;
+      sinceCatch += 1;
+    }
+    return rec;
+  }
+
+  function newSeed() {
+    try { return window.crypto.getRandomValues(new Uint32Array(1))[0]; } catch (e) { return (Math.random() * 4294967296) >>> 0; }
+  }
+  function createSession(simulated) {
+    state.session = {
+      page: "Form–Motion Coherence Test",
+      version: PAGE_VERSION,
+      simulated: !!simulated,
+      seed: simulated ? 20261825 : newSeed(),
+      startedAt: new Date().toISOString(),
+      finishedAt: null,
+      endedEarly: false,
+      settings: { ...state.settings },
+      calibration: state.calib ? { ...state.calib } : null,
+      distance: state.distance ? { ...state.distance, readings: [...state.distance.readings] } : null,
+      frameMs: null, refreshHz: null, effFactor: null, display: null, attempts: 0,
+      env: { userAgent: navigator.userAgent, language: navigator.language, screen: [screen.width, screen.height], viewport: [window.innerWidth, window.innerHeight], devicePixelRatio: dpr() },
+      tasks: {}, trials: [], results: null,
+    };
+    return state.session;
+  }
+
+  let busy = false;
+  async function startTask(task) {
+    if (busy) return;
+    if (!state.calib || !state.distance) { show("screen"); return; }
+    if (!calibMatchesScreen()) { show("screen", "Your browser zoom or screen has changed since you measured the card. Measure it again."); return; }
+    if (!state.session || state.session.simulated) createSession(false);
+    const s = state.session;
+    busy = true;
+    try {
+      wantFullscreen();
+      openStage();
+      escHandler = taskEsc;
+      if (!s.frameMs) {
+        stageNote("Getting ready…");
+        s.frameMs = await measureFrame();
+        s.refreshHz = 1000 / s.frameMs;
+        s.effFactor = Core.effectiveCoherenceFactor(s.frameMs, P.motion.lifetimeMs);
+        const g = stageGeom();
+        s.display = { ppd0: round(g.ppd0, 3), scale: round(g.scale, 4), viewport: [stage.w, stage.h], fullscreen: !!document.fullscreenElement };
+        stageNote("");
+      }
+      const rec = await runTask(task);
+      escHandler = null;
+      closeStage();
+      if (!rec) { show(task); return; }
+      const order = taskOrder();
+      const i = order.indexOf(task);
+      if (rec.endedEarly || i === order.length - 1) {
+        s.endedEarly = !!rec.endedEarly;
+        finalizeSession(s);
+        show("results");
+      } else {
+        show(order[i + 1]);
+      }
+    } catch (err) {
+      console.error(err);
+      escHandler = null;
+      closeStage();
+      show(task, "Something went wrong while running the task. Try starting it again.");
+    } finally {
+      busy = false;
+    }
+  }
+
+  function finalizeSession(s) {
+    s.finishedAt = s.finishedAt || new Date().toISOString();
+    const run = SPEC(s.settings).runs[s.settings.run];
+    const results = {};
+    for (const task of ["motion", "form"]) {
+      const rec = s.tasks[task];
+      if (!rec) { results[task] = null; continue; }
+      const sc = rec.staircase;
+      const revs = sc.reversals.map(r => r.level);
+      let nominal = null, status;
+      if (revs.length >= run.stopReversals) { status = "complete"; nominal = sc.threshold; }
+      else if (revs.length >= run.meanOfLast) { status = "incomplete"; nominal = sc.threshold; }
+      else if (revs.length >= 2) { status = "incomplete"; nominal = Core.mean(revs); }
+      else status = "not reached";
+      const factor = task === "motion" && !isClinic(s.settings) ? (s.effFactor || 1) : 1;
+      const thr = nominal == null ? null : nominal * factor;
+      const catches = rec.trials.filter(t => t.phase === "catch");
+      results[task] = {
+        status,
+        threshold_pct: thr == null ? null : round(thr, 3),
+        threshold_nominal_pct: nominal == null ? null : round(nominal, 3),
+        sensitivity: thr == null ? null : round(Core.sensitivity(thr), 5),
+        reversals_pct: revs.map(v => round(v * factor, 3)),
+        staircase_trials: sc.history.length,
+        catch_correct: catches.filter(t => t.correct).length,
+        catch_total: catches.length,
+        all_trials: rec.trials.length,
+      };
+    }
+    const m = results.motion, f = results.form;
+    results.motion_minus_form = m && f && m.sensitivity != null && f.sensitivity != null
+      ? { sensitivity: round(m.sensitivity - f.sensitivity, 5), threshold_ratio: round(m.threshold_pct / f.threshold_pct, 4) }
+      : null;
+    s.results = results;
+  }
+
+  /* ----- simulated example ----- */
+  function runSimulation() {
+    const s = createSession(true);
+    s.calibration = { cardPx: 323.53, pxPerMm: 3.7795, dpr: 1, measuredAt: s.startedAt };
+    s.distance = { cm: 50, method: "simulated", readings: [] };
+    s.frameMs = 1000 / 60;
+    s.refreshHz = 60;
+    s.effFactor = Core.effectiveCoherenceFactor(s.frameMs, P.motion.lifetimeMs);
+    const ppd0 = Core.pxPerDeg(37.795, 50);
+    s.display = { ppd0: round(ppd0, 3), scale: 1, viewport: [1440, 900], fullscreen: true };
+    const rng = Core.mulberry32(s.seed);
+    const clinic = isClinic(s.settings), spec = SPEC(s.settings);
+    // Atkinson: tuned so a typical run lands near the published adult means. Clinic-style: illustrative only.
+    const observers = clinic
+      ? { motion: { alpha: 12, beta: 2.2 }, form: { alpha: 28, beta: 2.2 } }
+      : { motion: { alpha: 12.5, beta: 2.2 }, form: { alpha: 15.6, beta: 2.2 } };
+    for (const task of taskOrder()) {
+      const sim = Core.simulateRun({ ...observers[task], lapse: 0.02, rng, run: spec.runs[s.settings.run], staircase: spec.staircase });
+      const rec = { task, staircase: sim.staircase, trials: [], endedEarly: false };
+      const factor = task === "motion" && !clinic ? s.effFactor : 1;
+      const targets = clinic ? (task === "motion" ? ["up", "down"] : ["1", "2"]) : ["left", "right"];
+      const spiralForm = clinic && task === "form";
+      const motionFlashFrames = Math.round(Core.CLINIC.motion.briefMs / s.frameMs) + 1;
+      let n = 0;
+      const push = (phase, level, correct, reversal) => {
+        n += 1;
+        const k = rng() < 0.5 ? 0 : 1, target = targets[k];
+        const rt = Math.round(650 + rng() * 1100 + (100 - level) * 6);
+        const t = {
+          protocol: s.settings.protocol, task, phase, trial: n, level_pct: round(level, 3), effective_level_pct: round(level * factor, 3),
+          target, response: correct ? target : targets[1 - k], correct, rt_ms: rt, reversal,
+          frames: spiralForm ? 24 : task === "motion" ? (clinic ? motionFlashFrames : Math.round(rt / s.frameMs)) : null,
+          median_frame_ms: spiralForm || task === "motion" ? round(s.frameMs, 2) : null,
+          dropped_frames: spiralForm || task === "motion" ? (rng() < 0.1 ? 1 : 0) : null,
+          display_ms: clinic && task === "motion" ? Core.CLINIC.motion.briefMs : null,
+          flash1_ms: spiralForm ? 200 : null, flash2_ms: spiralForm ? 200 : null,
+          spiral_deg: spiralForm ? (rng() < 0.5 ? 45 : -45) : null,
+          scale: 1, px_per_deg: round(ppd0, 3), seed: null, at: s.startedAt,
+        };
+        rec.trials.push(t);
+        s.trials.push(t);
+      };
+      for (let i = 0; i < spec.staircase.practiceTrials; i++) push("practice", 100, true, false);
+      for (const t of sim.trials) push(t.phase, t.level, t.correct, t.reversal);
+      s.tasks[task] = rec;
+    }
+    s.finishedAt = s.startedAt;
+    finalizeSession(s);
+    show("results");
+  }
+
+  /* ----- screen size ----- */
+  const CARD_DEFAULT = P.cardMm.w * 96 / 25.4;
+  let cardPx = calibMatchesScreen() ? state.calib.cardPx : CARD_DEFAULT;
+  function renderCard() {
+    const range = $("#card-size");
+    const max = Math.max(400, Math.min(1000, Math.floor(window.innerWidth - 40)));
+    range.max = String(max);
+    cardPx = Math.min(max, Math.max(160, cardPx));
+    range.value = String(cardPx);
+    $("#card").style.setProperty("--card-w", cardPx + "px");
+    const pxPerMm = cardPx / P.cardMm.w;
+    $("#card-readout").textContent = `${cardPx.toFixed(1)} px wide · ${pxPerMm.toFixed(3)} px per mm · ${(pxPerMm * 25.4).toFixed(0)} px per inch`;
+    $("#saved-calib").hidden = !(calibMatchesScreen() && Math.abs(state.calib.cardPx - cardPx) < 0.01);
+  }
+  $("#card-size").addEventListener("input", e => { cardPx = parseFloat(e.target.value); renderCard(); });
+  $("#card-minus").addEventListener("click", () => { cardPx -= 0.5; renderCard(); });
+  $("#card-plus").addEventListener("click", () => { cardPx += 0.5; renderCard(); });
+  $("#screen-next").addEventListener("click", () => {
+    state.calib = { cardPx: round(cardPx, 2), pxPerMm: round(cardPx / P.cardMm.w, 5), dpr: dpr(), measuredAt: new Date().toISOString() };
+    store.save();
+    show("distance");
+  });
+  $("#screen-back").addEventListener("click", () => show("setup"));
+
+  /* ----- viewing distance ----- */
+  function renderDistance() {
+    const d = state.distance, c = state.calib;
+    const res = $("#distance-result");
+    if (!d) res.textContent = "Not measured yet.";
+    else if (d.method === "blind-spot") {
+      const lo = Math.min(...d.readings), hi = Math.max(...d.readings);
+      res.innerHTML = `Viewing distance: <strong>${d.cm.toFixed(0)} cm</strong>, from ${d.readings.length} blind-spot readings between ${lo.toFixed(0)} and ${hi.toFixed(0)} cm.` + ((hi - lo) / d.cm > 0.2 ? " The readings vary a lot, so try the check again if you can." : "");
+    } else res.innerHTML = `Viewing distance: <strong>${d.cm.toFixed(0)} cm</strong>, entered by hand.`;
+    const note = $("#window-note");
+    const partial = !document.fullscreenElement && window.innerWidth < 0.85 * screen.width;
+    note.textContent = !partial ? "" : document.fullscreenEnabled
+      ? "This window is narrower than your screen. The blind-spot check and the tasks switch to full screen when they start, because both assume you're sitting centred on what the page draws."
+      : "This window is narrower than your screen, and full screen isn't available here. Maximise the window and sit centred on it: the blind-spot check and the tasks both assume you're centred on what the page draws.";
+    note.hidden = !partial;
+    const fit = $("#fit");
+    if (d && c) {
+      const ppd = Core.pxPerDeg(c.pxPerMm * 10, d.cm);
+      const W = window.innerWidth, H = window.innerHeight;
+      const field = SPEC().field;
+      const scale = Core.fitScale(W, H, ppd, field.w, field.h);
+      const pxPerCm = c.pxPerMm * 10;
+      const span = `At ${d.cm.toFixed(0)} cm this window covers about ${Core.angularExtentDeg(W / pxPerCm, d.cm).toFixed(0)}° × ${Core.angularExtentDeg(H / pxPerCm, d.cm).toFixed(0)}° of your view, and the tasks need ${field.w}° × ${field.h}°.`;
+      fit.textContent = scale >= 0.999
+        ? `${span} They fit at full size.`
+        : `${span} They'll be shown at ${Math.round(scale * 100)}% of full size. For full size, go full screen, or sit at about ${Math.floor(d.cm * scale)} cm and measure again.`;
+      fit.hidden = false;
+    } else fit.hidden = true;
+    $("#distance-next").disabled = !(d && c);
+  }
+
+  // Where the fixation square goes. The page assumes you sit centred on the stage, so the
+  // fixating left eye is half an interpupillary distance left of centre. A square ~3 cm right
+  // of centre puts fixation and blind spot either side of that eye, where the estimate is
+  // least sensitive to where you actually sit. The dot must travel past the blind spot's centre
+  // (~15.5°; it starts to vanish at 13.5°) at up to ~80 cm, which needs 24 cm left of a centred
+  // square, so windows narrower than ~43 cm (laptops) put the square at the right edge instead.
+  // Colours: a red dot darker than a light grey ground, like the classic dark-spot-on-paper demo.
+  // A bright dot on black can stay faintly visible in the blind spot through scatter in the eye.
+  const BS = { bg: "#B4B4B4", square: "#000000", dot: "#C0281E" };
+  let blindCancel = null;
+  function blindSpotLayout(pxPerCm) {
+    const sq = Math.max(14, 0.5 * pxPerCm);
+    const rad = Math.max(5, 0.35 * pxPerCm);
+    const edgeX = stage.w - Math.max(sq * 2, 1.5 * pxPerCm);
+    const nearX = Math.min(edgeX, stage.w / 2 + P.blindSpotSquareCm * pxPerCm);
+    const roomCm = (nearX - rad - 4) / pxPerCm;
+    const layout = roomCm < 24 ? "edge" : "centre";
+    return { sq, rad, layout, sqX: layout === "edge" ? edgeX : nearX, eyeX: stage.w / 2 - (P.ipdCm / 2) * pxPerCm };
+  }
+  function blindSpotTrial(pxPerCm, rep) {
+    return new Promise(resolve => {
+      const ctx = stage.ctx;
+      const L = blindSpotLayout(pxPerCm);
+      const { sq, sqX, rad } = L;
+      const w0 = stage.w, h0 = stage.h;
+      const y = stage.h / 2;
+      const speed = 2 * pxPerCm;
+      let x = Math.max(rad + 8, sqX - 4 * pxPerCm), last = null, raf = 0, started = false;
+      const draw = () => {
+        clearStage();
+        ctx.fillStyle = BS.square;
+        ctx.fillRect(sqX - sq / 2, y - sq / 2, sq, sq);
+        ctx.fillStyle = BS.dot;
+        ctx.beginPath();
+        ctx.arc(x, y, rad, 0, Math.PI * 2);
+        ctx.fill();
+      };
+      const cleanup = () => { cancelAnimationFrame(raf); keyHandler = null; blindCancel = null; stage.redraw = null; };
+      const frame = ts => {
+        if (stage.w !== w0 || stage.h !== h0) { cleanup(); resolve("resized"); return; }
+        if (last !== null) x -= speed * (ts - last) / 1000;
+        last = ts;
+        if (x < rad + 4) { cleanup(); resolve("missed"); return; }
+        draw();
+        raf = requestAnimationFrame(frame);
+      };
+      stage.redraw = draw;
+      draw();
+      setHud(`Reading ${rep} of ${P.blindSpotReps} · Space when the dot disappears · Esc to stop`);
+      blindCancel = () => { cleanup(); resolve("cancel"); };
+      keyHandler = e => {
+        if (e.key !== " " || e.repeat) return false;
+        if (!started) return true;
+        cleanup();
+        resolve({ squareCm: (sqX - L.eyeX) / pxPerCm, dotCm: (x - L.eyeX) / pxPerCm, offsetCm: (sqX - x) / pxPerCm, layout: L.layout });
+        return true;
+      };
+      setTimeout(() => { if (blindCancel) { started = true; raf = requestAnimationFrame(frame); } }, 800);
+    });
+  }
+
+  async function runBlindSpot() {
+    if (busy) return;
+    if (!state.calib) { show("screen"); return; }
+    busy = true;
+    wantFullscreen();
+    const pxPerCm = state.calib.pxPerMm * 10;
+    const stop = () => { escHandler = null; closeStage(); };
+    const retry = async html => (await stageMessage(html, { go: "Try again", alt: "Stop", altVerb: "stop" })) === "go";
+    try {
+      stage.bg = BS.bg;
+      stage.el.classList.add("light");
+      openStage();
+      escHandler = () => { if (blindCancel) blindCancel(); };
+      const intro = await stageMessage(`<h2>Blind-spot check</h2><ol><li>Sit centred in front of the screen, the way you will for the test, about an arm's length away.</li><li>Cover your <strong>right</strong> eye with your hand.</li><li>Look at the black square and keep looking at it. Don't follow the dot: you'll still see it out of the corner of your eye.</li><li>A red dot moves left, vanishes for a second or two, then comes back. Press <kbd>Space</kbd> the moment it vanishes.</li></ol><p>This repeats ${P.blindSpotReps} times. Press <kbd>Esc</kbd> at any point to stop.</p>`, { go: "Start", alt: "Cancel", altVerb: "cancel" });
+      if (intro !== "go") { stop(); return; }
+      const readings = [], detail = [];
+      while (readings.length < P.blindSpotReps) {
+        const r = await blindSpotTrial(pxPerCm, readings.length + 1);
+        if (r === "cancel") { stop(); return; }
+        if (r === "resized") continue;
+        if (r === "missed") {
+          if (!(await retry("<p>The dot reached the edge without you pressing <kbd>Space</kbd>. Check your right eye is fully covered, and keep your left eye on the square rather than the dot. If it still never vanishes, stop and enter your distance by hand.</p>"))) { stop(); return; }
+          continue;
+        }
+        const cm = Core.distanceFromBlindSpotGeometry(r.squareCm, r.dotCm);
+        if (cm == null || cm < 20 || cm > 150) {
+          const what = cm == null ? "That reading doesn't fit the geometry." : `That reading works out at ${cm.toFixed(0)} cm, which is unlikely.`;
+          if (!(await retry(`<p>${what} Press <kbd>Space</kbd> only once the dot has vanished completely.</p>`))) { stop(); return; }
+          continue;
+        }
+        readings.push(cm);
+        detail.push({ distance_cm: round(cm, 1), simple_formula_cm: round(Core.distanceFromBlindSpot(r.offsetCm), 1), square_cm: round(r.squareCm, 2), dot_cm: round(r.dotCm, 2), layout: r.layout });
+      }
+      const viewportCm = [round(stage.w / pxPerCm, 1), round(stage.h / pxPerCm, 1)];
+      stop();
+      state.distance = {
+        cm: Core.mean(readings), method: "blind-spot", readings: readings.map(v => round(v, 1)),
+        model: { angle_deg: P.blindSpotDeg, solve: "off-axis", eye: "left, assumed half an IPD left of centre", ipd_cm: P.ipdCm, positions: "cm from the eye's perpendicular foot" },
+        detail, fullscreen: !!document.fullscreenElement, viewport_cm: viewportCm,
+      };
+      renderDistance();
+    } finally {
+      busy = false;
+    }
+  }
+
+  $("#bs-start").addEventListener("click", runBlindSpot);
+  $("#manual-use").addEventListener("click", () => {
+    const v = parseFloat($("#manual-cm").value);
+    if (!(v >= 25 && v <= 150)) { $("#manual-msg").textContent = "Enter a distance between 25 and 150 cm."; return; }
+    $("#manual-msg").textContent = "";
+    state.distance = { cm: v, method: "manual", readings: [] };
+    renderDistance();
+  });
+  $("#distance-next").addEventListener("click", () => {
+    if (!state.distance || !state.calib) return;
+    createSession(false);
+    show(taskOrder()[0]);
+  });
+  $("#distance-back").addEventListener("click", () => show("screen"));
+
+  // Asked for from the click that starts the check or a task; carries on in a window if refused.
+  function wantFullscreen() {
+    try {
+      if (!document.fullscreenElement && document.fullscreenEnabled) document.documentElement.requestFullscreen().catch(() => {});
+    } catch (e) { /* not available in this view */ }
+  }
+  async function goFullscreen() {
+    try {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+    } catch (e) {
+      flash("Full screen isn't available here. Maximise the browser window instead.");
+    }
+  }
+  $("#fs-btn").addEventListener("click", goFullscreen);
+  $("#task-fs").addEventListener("click", goFullscreen);
+  document.addEventListener("fullscreenchange", () => {
+    if (state.view === "distance") renderDistance();
+    if (!document.fullscreenElement && stage.open && inTrial && !pause.open) openPause();
+  });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && stage.open && inTrial && !pause.open) openPause(); });
+
+  /* ----- task intro ----- */
+  function renderTaskIntro(task) {
+    const order = taskOrder();
+    const i = order.indexOf(task);
+    const prevDone = i > 0 && state.session && state.session.tasks[order[0]];
+    $("#task-eyebrow").textContent = `Task ${i + 1} of 2${prevDone ? ` · ${TASK_LABEL[order[0]]} done` : ""}`;
+    $("#task-title").textContent = TASK_LABEL[task];
+    const clinic = isClinic(), S = SPEC().staircase;
+    let copy, keys, cap;
+    if (clinic && task === "motion") {
+      copy = `<p>You'll see a square of dots. Some drift together, either up or down; the rest jump about at random. Say which way the drifting dots are going.</p><p>The dots appear for only a fifth of a second, then you answer. Keep your eyes on the red spot in the middle so you don't miss them. If you can't tell, guess: the test adapts to you.</p>`;
+      keys = [[["↑"], "drifting up"], [["↓"], "drifting down"]];
+      cap = "Example at 100% coherence, drifting up.";
+    } else if (clinic) {
+      const still = state.settings.spiralDots === "still";
+      copy = `<p>Each trial shows two quick flashes of ${still ? "" : "flickering "}dots, one after the other. In one flash, some of the dots line up into a spiral; the other flash is random. Say which flash had the spiral.</p><p>Keep your eyes on the grey spot in the middle. If you can't tell, guess: the test adapts to you.</p>`;
+      keys = [[["1", "←"], "first flash"], [["2", "→"], "second flash"]];
+      cap = `Example at 100% coherence: the spiral${still ? "" : ", flickering as it will in the test"}.`;
+    } else if (task === "motion") {
+      copy = `<p>You'll see two fields of moving dots, one each side of the centre. On one side, the dots in a band across the middle drift the opposite way to the dots above and below them. On the other side, everything drifts together.</p><p>Say which side has the band. The dots stay on screen until you answer. If you can't tell, guess: the test adapts to you.</p>`;
+      keys = [[["←", "F"], "target on the left"], [["→", "J"], "target on the right"]];
+      cap = "Example at 100% coherence, target on the right.";
+    } else {
+      const elementWord = state.settings.element === "lines" ? "short lines" : "dot pairs";
+      copy = `<p>You'll see a field of ${elementWord}. On one side, some of them line up around a centre, making a patch of circles like a whirlpool. Everywhere else they point in random directions.</p><p>Say which side has the circles. The pattern stays on screen until you answer. If you can't tell, guess: the test adapts to you.</p>`;
+      keys = [[["←", "F"], "target on the left"], [["→", "J"], "target on the right"]];
+      cap = "Example at 100% coherence, target on the right.";
+    }
+    $("#task-copy").innerHTML = copy;
+    $("#task-keys").innerHTML = keys.map(([ks, what]) => `<li>${ks.map(k => `<kbd>${k}</kbd>`).join(" or ")} ${what}</li>`).join("") + "<li><kbd>Esc</kbd> pause</li>";
+    $("#task-fig-motion").hidden = task !== "motion";
+    $("#task-fig-form").hidden = task !== "form";
+    $(task === "motion" ? "#task-cap-motion" : "#task-cap-form").textContent = cap;
+    $("#task-outline-row").hidden = clinic;
+    $("#task-start").dataset.task = task;
+    $("#task-start").textContent = `Start practice (${S.practiceTrials} trials)`;
+  }
+  $("#task-start").addEventListener("click", e => { const t = e.currentTarget.dataset.task; if (t) startTask(t); });
+  $("#task-outline").addEventListener("change", () => refreshPreviews());
+
+  /* ----- results ----- */
+  function shortUA(ua) {
+    const pick = (re, name) => { const m = re.exec(ua); return m ? `${name} ${m[1]}` : null; };
+    const browser = pick(/Edg\/(\d+)/, "Edge") || pick(/Firefox\/(\d+)/, "Firefox") || pick(/Chrome\/(\d+)/, "Chrome") || pick(/Version\/(\d+)[\d.]* Safari/, "Safari") || "Unknown browser";
+    const os = /iPhone|iPad/.test(ua) ? "iOS" : /Android/.test(ua) ? "Android" : /Mac OS X/.test(ua) ? "macOS" : /Windows/.test(ua) ? "Windows" : /Linux/.test(ua) ? "Linux" : "unknown system";
+    return `${browser} on ${os}`;
+  }
+
+  const chartData = {};
+  function chartSVG(task, width) {
+    const s = state.session;
+    const rec = s.tasks[task];
+    const res = s.results[task];
+    const tr = rec.trials.filter(t => t.phase === "test");
+    const W = Math.max(280, Math.round(width)), H = 230;
+    const m = { l: 40, r: 80, t: 14, b: 34 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const n = tr.length;
+    const x = i => m.l + (n <= 1 ? iw / 2 : (i / (n - 1)) * iw);
+    const y = v => m.t + (1 - Math.log10(Math.min(100, Math.max(1, v))) / 2) * ih;
+    const val = t => t.effective_level_pct;
+    const label = `${task === "motion" ? "Motion" : "Form"} staircase: ${n} scored trials, threshold ${res && res.threshold_pct != null ? fmt.pct(res.threshold_pct) : "not reached"}`;
+    let out = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="chart ${task}" role="img" aria-label="${esc(label)}">`;
+    for (const t of [1, 2, 5, 10, 20, 50, 100]) {
+      const yy = y(t).toFixed(1);
+      out += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${yy}" y2="${yy}"/><text class="tick" x="${m.l - 8}" y="${yy}" dy="0.32em" text-anchor="end">${t}</text>`;
+    }
+    out += `<line class="axis" x1="${m.l}" x2="${W - m.r}" y1="${H - m.b}" y2="${H - m.b}"/>`;
+    const step = n > 30 ? 10 : 5;
+    for (let k = step; k <= n; k += step) {
+      const xx = x(k - 1).toFixed(1);
+      out += `<line class="xtick" x1="${xx}" x2="${xx}" y1="${H - m.b}" y2="${H - m.b + 4}"/><text class="tick" x="${xx}" y="${H - m.b + 16}" text-anchor="middle">${k}</text>`;
+    }
+    out += `<text class="axis-label" x="${m.l}" y="${H - 4}">Trial</text>`;
+    out += `<line class="crosshair" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" visibility="hidden"/>`;
+    if (res && res.threshold_pct != null) {
+      const ty = y(res.threshold_pct).toFixed(1);
+      out += `<line class="thr" x1="${m.l}" x2="${W - m.r}" y1="${ty}" y2="${ty}"/><text class="thr-label" x="${W - m.r + 8}" y="${ty}" dy="-0.25em">Threshold</text><text class="thr-value" x="${W - m.r + 8}" y="${ty}" dy="1em">${fmt.pct(res.threshold_pct)}</text>`;
+    }
+    if (n) out += `<polyline class="line" points="${tr.map((t, i) => `${x(i).toFixed(1)},${y(val(t)).toFixed(1)}`).join(" ")}"/>`;
+    tr.forEach((t, i) => { if (t.reversal) out += `<circle class="rev" cx="${x(i).toFixed(1)}" cy="${y(val(t)).toFixed(1)}" r="7.5"/>`; });
+    tr.forEach((t, i) => { out += `<circle class="mk ${t.correct ? "ok" : "miss"}" cx="${x(i).toFixed(1)}" cy="${y(val(t)).toFixed(1)}" r="4"/>`; });
+    chartData[task] = {
+      W, left: m.l, width: iw, n,
+      pts: tr.map((t, i) => ({ x: x(i), y: y(val(t)), tip: `Trial ${i + 1} · ${fmt.pct(val(t))} · ${t.correct ? "correct" : "wrong"}${t.reversal ? " · reversal" : ""}` })),
+    };
+    if (n) out += `<rect class="hover-zone" x="${m.l - 8}" y="${m.t}" width="${iw + 16}" height="${ih}" data-task="${task}"/>`;
+    return out + "</svg>";
+  }
+
+  function renderCharts() {
+    const s = state.session;
+    const box = $("#charts");
+    const tasks = taskOrder().filter(t => s.tasks[t]);
+    box.innerHTML = tasks.map(t => `<figure class="chart-box"><figcaption><span class="chart-title">${t === "motion" ? "Motion" : "Form"}</span><span class="chart-sub">Coherence (%) on each scored trial, log scale${t === "motion" && !isClinic(s.settings) ? ", after the dot-lifetime correction" : ""}</span></figcaption><div class="chart-host" data-task="${t}"></div></figure>`).join("") || `<p class="hint">No trials were completed.</p>`;
+    for (const host of $$(".chart-host", box)) host.innerHTML = chartSVG(host.dataset.task, host.clientWidth || 320);
+  }
+
+  function renderResults() {
+    const s = state.session;
+    if (!s || !s.results) return;
+    const R = s.results;
+    $("#sim-banner").hidden = !s.simulated;
+    const tile = task => {
+      const r = R[task];
+      const name = task === "motion" ? "Motion" : "Form";
+      const head = `<span class="label"><span class="key key-${task}"></span>${name} threshold</span>`;
+      if (!r) return `<div class="tile">${head}<span class="value">–</span><span class="sub">Not run</span></div>`;
+      const pill = r.status === "complete" ? "" : `<span class="pill"><span class="pip" aria-hidden="true"></span>${r.status === "incomplete" ? "Ended early" : "No threshold"}</span>`;
+      return `<div class="tile">${head}<span class="value">${fmt.pct(r.threshold_pct)}</span><span class="sub">sensitivity ${fmt.fixed(r.sensitivity, 3)} · ${r.staircase_trials} scored trials</span>${pill}</div>`;
+    };
+    const d = R.motion_minus_form;
+    $("#tiles").innerHTML = tile("motion") + tile("form")
+      + `<div class="tile"><span class="label">Motion minus form sensitivity</span><span class="value">${d ? fmt.signed(d.sensitivity, 3) : "–"}</span><span class="sub">${d ? `motion ÷ form threshold ${fmt.fixed(d.threshold_ratio, 2)}` : "Needs both thresholds"}</span></div>`;
+
+    const m = R.motion && R.motion.threshold_pct, f = R.form && R.form.threshold_pct;
+    let text = "";
+    if (m != null && f != null) {
+      const rel = Math.abs(m - f) / ((m + f) / 2) < 0.1 ? "about the same as" : m < f ? "lower than" : "higher than";
+      const [who, whose] = s.simulated ? ["The simulated observer's", "its"] : ["Your", "your"];
+      text += `${who} motion threshold was ${rel} ${whose} form threshold (${fmt.pct(m)} against ${fmt.pct(f)}). A lower threshold means fewer organised elements were needed to find the target. `;
+    } else {
+      text += "At least one task ended before a threshold could be estimated. ";
+    }
+    if (isClinic(s.settings)) {
+      text += "Both thresholds are the coherence that gives about 79% correct. There are no reference values for this exact version, so it can't say whether a result is unusual. ";
+    } else {
+      text += "For context, 19 adults tested in a lab by Atkinson et al. (2006) averaged 9.0% for motion and 14.1% for form";
+      text += s.settings.element === "lines" ? ". " : ", using short lines rather than dot pairs in the form task. ";
+      text += "This prototype has no reference data of its own, so it can't say whether a result is unusual. ";
+    }
+    text += "Sensitivity is 1 ÷ threshold in percent, so a 10% threshold is a sensitivity of 0.1.";
+    const missed = ["motion", "form"].map(t => R[t]).filter(Boolean).reduce((a, r) => a + (r.catch_total - r.catch_correct), 0);
+    if (missed > 0) text += ` ${missed === 1 ? "One" : missed} of the easy check trials ${missed === 1 ? "was" : "were"} answered wrongly. That can mean lapses of attention or a display problem, so treat these thresholds with caution.`;
+    $("#interpretation").textContent = text;
+    $("#again").textContent = s.simulated ? "Run the real test" : "Run the test again";
+
+    renderCharts();
+
+    const c = s.calibration, dist = s.distance;
+    const rows = [];
+    const clinic = isClinic(s.settings);
+    rows.push(["Version", PROTOCOL_LABEL[s.settings.protocol]]);
+    rows.push(["Started", fmt.time(s.startedAt)]);
+    rows.push(["Screen scale", c ? `${fmt.fixed(c.pxPerMm, 3)} px per mm, card ${fmt.fixed(c.cardPx, 1)} px wide` : "–"]);
+    if (dist) {
+      let how = "entered by hand";
+      if (dist.method === "blind-spot" && dist.readings.length) how = `blind spot, ${dist.readings.length} readings ${Math.min(...dist.readings).toFixed(0)}–${Math.max(...dist.readings).toFixed(0)} cm`;
+      if (dist.method === "simulated") how = "simulated";
+      rows.push(["Viewing distance", `${fmt.fixed(dist.cm, 1)} cm, ${how}`]);
+    }
+    const scored = s.trials.filter(t => Number.isFinite(t.px_per_deg) && Number.isFinite(t.scale));
+    if (scored.length) {
+      const ppds = scored.map(t => t.px_per_deg), lo = Math.min(...ppds), hi = Math.max(...ppds);
+      const minScale = Math.min(...scored.map(t => t.scale));
+      const ppdText = hi - lo < 0.05 ? fmt.fixed(lo, 1) : `${fmt.fixed(lo, 1)}–${fmt.fixed(hi, 1)}`;
+      rows.push(["Pixels per degree", `${ppdText}${minScale < 0.999 ? `, stimuli shrunk to ${Math.round(minScale * 100)}% of protocol size to fit` : ", stimuli at full protocol size"}`]);
+    }
+    if (s.display) rows.push(["Window", s.display.fullscreen ? "Full screen" : `Not full screen, ${Math.round(100 * s.display.viewport[0] / Math.max(1, s.env.screen[0]))}% of the screen's width`]);
+    rows.push(["Display refresh",s.refreshHz ? `${fmt.fixed(s.refreshHz, 0)} Hz, median frame ${fmt.fixed(s.frameMs, 1)} ms` : "–"]);
+    if (!clinic) rows.push(["Motion signal after dot lifetime", s.effFactor ? `${Math.round(s.effFactor * 100)}% of nominal` : "–"]);
+    const dropped = ["motion", "form"].map(task => {
+      const tt = s.trials.filter(t => t.task === task && t.frames != null && t.dropped_frames != null);
+      if (!tt.length) return null;
+      const fr = tt.reduce((a, t) => a + t.frames, 0), dr = tt.reduce((a, t) => a + t.dropped_frames, 0);
+      return `${task === "form" ? "spiral flashes" : "motion"} ${fmt.int(dr)} of ${fmt.int(fr)} (${fmt.fixed(100 * dr / Math.max(1, fr), 1)}%)`;
+    }).filter(Boolean);
+    if (dropped.length) rows.push(["Dropped frames", dropped.join(", ")]);
+    const catchText = ["motion", "form"].filter(t => R[t] && R[t].catch_total).map(t => `${t} ${R[t].catch_correct} of ${R[t].catch_total}`).join(", ");
+    if (catchText) rows.push(["Easy check trials correct", catchText]);
+    if (clinic) {
+      rows.push(["Motion display", `${Core.CLINIC.motion.briefMs} ms flash`]);
+      rows.push(["Spiral dots", s.settings.spiralDots === "still" ? "Still, one pattern per flash" : "Flickering, 12 patterns per flash"]);
+      const fl = s.trials.flatMap(t => [t.flash1_ms, t.flash2_ms]).filter(Number.isFinite);
+      if (fl.length) rows.push(["Flash length", `median ${fmt.fixed(Core.median(fl), 0)} ms, range ${fmt.fixed(Math.min(...fl), 0)}–${fmt.fixed(Math.max(...fl), 0)} ms (target 200 ms)`]);
+      rows.push(["Run length", s.settings.run === "long" ? "14 reversals, last 12 averaged" : "10 reversals, last 8 averaged"]);
+    } else {
+      rows.push(["Form elements", s.settings.element === "lines" ? "Short lines" : "Dot pairs (Glass pattern)"]);
+      rows.push(["Run length", s.settings.run === "long" ? "10 reversals, last 6 averaged" : "6 reversals, last 4 averaged (as published)"]);
+    }
+    rows.push(["Task order", s.settings.order === "form-first" ? "Form, then motion" : "Motion, then form"]);
+    if (s.endedEarly) rows.push(["Ended", "Early, at your request"]);
+    rows.push(["Browser", shortUA(s.env.userAgent)]);
+    $("#meta").innerHTML = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
+
+    const cols = [["Task", t => t.task], ["Trial", t => t.trial], ["Phase", t => t.phase], ["Coherence", t => fmt.pct(t.effective_level_pct)], ["Target", t => t.target], ["Answer", t => t.response], ["Correct", t => (t.correct ? "yes" : "no")], ["Time", t => `${t.rt_ms} ms`], ["Reversal", t => (t.reversal ? "yes" : "")]];
+    $("#trial-table").innerHTML = `<thead><tr>${cols.map(col => `<th scope="col">${col[0]}</th>`).join("")}</tr></thead><tbody>${s.trials.map(t => `<tr>${cols.map(col => `<td>${esc(col[1](t))}</td>`).join("")}</tr>`).join("")}</tbody>`;
+    $("#raw-json").value = "";
+    $("#raw").open = false;
+    $("#data-status").textContent = "";
+  }
+
+  // Crosshair tooltip: snaps to the trial nearest the pointer along x.
+  const tip = $("#tip");
+  function hideHover() {
+    tip.hidden = true;
+    for (const c of $$("#charts .crosshair")) c.setAttribute("visibility", "hidden");
+  }
+  function onChartPointer(e) {
+    const zone = e.target && e.target.closest ? e.target.closest(".hover-zone") : null;
+    const d = zone && chartData[zone.getAttribute("data-task")];
+    const svg = zone && zone.ownerSVGElement;
+    if (!d || !d.n || !svg) { hideHover(); return; }
+    const r = svg.getBoundingClientRect();
+    const k = r.width / d.W;
+    const sx = (e.clientX - r.left) / k;
+    const i = d.n === 1 ? 0 : Math.max(0, Math.min(d.n - 1, Math.round(((sx - d.left) / d.width) * (d.n - 1))));
+    const pt = d.pts[i];
+    for (const c of $$("#charts .crosshair")) c.setAttribute("visibility", "hidden");
+    const cross = svg.querySelector(".crosshair");
+    cross.setAttribute("x1", pt.x.toFixed(1));
+    cross.setAttribute("x2", pt.x.toFixed(1));
+    cross.setAttribute("visibility", "visible");
+    tip.textContent = pt.tip;
+    tip.hidden = false;
+    const px = r.left + pt.x * k, py = r.top + pt.y * k;
+    const tr = tip.getBoundingClientRect();
+    let left = px + 12, top = py - tr.height - 12;
+    if (left + tr.width > window.innerWidth - 8) left = px - tr.width - 12;
+    if (top < 8) top = py + 14;
+    tip.style.left = `${left}px`;
+    tip.style.top = `${top}px`;
+  }
+  $("#charts").addEventListener("pointermove", onChartPointer);
+  $("#charts").addEventListener("pointerdown", onChartPointer);
+  $("#charts").addEventListener("pointerleave", hideHover);
+  window.addEventListener("scroll", hideHover, { passive: true });
+
+  /* ----- export ----- */
+  function exportObject(s) {
+    return {
+      page: s.page, version: s.version, simulated: s.simulated,
+      started_at: s.startedAt, finished_at: s.finishedAt, ended_early: s.endedEarly, seed: s.seed,
+      settings: s.settings,
+      protocol: { id: s.settings.protocol, parameters: SPEC(s.settings), calibration: { card_mm: P.cardMm, blind_spot_deg: P.blindSpotDeg, ipd_cm: P.ipdCm } },
+      sensitivity_units: "1 / threshold in %",
+      calibration: s.calibration, viewing_distance: s.distance,
+      display: Object.assign({ refresh_hz: s.refreshHz && round(s.refreshHz, 2), median_frame_ms: s.frameMs && round(s.frameMs, 3), motion_effective_coherence_factor: s.effFactor && round(s.effFactor, 4) }, s.display || {}),
+      environment: s.env, results: s.results, trials: s.trials,
+    };
+  }
+  const fileBase = s => `form-motion-coherence-${s.startedAt.slice(0, 16).replace(/[:T]/g, "-")}${s.simulated ? "-simulated" : ""}`;
+
+  let downloads = null;
+  (async () => {
+    try {
+      if (window.claude && typeof window.claude.use === "function") downloads = await window.claude.use("downloads");
+    } catch (e) { downloads = null; }
+    for (const el of $$(".needs-downloads")) el.hidden = !downloads;
+  })();
+  async function offerFile(filename, data) {
+    if (!downloads) return;
+    const status = $("#data-status");
+    try {
+      const r = await downloads.save({ filename, data });
+      status.textContent = r && r.status === "saved" ? `Saved ${filename}.` : "";
+    } catch (e) {
+      const code = e && e.code;
+      if (code === "declined") status.textContent = "Save cancelled.";
+      else if (code === "rate_limited") status.textContent = "A save prompt is already open. Finish that one first.";
+      else {
+        status.textContent = "Saving files isn't available here. Use Copy session data instead.";
+        for (const el of $$(".needs-downloads")) el.hidden = true;
+      }
+    }
+  }
+  $("#save-csv").addEventListener("click", () => { const s = state.session; if (s) offerFile(`${fileBase(s)}.csv`, Core.toCSV(s.trials, CSV_COLUMNS)); });
+  $("#save-json").addEventListener("click", () => { const s = state.session; if (s) offerFile(`${fileBase(s)}.json`, JSON.stringify(exportObject(s), null, 2)); });
+  $("#copy-json").addEventListener("click", () => {
+    const s = state.session;
+    if (!s) return;
+    const text = JSON.stringify(exportObject(s), null, 2);
+    const ta = $("#raw-json");
+    ta.value = text;
+    const fallback = () => {
+      $("#raw").open = true;
+      ta.focus();
+      ta.select();
+      $("#data-status").textContent = "Copying isn't allowed here. The data is selected below: press Ctrl+C, or ⌘C on a Mac.";
+    };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => { $("#data-status").textContent = "Copied the session data as JSON."; }, fallback);
+      else fallback();
+    } catch (e) { fallback(); }
+  });
+  $("#raw").addEventListener("toggle", () => {
+    if ($("#raw").open && !$("#raw-json").value && state.session) $("#raw-json").value = JSON.stringify(exportObject(state.session), null, 2);
+  });
+  $("#again").addEventListener("click", () => { state.session = null; show(state.calib ? "distance" : "screen"); });
+
+  /* ----- setup ----- */
+  function renderSetupCopy() {
+    const clinic = isClinic(), still = state.settings.spiralDots === "still";
+    $("#pv-motion-cap").innerHTML = clinic
+      ? "<strong>Motion.</strong> Some of the dots drift together, up or down. You say which way."
+      : "<strong>Motion.</strong> On one side, the dots in a middle band drift against the bands above and below.";
+    $("#pv-form-cap").innerHTML = clinic
+      ? `<strong>Form.</strong> Two quick flashes of ${still ? "" : "flickering "}dots. In one, some line up into a spiral. You say which flash.`
+      : "<strong>Form.</strong> On one side, a patch of the dot pairs lines up in circles around a centre.";
+    $("#pv-caption").textContent = clinic
+      ? "Both examples are at 100% coherence. In the test, the share of organised dots falls until it's hard to tell."
+      : "Both examples are at 100% coherence with the target on the right, outlined in amber. In the test there's no outline, and the share of organised dots falls until the target is hard to find.";
+    $("#settings-clinic").hidden = !clinic;
+    $("#settings-atkinson").hidden = clinic;
+    $("#order-motion-label").textContent = clinic ? "Motion first" : "Motion first, as published";
+    $("#run-published-label").textContent = clinic ? "Standard: stop at 10 reversals, threshold from the last 8" : "As published: stop at 6 reversals, threshold from the last 4";
+    $("#run-long-label").textContent = clinic ? "Longer: stop at 14 reversals, threshold from the last 12" : "Longer and steadier: stop at 10 reversals, threshold from the last 6. Adds about 16 trials per task.";
+  }
+  for (const input of $$('input[type="radio"][name]')) {
+    const key = input.name;
+    if (!(key in state.settings)) continue;
+    input.checked = state.settings[key] === input.value;
+    input.addEventListener("change", () => {
+      if (!input.checked) return;
+      state.settings[key] = input.value;
+      store.save();
+      renderStepper();
+      renderSetupCopy();
+      refreshPreviews();
+    });
+  }
+  $("#start").addEventListener("click", () => show("screen"));
+  $("#simulate").addEventListener("click", runSimulation);
+  const pvMotion = makePreview($("#pv-motion"), "motion", 101, true);
+  const pvForm = makePreview($("#pv-form"), "form", 202, true);
+  makePreview($("#task-canvas-motion"), "motion", 303, () => $("#task-outline").checked);
+  makePreview($("#task-canvas-form"), "form", 404, () => $("#task-outline").checked);
+  try {
+    const ro = new ResizeObserver(() => { if (!stage.open) refreshPreviews(); });
+    for (const it of previews) ro.observe(it.canvas);
+  } catch (e) { /* ResizeObserver missing: the window resize handler still covers it */ }
+  const playBtn = $("#pv-play");
+  playBtn.textContent = pvMotion.playing ? "Pause" : "Play";
+  playBtn.addEventListener("click", () => {
+    const on = !pvMotion.playing;
+    pvMotion.playing = pvForm.playing = on;
+    playBtn.textContent = on ? "Pause" : "Play";
+  });
+
+  let resizeTimer = 0;
+  window.addEventListener("resize", () => {
+    if (stage.open) stageResize();
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (!stage.open) refreshPreviews();
+      if (state.view === "results" && state.session && state.session.results) renderCharts();
+      if (state.view === "distance") renderDistance();
+      if (state.view === "screen") renderCard();
+      if (state.view === "setup") $("#small-note").hidden = window.innerWidth >= 760;
+    }, 120);
+  });
+
+  renderSetupCopy();
+  show("setup");
+  requestAnimationFrame(previewTick);
+})();
+</script>
+
+</body></html>

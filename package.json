@@ -1,0 +1,16 @@
+{
+  "name": "visual-perceptual-tool",
+  "private": true,
+  "description": "Browser test of global motion and global form (Glass pattern) coherence thresholds.",
+  "scripts": {
+    "test": "node tests/unit.test.js",
+    "test:e2e": "node tests/e2e-layout.js && node tests/e2e-blindspot.js && node tests/e2e-full.js",
+    "test:all": "npm test && npm run test:e2e"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}
