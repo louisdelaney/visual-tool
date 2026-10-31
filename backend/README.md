@@ -27,7 +27,7 @@ npm run build      # dist/server.js and dist/jobs/export.js
 | --- | --- |
 | `PORT` | Port to listen on. Cloud Run sets it; 8080 otherwise. |
 | `BACKEND` | `firestore` or `memory`. |
-| `ALLOWED_ORIGIN` | The site's origin, the only one browsers may call from. |
+| `ALLOWED_ORIGIN` | The site's origin, the only one browsers may call from. Several may be given, separated by commas, for example two local dev servers. |
 | `EXPORT_URL` | Where `GET /export` redirects (the public `index.json`). If it and `EXPORT_BUCKET` are both unset, `/export` redirects to the server's own `/export/index.json`. |
 | `DATA_FILE` | Memory mode: file to keep sessions in between runs, for example `./data/sessions.json`. |
 | `EXPORT_DIR` | Where the export job writes when `EXPORT_BUCKET` is unset (default `./data/export`), with either store. The server serves it at `/export/*`. |

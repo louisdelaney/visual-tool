@@ -11,7 +11,7 @@ export interface HistoryEntry {
   test_version: number;
   /** Null where that session didn't reach a value. */
   values: Record<MeasureKey, number | null>;
-  medications: string | null;
+  medications: string[] | null;
   notes: string | null;
 }
 
@@ -36,6 +36,7 @@ export function suggestPseudonym(random: () => number = Math.random): string {
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 const numOrNull = (v: unknown): number | null | undefined => (v === null ? null : isNum(v) ? v : undefined);
 const strOrNull = (v: unknown): string | null | undefined => (v === null ? null : typeof v === "string" ? v : undefined);
+const strsOrNull = (v: unknown): string[] | null | undefined => (v === null ? null : Array.isArray(v) && v.every(x => typeof x === "string") ? v : undefined);
 
 function parseEntry(v: unknown): HistoryEntry | null {
   if (!v || typeof v !== "object") return null;
@@ -44,7 +45,7 @@ function parseEntry(v: unknown): HistoryEntry | null {
   if (!o.values || typeof o.values !== "object") return null;
   const vals = o.values as Record<string, unknown>;
   const m = numOrNull(vals.motion_threshold_pct), f = numOrNull(vals.form_threshold_pct), d = numOrNull(vals.motion_minus_form);
-  const medications = strOrNull(o.medications), notes = strOrNull(o.notes);
+  const medications = strsOrNull(o.medications), notes = strOrNull(o.notes);
   if (m === undefined || f === undefined || d === undefined || medications === undefined || notes === undefined) return null;
   return { submission_id: o.submission_id, started_at: o.started_at, test_version: o.test_version, values: { motion_threshold_pct: m, form_threshold_pct: f, motion_minus_form: d }, medications, notes };
 }
@@ -66,12 +67,12 @@ export function parseHistory(v: unknown): HistoryResponse | null {
 
 /** Made-up history for developing the page before the backend exists. Never shown in a production build. */
 export function sampleHistory(pseudonym: string): HistoryResponse {
-  const rows: [string, number, number, string | null, string | null][] = [
+  const rows: [string, number, number, string[] | null, string | null][] = [
     ["2026-06-02T19:10:00Z", 14.2, 31.5, null, "First test."],
-    ["2026-07-05T20:02:00Z", 13.1, 28.9, "Lamotrigine 25 mg", "Started lamotrigine last week."],
-    ["2026-08-09T18:45:00Z", 11.8, 24.3, "Lamotrigine 50 mg", null],
-    ["2026-09-13T21:15:00Z", 10.9, 23.7, "Lamotrigine 50 mg", "Snow less noticeable in daylight."],
-    ["2026-10-18T19:30:00Z", 10.2, 21.0, "Lamotrigine 50 mg", null],
+    ["2026-07-05T20:02:00Z", 13.1, 28.9, ["Lamotrigine"], "Started lamotrigine last week."],
+    ["2026-08-09T18:45:00Z", 11.8, 24.3, ["Lamotrigine"], null],
+    ["2026-09-13T21:15:00Z", 10.9, 23.7, ["Lamotrigine", "Melatonin"], "Snow less noticeable in daylight."],
+    ["2026-10-18T19:30:00Z", 10.2, 21.0, ["Lamotrigine"], null],
   ];
   return {
     pseudonym,

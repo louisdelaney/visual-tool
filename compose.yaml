@@ -7,8 +7,11 @@
 # also work on a remote build machine when REMOTE_HOST is set.
 #
 # Services:
-#   firestore     the Firestore emulator (no real data, no credentials).
+#   firestore     the Firestore emulator (no credentials). Its data is kept in the firestore-data
+#                 volume by scripts/firestore-emulator.sh: a snapshot every minute and on stop,
+#                 loaded again on start. `docker compose down -v` deletes it.
 #   backend       the API on http://localhost:8080, using the emulator.
+#   backend-e2e   the same API on :8082, on a separate database, for the contribution test.
 #   export        (profile "tools") one run of the export job, writing to the export-data volume.
 #   backend-test  (profile "checks") the backend's tests, with the emulator available.
 #   e2e           (profile "checks") the site's end-to-end browser tests, in Playwright's image.
@@ -16,7 +19,14 @@
 services:
   firestore:
     image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
-    command: gcloud emulators firestore start --host-port=0.0.0.0:8081 --project=demo-visual-tool
+    command: ["sh", "/firestore-emulator.sh"]
+    environment:
+      PROJECT: demo-visual-tool
+    volumes:
+      - ./scripts/firestore-emulator.sh:/firestore-emulator.sh:ro
+      - firestore-data:/data
+    # Time to save a last snapshot when stopped.
+    stop_grace_period: 90s
     ports:
       - "8081:8081"
 
@@ -38,6 +48,27 @@ services:
       EXPORT_DIR: /data/export
     volumes:
       - export-data:/data
+
+  # A second backend on the same emulator, for the end-to-end contribution test
+  # (tests/e2e/contribute.cjs). It uses its own database, e2e, so test sessions never mix with
+  # the backend's data, and the emulator's snapshots (the (default) database only) skip them.
+  # A separate project wouldn't do: this emulator keeps every project's documents together.
+  backend-e2e:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      - firestore
+    ports:
+      - "8082:8080"
+    environment:
+      BACKEND: firestore
+      GOOGLE_CLOUD_PROJECT: demo-visual-tool
+      FIRESTORE_DATABASE: e2e
+      FIRESTORE_EMULATOR_HOST: firestore:8081
+      METADATA_SERVER_DETECTION: none
+      # The test serves the site here, wherever it runs.
+      ALLOWED_ORIGIN: http://localhost:4173
 
   export:
     profiles: [tools]
@@ -82,9 +113,15 @@ services:
       - .:/work
       - site-node-modules:/work/node_modules
     ipc: host
+    depends_on:
+      - backend-e2e
+    environment:
+      E2E_API_URL: http://backend-e2e:8080
+      E2E_FIRESTORE_URL: http://firestore:8081
     command: sh -c "npm ci && npm run test:e2e"
 
 volumes:
+  firestore-data:
   export-data:
   backend-node-modules:
   site-node-modules:

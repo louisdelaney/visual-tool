@@ -8,6 +8,9 @@ export const MAX_BODY_BYTES = 200_000;
 
 /** Free-text answers are capped: they're public, and the page's own boxes are shorter than this. */
 const MAX_TEXT = 2_000;
+/** List answers (medications, psychedelics used): the page allows 20 entries of 100 characters. */
+const MAX_LIST = 20;
+const MAX_ENTRY = 100;
 const MAX_PSEUDONYM = 60;
 
 /** A run takes about ten minutes; outside these bounds it isn't one. */
@@ -26,6 +29,7 @@ const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 const isDate = (v: unknown): v is string => typeof v === "string" && !Number.isNaN(Date.parse(v));
 const textOk = (v: unknown, max: number): boolean => v === null || v === undefined || (typeof v === "string" && v.length <= max);
+const listOk = (v: unknown): boolean => v === null || v === undefined || (Array.isArray(v) && v.length >= 1 && v.length <= MAX_LIST && v.every(x => typeof x === "string" && x.length >= 1 && x.length <= MAX_ENTRY));
 
 function checkTask(name: string, t: unknown): string | null {
   if (t === null) return null;
@@ -56,8 +60,11 @@ export function validateSession(body: unknown): Validation {
   const answers = body.contribution.answers;
   if (!isObj(answers)) return bad("contribution.answers must be an object");
   if (!textOk(answers.pseudonym, MAX_PSEUDONYM)) return bad("pseudonym is too long");
-  for (const key of ["notes", "medications", "psychedelics_used", "other_condition", "found_via_other"]) {
+  for (const key of ["notes", "other_condition", "found_via_other"]) {
     if (!textOk(answers[key], MAX_TEXT)) return bad(`${key} is too long`);
+  }
+  for (const key of ["medications", "psychedelics_used"]) {
+    if (!listOk(answers[key])) return bad(`${key} must be null or a list of 1 to ${MAX_LIST} short strings`);
   }
   const yesNo = (v: unknown): boolean => v === null || v === "yes" || v === "no";
   if (!yesNo(answers.perceptual_disorder)) return bad("perceptual_disorder must be yes, no or null");

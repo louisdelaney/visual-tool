@@ -23,7 +23,9 @@ RUN npm run build && npm prune --omit=dev
 
 # Stage 2: the runtime image.
 FROM node:22-slim
-WORKDIR /app
+# The same path as the build stage, so the source maps' paths (backend/src and src/app) line up
+# with the repository's layout under /work, for a debugger (compose.debug.yaml).
+WORKDIR /work/backend
 ENV NODE_ENV=production
 COPY --from=build /work/backend/node_modules ./node_modules
 COPY --from=build /work/backend/dist ./dist

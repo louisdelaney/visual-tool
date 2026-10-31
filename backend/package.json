@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "npm run build && BACKEND=memory DATA_FILE=./data/sessions.json ALLOWED_ORIGIN=http://localhost:5173 node dist/server.js",
-    "build": "tsc --noEmit && esbuild src/server.ts src/jobs/export.ts --bundle --platform=node --target=node22 --format=esm --packages=external --outdir=dist --outbase=src",
+    "build": "tsc --noEmit && esbuild src/server.ts src/jobs/export.ts --bundle --platform=node --target=node22 --format=esm --packages=external --sourcemap=inline --outdir=dist --outbase=src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "start": "node dist/server.js",

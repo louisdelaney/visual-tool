@@ -1,7 +1,7 @@
 // The HTTP server. Configuration is by environment (see config.ts for BACKEND, DATA_FILE and
 // EXPORT_DIR):
 //   PORT            Cloud Run sets it; 8080 otherwise
-//   ALLOWED_ORIGIN  the site's origin, the only one browsers may call from
+//   ALLOWED_ORIGIN  the site's origin, the only one browsers may call from (or several, comma-separated)
 //   EXPORT_URL      where GET /export redirects (the public index.json). Without EXPORT_BUCKET
 //                   it defaults to this server's own /export/index.json (a relative redirect),
 //                   served from EXPORT_DIR.

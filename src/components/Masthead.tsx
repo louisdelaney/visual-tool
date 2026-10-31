@@ -1,4 +1,4 @@
-// The title, the "just for fun" notice, links to the other pages, and the steps.
+// The title, links to the other pages, and the steps.
 import { INFO_PAGES, type View } from "../app/types";
 import { goHome, show, showHistory } from "../app/flow";
 import { Stepper } from "./Stepper";
@@ -7,7 +7,6 @@ export function Masthead({ view }: { view: View }) {
   const onInfo = (INFO_PAGES as readonly View[]).includes(view);
   return (
     <header className="masthead">
-      <p className="eyebrow">Just for fun · Not medical advice</p>
       <h1>Form–Motion Coherence Test</h1>
       <p className="lede">
         Two short tasks from vision research. Each finds your coherence threshold, the smallest share of organised dots you can still pick out from random ones. One task uses moving dots, the other a pattern hidden among random dots.

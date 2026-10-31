@@ -12,7 +12,8 @@ export async function sendContribution(s: Session): Promise<void> {
   c.failed = false;
   touch();
   try {
-    await postSession(exportObject(s));
+    // The backend picks the id; the reference shown on the results page must be that one.
+    c.submission_id = await postSession(exportObject(s));
     c.sent_at = new Date().toISOString();
   } catch {
     c.failed = true;

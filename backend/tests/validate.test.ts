@@ -55,6 +55,12 @@ describe("validateSession", () => {
     it('rejects perceptual_disorder "maybe"', () => rejects(makeSession({ answers: { perceptual_disorder: "maybe" as never } }), /perceptual_disorder/));
     it("rejects an unknown psychedelics answer", () => rejects(makeSession({ answers: { psychedelics: "sometimes" as never } }), /psychedelics/));
     it("accepts prefer-not-to-say", () => expect(validateSession(makeSession({ answers: { psychedelics: "prefer-not-to-say" } })).ok).toBe(true));
+    it("accepts a list of medications", () => expect(validateSession(makeSession({ answers: { medications: ["Lamotrigine", "Melatonin"] } })).ok).toBe(true));
+    it("rejects medications as one string", () => rejects(makeSession({ answers: { medications: "Lamotrigine" as never } }), /medications/));
+    it("rejects an empty list", () => rejects(makeSession({ answers: { psychedelics_used: [] } }), /psychedelics_used/));
+    it("rejects an empty entry", () => rejects(makeSession({ answers: { medications: [""] } }), /medications/));
+    it("rejects a 101-character entry", () => rejects(makeSession({ answers: { psychedelics_used: ["p".repeat(101)] } }), /psychedelics_used/));
+    it("rejects 21 entries", () => rejects(makeSession({ answers: { medications: Array.from({ length: 21 }, (_, i) => `m${i}`) } }), /medications/));
   });
 
   describe("results", () => {

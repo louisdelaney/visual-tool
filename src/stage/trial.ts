@@ -4,7 +4,7 @@ import { Core, PROTOCOL, type GlassFrame, type Rng } from "../core";
 import type { Answer, Session, TaskName, Trial, TrialPhase } from "../app/types";
 import { round } from "../app/format";
 import { drawGlass, drawUpDown, FIX_GREY, FIX_RED } from "./drawing";
-import { clearStage, fixation, getStage, input, setHud, stageGeom, stageNote, type StageGeom } from "./stage";
+import { clearStage, fixation, getStage, input, setHud, stageGeom, type StageGeom } from "./stage";
 import { pause } from "./pause";
 
 interface PresentArgs {
@@ -169,7 +169,6 @@ async function presentSpiral({ s, rng, first, coherence }: PresentArgs): Promise
   }
   stage.redraw = () => drawGlass(stage.ctx, null, stageGeom());
   stage.redraw();
-  stageNote("Which flash had the spiral?  1 or 2", true);
   const t0 = performance.now();
   setHud(RESPONSE_HUD.spiral);
   const res = await awaitAnswer({ "1": "1", ArrowLeft: "1", "2": "2", ArrowRight: "2" }, e => (e.clientX < stage.w / 2 ? "1" : "2"));
@@ -202,7 +201,6 @@ export async function runTrial(s: Session, task: TaskName, level: number, phase:
     stage.redraw = null;
     pause.inTrial = false;
     setHud("");
-    stageNote("");
     clearStage();
   }
   if (out.aborted) return { aborted: true };

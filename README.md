@@ -63,7 +63,7 @@ Four endpoints under `VITE_API_URL`. The page calls the first three from the bro
 ```
 
 - Both groups are stored sessions with `contribution.answers.perceptual_disorder` = `"no"`, the requested `test_version`, and both tasks `"complete"` in `results`.
-- `control` also has `psychedelics` = `"no"`; `psychedelics` has `psychedelics` = `"yes"`. Sessions answering `"prefer-not-to-say"` are in neither group.
+- `control` also has `psychedelics` = `"no"`; `psychedelics` has `psychedelics` = `"yes"`. Sessions answering `"prefer-not-to-say"`, or leaving the question unanswered (`null`), are in neither group.
 - The measures come from `results.motion.threshold_pct`, `results.form.threshold_pct` and `results.motion_minus_form.sensitivity`.
 - `n` is the number of people in the group. While it's under 30, return `"measures": null`: too few to mean much, and too few to keep individuals hidden. The page enforces the same minimum, per group.
 - Return only these numbers, never individual sessions or answers.
@@ -81,7 +81,7 @@ The page validates the response and shows nothing from one that doesn't match (s
       "started_at": "2026-10-18T19:30:00Z",
       "test_version": 1,
       "values": { "motion_threshold_pct": 10.2, "form_threshold_pct": 21.0, "motion_minus_form": 0.05043 },
-      "medications": "Lamotrigine 50 mg",
+      "medications": ["Lamotrigine"],
       "notes": null
     }
   ]

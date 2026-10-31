@@ -15,7 +15,7 @@ describe("summaryRow", () => {
   });
 
   it("copies the id, start, version, answers, measures, medications and notes", () => {
-    const s = makeSession({ answers: { medications: "Lamotrigine 50 mg", notes: "Tired today.", psychedelics: "yes" } });
+    const s = makeSession({ answers: { medications: ["Lamotrigine"], notes: "Tired today.", psychedelics: "yes" } });
     expect(summaryRow(s, "abc")).toEqual({
       submission_id: "abc",
       pseudonym: "quiet heron",
@@ -24,7 +24,7 @@ describe("summaryRow", () => {
       disorder: "no",
       psychedelics: "yes",
       values: { motion_threshold_pct: 10.2, form_threshold_pct: 21.0, motion_minus_form: 0.05 },
-      medications: "Lamotrigine 50 mg",
+      medications: ["Lamotrigine"],
       notes: "Tired today.",
     });
   });

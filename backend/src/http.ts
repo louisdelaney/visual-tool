@@ -39,13 +39,14 @@ export function sendJSON(res: ServerResponse, status: number, body: unknown, hea
 }
 
 /**
- * Allows the site's origin only. Requests with no Origin (curl, the export job's health check)
- * get no CORS headers and are served normally: CORS protects browsers, not the data, which is public.
+ * Allows the site's origin only: `allowed` is one origin, or several separated by commas (two dev
+ * servers on one backend). Requests with no Origin (curl, the export job's health check) get no
+ * CORS headers and are served normally: CORS protects browsers, not the data, which is public.
  */
 export function cors(req: IncomingMessage, res: ServerResponse, allowed: string): boolean {
   const origin = req.headers.origin;
   if (!origin) return true;
-  if (origin !== allowed) return false;
+  if (!allowed.split(",").map(o => o.trim()).includes(origin)) return false;
   res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");

@@ -15,13 +15,15 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("Db on the Firestore emula
   // Stored in this order; the first and last share a pseudonym, and the last started earliest.
   const controlA = withThresholds(10.2, 21.0, { started_at: "2026-10-18T19:30:00.000Z", finished_at: "2026-10-18T19:39:00.000Z", answers: { pseudonym: "Quiet Heron", notes: "second run" } });
   const controlB = withThresholds(12.4, 25.5, { started_at: "2026-10-19T08:00:00.000Z", finished_at: "2026-10-19T08:09:00.000Z", answers: { pseudonym: null } });
-  const psychedelicsC = withThresholds(9.1, 19.3, { started_at: "2026-08-02T20:00:00.000Z", finished_at: "2026-08-02T20:09:00.000Z", answers: { pseudonym: " quiet  heron ", psychedelics: "yes", medications: "Lamotrigine 50 mg" } });
+  const psychedelicsC = withThresholds(9.1, 19.3, { started_at: "2026-08-02T20:00:00.000Z", finished_at: "2026-08-02T20:09:00.000Z", answers: { pseudonym: " quiet  heron ", psychedelics: "yes", medications: ["Lamotrigine"] } });
   const stored: SessionExportV1[] = [controlA, controlB, psychedelicsC];
   const ids: string[] = [];
 
   beforeAll(async () => {
-    // A new project id per run, so runs (and parallel files) don't see each other's documents.
-    fs = new Firestore({ projectId: `test-${randomUUID().slice(0, 8)}`, ignoreUndefinedProperties: true });
+    // A new database per run, so runs (and parallel files) don't see each other's documents, nor
+    // the backend's own data. A new project id isn't enough: the gcloud emulator in compose.yaml
+    // keeps every project's documents together, and only databases apart.
+    fs = new Firestore({ projectId: process.env.GOOGLE_CLOUD_PROJECT || "demo-visual-tool", databaseId: `test-${randomUUID().slice(0, 8)}`, ignoreUndefinedProperties: true });
     db = new Db(fs);
     for (const [i, s] of stored.entries()) ids.push(await db.storeSession(s, new Date(Date.UTC(2026, 9, 20, 12, i))));
   });
@@ -64,7 +66,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("Db on the Firestore emula
     const rows = await db.historyFor("quiet heron");
     expect(rows.map(r => r.submission_id)).toEqual([ids[2], ids[0]]);
     expect(rows.map(r => r.started_at)).toEqual([psychedelicsC.started_at, controlA.started_at]);
-    expect(rows[0]).toMatchObject({ pseudonym: "quiet heron", psychedelics: "yes", medications: "Lamotrigine 50 mg", values: { motion_threshold_pct: 9.1, form_threshold_pct: 19.3 } });
+    expect(rows[0]).toMatchObject({ pseudonym: "quiet heron", psychedelics: "yes", medications: ["Lamotrigine"], values: { motion_threshold_pct: 9.1, form_threshold_pct: 19.3 } });
     expect(rows[1]).toMatchObject({ notes: "second run" });
   });
 

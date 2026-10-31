@@ -43,7 +43,7 @@ docker compose down
 
 The `backend` service is the production image, built from `backend/Dockerfile`, pointed at the emulator (project `demo-visual-tool`). Set `ALLOWED_ORIGIN` if your site isn't at `http://localhost:5173`. Exports go to a named volume and are served at `http://localhost:8080/export/`. The `e2e` image has to match the `playwright` version in `package.json`; if you bump one, bump the other.
 
-The emulator keeps its data in memory only, so `docker compose down` loses it. That's deliberate: nothing from a test run lingers.
+The emulator's data is kept in the `firestore-data` volume, so it survives restarts and `docker compose down`. The emulator itself holds data in memory only, so `scripts/firestore-emulator.sh` saves a snapshot every minute and when the container stops, keeps the newest five, and loads the newest on start. A crash loses at most the last minute. To start empty, run `docker compose down -v`, which deletes the volume. The backend's Firestore tests each use a new database, and the `backend-e2e` service (below) uses one called `e2e`; snapshots save only the default database, so neither is kept or mixed with the backend's data. (A separate project wouldn't do: this emulator keeps every project's documents together.)
 
 ## Offloading to a build server
 
@@ -67,15 +67,25 @@ REMOTE_HOST=debian
 
 | Script | What it does |
 | --- | --- |
-| `npm run backend:up` | Starts the emulator and the backend. |
-| `npm run backend:down` | Stops them. |
+| `npm run backend:up` | Starts the emulator, the backend, and `backend-e2e` for the contribution test. |
+| `npm run backend:debug` | Starts the emulator and the backend with Node's debugger (`compose.debug.yaml`). |
+| `npm run backend:down` | Stops them. The emulator's data is kept. |
 | `npm run backend:logs` | Follows their logs. |
 | `npm run backend:export` | Runs the export job once. |
 | `npm run check:firestore` | Backend tests, with the Firestore emulator tests included. |
 | `npm run check:e2e` | The end-to-end tests. |
 | `npm run remote -- <command>` | Any other command. |
 
+To run the end-to-end tests on your own machine with the contribution test using the server's backend, add to `.env.local`:
+
+```sh
+E2E_API_URL=http://<server>:8082
+E2E_FIRESTORE_URL=http://<server>:8081
+```
+
 To develop on a Mac against the server's backend, run `npm run backend:up`, put `VITE_API_URL=http://<server>:8080` in `.env.local`, and run `npm run dev` at the top level as usual. The browser's origin is still `http://localhost:5173`, which the backend allows. It has to be the dev server and not a build, for the Content Security Policy reason given above.
+
+To step through the backend there, start it with `npm run backend:debug` instead and run `ssh -N -L 9229:localhost:9229 <server>`, then attach Chrome DevTools (`chrome://inspect`) or VS Code ("Attach to backend" in `.vscode/launch.json`) to `localhost:9229`. The debugger's port is open only on the server's own loopback, because anyone who can reach it can run code there; the tunnel is the way in. The build emits source maps, so breakpoints go in the TypeScript.
 
 ## Tests
 
@@ -87,7 +97,9 @@ npm run test:all       # typecheck, both unit suites, then the end-to-end tests
 npm run test:e2e       # end-to-end only (about 10 minutes)
 ```
 
-The end-to-end tests need `npx playwright install chromium` once. They check flash timing, so run them on an otherwise idle machine.
+The end-to-end tests need `npx playwright install chromium` once. They check flash timing, so run them on an otherwise idle machine. They build the site without any `VITE_API_URL` from `.env.local`.
+
+One of them, `tests/e2e/contribute.cjs`, takes the whole test answering Yes to contributing, then checks what the backend stored against what the page exported, and that the page sent no cookies or referrer and contacted nothing else. It needs no setup: with nothing configured it builds the backend and starts it on your machine, in memory, with its data in a temporary folder. To use a backend elsewhere instead, set `E2E_API_URL` and `E2E_FIRESTORE_URL` (see "Offloading to a build server"). `npm run check:e2e` does that for you, using the `backend-e2e` service. The page is served at `http://localhost:4173`, so that port must be free.
 
 To run the slow ones somewhere else, `npm run check:e2e` runs the end-to-end tests and `npm run check:firestore` runs the backend tests with the Firestore emulator tests included. Both go through `scripts/remote.sh`, so they run in Docker, on your build server if `REMOTE_HOST` is set (see "Offloading to a build server"). You don't need either to open a pull request; CI runs the ordinary tests.
 
@@ -96,7 +108,7 @@ Run `npm run test:e2e` if you change anything in `src/core/` or `src/stage/`. Fo
 ## Test version and schema version
 
 - If you change what participants see or do (timings, sizes, dot counts, the staircase, instructions that could change answers), it is a different test. Bump `TEST_VERSION` in `src/core/protocol.ts`. A unit test pins the parameters, so forgetting fails.
-- If you change the shape of the exported JSON, bump `schema_version` in `src/app/schema.ts` and update the type and its test. Changes to the backend's validation or the Privacy and risks page usually follow.
+- If you change the shape of the exported JSON, bump `schema_version` in `src/app/schema.ts` and update the type and its test. Until the first deploy, don't bump it: version 1 is still being defined, so change it in place. Changes to the backend's validation or the Privacy and risks page usually follow.
 - Never pool results across test versions.
 
 ## The backend shares code with the site

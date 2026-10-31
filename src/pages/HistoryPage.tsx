@@ -30,7 +30,7 @@ function SessionTable({ sessions }: { sessions: HistoryEntry[] }) {
               <td>{date(s.started_at)}</td>
               <td>{fmt.pct(s.values.motion_threshold_pct)}</td>
               <td>{fmt.pct(s.values.form_threshold_pct)}</td>
-              <td className="wrap-cell">{s.medications ?? ""}</td>
+              <td className="wrap-cell">{s.medications?.join(", ") ?? ""}</td>
               <td className="wrap-cell">{s.notes ?? ""}</td>
             </tr>
           ))}

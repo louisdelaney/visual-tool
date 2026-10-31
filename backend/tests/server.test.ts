@@ -296,6 +296,17 @@ describe("CORS", () => {
     expect(res.headers.get("access-control-allow-origin")).toBeNull();
   });
 
+  it("allows each of several comma-separated origins, and no other", async () => {
+    const other = "http://localhost:5180";
+    const { base } = await start(undefined, { allowedOrigin: `${ORIGIN}, ${other}` });
+    for (const origin of [ORIGIN, other]) {
+      const res = await fetch(`${base}/groups?test_version=1`, { headers: { Origin: origin } });
+      expect(res.status).toBe(200);
+      expect(res.headers.get("access-control-allow-origin")).toBe(origin);
+    }
+    expect((await fetch(`${base}/groups?test_version=1`, { headers: { Origin: "http://localhost:5181" } })).status).toBe(403);
+  });
+
   it("adds the CORS header to responses for the allowed origin", async () => {
     const { base } = await start();
     const res = await fetch(`${base}/groups?test_version=1`, { headers: { Origin: ORIGIN } });

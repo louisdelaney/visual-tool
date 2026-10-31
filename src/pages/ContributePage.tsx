@@ -7,6 +7,7 @@ import type { Condition, ContributionAnswers, ContributionChoice, FoundVia, Psyc
 import { getState, setState } from "../app/store";
 import { show, showHistory } from "../app/flow";
 import { FunNotice } from "../components/FunNotice";
+import { ChipInput, NO_CHIPS, chipValues, type Chips } from "../components/ChipInput";
 
 interface Draft {
   contribute: YesNo | "";
@@ -18,15 +19,15 @@ interface Draft {
   psychedelics: PsychedelicUse | "";
   /** As typed; checked to be a whole number on Continue. */
   uses: string;
-  psychedelicsUsed: string;
+  psychedelicsUsed: Chips;
   takesMedication: YesNo | "";
-  medications: string;
+  medications: Chips;
   notes: string;
   foundVia: FoundVia | "";
   foundViaOther: string;
 }
 
-const EMPTY: Draft = { contribute: "", pseudonym: "", disorder: "", condition: "", otherCondition: "", diagnosed: "", psychedelics: "", uses: "", psychedelicsUsed: "", takesMedication: "", medications: "", notes: "", foundVia: "", foundViaOther: "" };
+const EMPTY: Draft = { contribute: "", pseudonym: "", disorder: "", condition: "", otherCondition: "", diagnosed: "", psychedelics: "", uses: "", psychedelicsUsed: NO_CHIPS, takesMedication: "", medications: NO_CHIPS, notes: "", foundVia: "", foundViaOther: "" };
 
 /** The form as it was answered, for coming back to change something. */
 function fromChoice(c: ContributionChoice | null): Draft {
@@ -42,9 +43,9 @@ function fromChoice(c: ContributionChoice | null): Draft {
     diagnosed: a.diagnosed ?? "",
     psychedelics: a.psychedelics ?? "",
     uses: a.psychedelic_uses == null ? "" : String(a.psychedelic_uses),
-    psychedelicsUsed: a.psychedelics_used ?? "",
+    psychedelicsUsed: { items: a.psychedelics_used ?? [], typing: "" },
     takesMedication: a.takes_medication ?? "",
-    medications: a.medications ?? "",
+    medications: { items: a.medications ?? [], typing: "" },
     notes: a.notes ?? "",
     foundVia: a.found_via ?? "",
     foundViaOther: a.found_via_other ?? "",
@@ -73,24 +74,34 @@ function toAnswers(d: Draft): ContributionAnswers {
     diagnosed: d.disorder === "yes" ? d.diagnosed || null : null,
     psychedelics: d.psychedelics || null,
     psychedelic_uses: d.psychedelics === "yes" ? parseUses(d.uses) : null,
-    psychedelics_used: d.psychedelics === "yes" ? d.psychedelicsUsed.trim() || null : null,
+    psychedelics_used: d.psychedelics === "yes" ? chipValues(d.psychedelicsUsed) : null,
     takes_medication: d.takesMedication || null,
-    medications: d.takesMedication === "yes" ? d.medications.trim() || null : null,
+    medications: d.takesMedication === "yes" ? chipValues(d.medications) : null,
     notes: d.notes.trim() || null,
     found_via: d.foundVia || null,
     found_via_other: d.foundVia === "other" ? d.foundViaOther.trim() || null : null,
   };
 }
 
-/** The first required answer that's missing: the message, and the id of the field to focus. */
-function missingAnswer(a: ContributionAnswers): [string, string] | null {
-  if (!a.perceptual_disorder) return ["Please say whether you have, or suspect you have, a visual perceptual disorder.", "cq-disorder-yes"];
-  if (a.perceptual_disorder === "yes" && !a.condition) return ["Please choose which disorder.", "cq-vss"];
-  if (a.condition === "other" && !a.other_condition) return ["Please say which other disorder.", "cq-other-text"];
-  if (a.perceptual_disorder === "yes" && !a.diagnosed) return ["Please say whether you've been diagnosed.", "cq-diagnosed-yes"];
-  if (!a.psychedelics) return ["Please say whether you've used psychedelic drugs.", "cq-psychedelics-yes"];
-  if (a.psychedelics === "yes" && a.psychedelic_uses == null) return ["Please estimate how many times you've used psychedelic drugs, as a whole number.", "cq-uses"];
+/** A required question left unanswered: which one, what to say beside it, and the field to focus. */
+interface Missing {
+  field: "contribute" | "disorder" | "condition" | "diagnosed" | "uses";
+  message: string;
+  focus: string;
+}
+
+/** The first required answer that's missing. */
+function missingAnswer(a: ContributionAnswers): Missing | null {
+  if (!a.perceptual_disorder) return { field: "disorder", message: "Please choose Yes or No.", focus: "cq-disorder-yes" };
+  if (a.perceptual_disorder === "yes" && !a.condition) return { field: "condition", message: "Please choose which disorder.", focus: "cq-vss" };
+  if (a.perceptual_disorder === "yes" && !a.diagnosed) return { field: "diagnosed", message: "Please choose Yes or No.", focus: "cq-diagnosed-yes" };
+  if (a.psychedelics === "yes" && a.psychedelic_uses == null) return { field: "uses", message: "Please enter a whole number, 1 or more.", focus: "cq-uses" };
   return null;
+}
+
+/** The message shown inside a question that still needs an answer. */
+function FieldError({ missing, field }: { missing: Missing | null; field: Missing["field"] }) {
+  return missing?.field === field ? <p className="field-error" id={`err-${field}`}>{missing.message}</p> : null;
 }
 
 interface RadioProps<T extends string> {
@@ -111,9 +122,17 @@ function Radio<T extends string>({ name, value, checked, onPick, id, children }:
   );
 }
 
+/** A picked radio can't be unpicked, so an optional question needs a way back to unanswered. */
+function ClearAnswer({ onClear, focusId }: { onClear: () => void; focusId: string }) {
+  return <p className="hint"><button type="button" className="linkish" onClick={() => { onClear(); document.getElementById(focusId)?.focus(); }}>Clear answer</button></p>;
+}
+
 export function ContributePage() {
   const [d, setDraft] = useState<Draft>(() => fromChoice(getState().contribution));
   const [status, setStatus] = useState("");
+  const [missing, setMissing] = useState<Missing | null>(null);
+  /** Props that mark a question as needing an answer, after Continue. */
+  const flag = (field: Missing["field"]) => (missing?.field === field ? { className: "invalid", "aria-describedby": `err-${field}` } : {});
   const [generating, setGenerating] = useState(false);
   const generate = async (): Promise<void> => {
     setGenerating(true);
@@ -121,19 +140,25 @@ export function ContributePage() {
     setGenerating(false);
     set("pseudonym", p);
   };
-  const set = <K extends keyof Draft>(key: K, value: Draft[K]): void => { setDraft(prev => ({ ...prev, [key]: value })); setStatus(""); };
+  const set = <K extends keyof Draft>(key: K, value: Draft[K]): void => {
+    setDraft(prev => ({ ...prev, [key]: value }));
+    setStatus("");
+    // Answering the flagged question clears its highlight.
+    if (key === missing?.field) setMissing(null);
+  };
+  const flagMissing = (m: Missing): void => {
+    setMissing(m);
+    setStatus("Please answer the highlighted question above.");
+    document.getElementById(m.focus)?.focus();
+  };
 
   const onSubmit = (e: FormEvent): void => {
     e.preventDefault();
-    if (!d.contribute) {
-      setStatus("Choose whether to contribute your data.");
-      document.getElementById("cq-contribute-yes")?.focus();
-      return;
-    }
+    if (!d.contribute) { flagMissing({ field: "contribute", message: "Please choose whether to contribute.", focus: "cq-contribute-yes" }); return; }
     if (d.contribute === "no") { setState({ contribution: { contribute: false } }); show("setup"); return; }
     const answers = toAnswers(d);
-    const missing = missingAnswer(answers);
-    if (missing) { setStatus(missing[0]); document.getElementById(missing[1])?.focus(); return; }
+    const m = missingAnswer(answers);
+    if (m) { flagMissing(m); return; }
     setState({ contribution: { contribute: true, answers } });
     show("setup");
   };
@@ -152,8 +177,9 @@ export function ContributePage() {
         Contributed before? <button type="button" className="linkish" id="history-open" onClick={() => showHistory()}>See your previous results</button>.
       </p>
       <form id="contrib-form" noValidate onSubmit={onSubmit}>
-        <fieldset>
+        <fieldset {...flag("contribute")}>
           <legend>Contribute anonymous data?</legend>
+          <FieldError missing={missing} field="contribute" />
           <Radio name="contribute" value="yes" id="cq-contribute-yes" checked={d.contribute === "yes"} onPick={v => set("contribute", v)}>Yes, add my results and answers to the public dataset</Radio>
           <Radio name="contribute" value="no" checked={d.contribute === "no"} onPick={v => set("contribute", v)}>No, send nothing</Radio>
         </fieldset>
@@ -169,24 +195,27 @@ export function ContributePage() {
               <p className="hint">Completely optional. Leave it blank and your results can't be looked up or linked together, which is the most private choice. If you use one, use the same one each time to see your results over time. It's public: anyone who enters it can see every result and answer sent with it, so don't use your name, a username you use elsewhere, or anything else that points to you. A generated one is safest; write it down.</p>
             </fieldset>
 
-            <fieldset>
+            <fieldset {...flag("disorder")}>
               <legend>Do you have, or suspect you have, a visual perceptual disorder?</legend>
+              <FieldError missing={missing} field="disorder" />
               <Radio name="disorder" value="yes" id="cq-disorder-yes" checked={d.disorder === "yes"} onPick={v => set("disorder", v)}>Yes</Radio>
               <Radio name="disorder" value="no" checked={d.disorder === "no"} onPick={v => set("disorder", v)}>No</Radio>
             </fieldset>
             {d.disorder === "yes" && (
               <div className="follow-up" id="cq-disorder-more">
-                <fieldset>
+                <fieldset {...flag("condition")}>
                   <legend>Which one?</legend>
+                  <FieldError missing={missing} field="condition" />
                   {CONDITIONS.map(([value, label]) => (
                     <Radio key={value} name="condition" value={value} id={`cq-${value}`} checked={d.condition === value} onPick={v => set("condition", v)}>{label}</Radio>
                   ))}
                   {d.condition === "other" && (
-                    <input type="text" id="cq-other-text" maxLength={100} aria-label="Other disorder (public)" placeholder="Which disorder?" value={d.otherCondition} onChange={e => set("otherCondition", e.target.value)} />
+                    <input type="text" id="cq-other-text" maxLength={100} aria-label="Other disorder (optional, public)" placeholder="Which disorder? (optional)" value={d.otherCondition} onChange={e => set("otherCondition", e.target.value)} />
                   )}
                 </fieldset>
-                <fieldset>
+                <fieldset {...flag("diagnosed")}>
                   <legend>Have you been diagnosed by a doctor?</legend>
+                  <FieldError missing={missing} field="diagnosed" />
                   <Radio name="diagnosed" value="yes" id="cq-diagnosed-yes" checked={d.diagnosed === "yes"} onPick={v => set("diagnosed", v)}>Yes</Radio>
                   <Radio name="diagnosed" value="no" checked={d.diagnosed === "no"} onPick={v => set("diagnosed", v)}>No</Radio>
                 </fieldset>
@@ -194,21 +223,23 @@ export function ContributePage() {
             )}
 
             <fieldset>
-              <legend>Have you ever used psychedelic drugs?</legend>
+              <legend>Have you ever used psychedelic drugs? (optional)</legend>
               <Radio name="psychedelics" value="yes" id="cq-psychedelics-yes" checked={d.psychedelics === "yes"} onPick={v => set("psychedelics", v)}>Yes</Radio>
               <Radio name="psychedelics" value="no" checked={d.psychedelics === "no"} onPick={v => set("psychedelics", v)}>No</Radio>
               <Radio name="psychedelics" value="prefer-not-to-say" checked={d.psychedelics === "prefer-not-to-say"} onPick={v => set("psychedelics", v)}>Prefer not to say</Radio>
+              {d.psychedelics && <ClearAnswer onClear={() => set("psychedelics", "")} focusId="cq-psychedelics-yes" />}
             </fieldset>
             {d.psychedelics === "yes" && (
               <div className="follow-up" id="cq-psychedelics-more">
-                <fieldset>
+                <fieldset {...flag("uses")}>
                   <legend><label htmlFor="cq-uses">Estimate how many times</label></legend>
+                  <FieldError missing={missing} field="uses" />
                   <input type="number" id="cq-uses" min={1} step={1} inputMode="numeric" value={d.uses} onChange={e => set("uses", e.target.value)} />
                 </fieldset>
                 <fieldset>
                   <legend><label htmlFor="cq-psychedelics-used">Which ones have you used? (optional)</label></legend>
-                  <input type="text" id="cq-psychedelics-used" maxLength={300} autoComplete="off" value={d.psychedelicsUsed} onChange={e => set("psychedelicsUsed", e.target.value)} />
-                  <p className="hint">Public, like all your answers: no names of people or places.</p>
+                  <ChipInput id="cq-psychedelics-used" noun="psychedelic" value={d.psychedelicsUsed} onChange={c => set("psychedelicsUsed", c)} />
+                  <p className="hint">Add one at a time. Public, like all your answers: no names of people or places.</p>
                 </fieldset>
               </div>
             )}
@@ -217,13 +248,14 @@ export function ContributePage() {
               <legend>Do you take any medications? (optional)</legend>
               <Radio name="medication" value="yes" id="cq-medication-yes" checked={d.takesMedication === "yes"} onPick={v => set("takesMedication", v)}>Yes</Radio>
               <Radio name="medication" value="no" checked={d.takesMedication === "no"} onPick={v => set("takesMedication", v)}>No</Radio>
+              {d.takesMedication && <ClearAnswer onClear={() => set("takesMedication", "")} focusId="cq-medication-yes" />}
             </fieldset>
             {d.takesMedication === "yes" && (
               <div className="follow-up" id="cq-medication-more">
                 <fieldset>
                   <legend><label htmlFor="cq-meds">Which ones? (optional)</label></legend>
-                  <input type="text" id="cq-meds" maxLength={300} autoComplete="off" value={d.medications} onChange={e => set("medications", e.target.value)} />
-                  <p className="hint">Public, like all your answers: no names of people or places.</p>
+                  <ChipInput id="cq-meds" noun="medication" value={d.medications} onChange={c => set("medications", c)} />
+                  <p className="hint">Add the names one at a time. Public, like all your answers: no names of people or places.</p>
                 </fieldset>
               </div>
             )}

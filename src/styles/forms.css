@@ -90,3 +90,82 @@ textarea {
   resize: vertical;
   margin-top: 10px;
 }
+
+/* List answers: entries added one at a time, shown as removable chips above the box. */
+.chip-input {
+  display: grid;
+  gap: 8px;
+}
+
+.chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 2px 2px 12px;
+  border: 1px solid var(--axis);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 15px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.chip-remove {
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  border-radius: 999px;
+  min-width: 32px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.chip-remove:hover {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.chip-remove:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.chip-add {
+  min-width: 44px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* A required question left unanswered when Continue was pressed. */
+fieldset.invalid {
+  border-left: 4px solid var(--accent);
+  background: var(--accent-wash);
+  border-radius: 6px;
+  padding: 10px 12px 12px;
+}
+
+fieldset.invalid legend {
+  /* Legends float over a fieldset's padding; keep it inside the highlighted box. */
+  float: left;
+  width: 100%;
+}
+
+.field-error {
+  margin: 0;
+  font-weight: 700;
+  font-size: var(--t-sm);
+  color: var(--accent);
+}

@@ -1,0 +1,18 @@
+{
+  // Attaches to the backend started by `npm run backend:debug` (compose.debug.yaml), through
+  // `ssh -N -L 9229:localhost:9229 <server>`. See "Offloading to a build server" in CONTRIBUTING.md.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to backend",
+      "type": "node",
+      "request": "attach",
+      "address": "localhost",
+      "port": 9229,
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "/work",
+      "restart": true,
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}

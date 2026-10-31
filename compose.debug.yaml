@@ -1,0 +1,18 @@
+# Runs the backend with Node's debugger, on top of compose.yaml:
+#
+#   docker compose -f compose.yaml -f compose.debug.yaml up -d --build firestore backend
+#
+# The debugger lets whoever reaches it run any code, so its port is published on the Docker
+# host's loopback only. To debug a backend on a build server, tunnel to it:
+#
+#   ssh -N -L 9229:localhost:9229 <host>
+#
+# then attach Chrome DevTools (chrome://inspect) or VS Code ("Attach to backend" in
+# .vscode/launch.json) to localhost:9229. The build puts source maps inside the compiled files,
+# sources included, so breakpoints can go in the TypeScript without a local build.
+
+services:
+  backend:
+    command: ["node", "--inspect=0.0.0.0:9229", "--enable-source-maps", "dist/server.js"]
+    ports:
+      - "127.0.0.1:9229:9229"
