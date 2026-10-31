@@ -137,6 +137,8 @@ export interface ContributionAnswers {
   psychedelics: PsychedelicUse | null;
   /** The person's estimate of how many times they've used psychedelics: a whole number, 1 or more. */
   psychedelic_uses: number | null;
+  /** Which psychedelics they've used, in their own words; only when psychedelics is "yes". */
+  psychedelics_used: string | null;
   /** Whether they take any medications, if they said. */
   takes_medication: YesNo | null;
   /** Which ones, in their own words; only when takes_medication is "yes". */

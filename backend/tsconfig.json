@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  // The site's schema, group rules and pseudonym handling are imported from ../src/app, so the
+  // backend can't drift from the page. Those files have no DOM dependencies.
+  "include": ["src", "tests", "../src/app/schema.ts", "../src/app/comparison.ts", "../src/app/history.ts"]
+}

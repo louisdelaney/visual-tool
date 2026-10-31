@@ -8,3 +8,9 @@ tests/output/
 data/
 
 .DS_Store
+
+# Terraform: local state, plugins and variable files (the .example ones are kept).
+infra/**/.terraform/
+infra/**/*.tfstate*
+infra/**/*.tfvars
+!infra/**/*.tfvars.example

@@ -32,7 +32,7 @@ const session: Session = {
   env: { browser: "Chrome 131 on macOS", language: "en-GB", screen: [1440, 900], viewport: [1440, 900], devicePixelRatio: 2 },
   tasks: { motion: { task: "motion", staircase: new Staircase(), trials: [], endedEarly: false } },
   trials: [], results: null,
-  contribution: { contribute: true, submission_id: "abc", sent_at: null, sending: true, failed: false, answers: { pseudonym: null, perceptual_disorder: "no", condition: null, other_condition: null, diagnosed: null, psychedelics: "no", psychedelic_uses: null, takes_medication: null, medications: null, notes: null, found_via: null, found_via_other: null } },
+  contribution: { contribute: true, submission_id: "abc", sent_at: null, sending: true, failed: false, answers: { pseudonym: null, perceptual_disorder: "no", condition: null, other_condition: null, diagnosed: null, psychedelics: "no", psychedelic_uses: null, psychedelics_used: null, takes_medication: null, medications: null, notes: null, found_via: null, found_via_other: null } },
 };
 
 test("schema version 1: the export's fields are unchanged", () => {

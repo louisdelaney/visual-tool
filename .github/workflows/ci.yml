@@ -1,4 +1,5 @@
-# Type-checks, unit-tests and builds every push and pull request.
+# Type-checks, unit-tests and builds the site and the backend, and checks the Terraform in
+# infra/, on every push and pull request.
 name: CI
 
 on:
@@ -18,3 +19,44 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npx vite build
+
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      # Builds the container image from the repository root, so a broken Dockerfile is caught
+      # here rather than by a deploy.
+      - name: Build the container image
+        working-directory: .
+        run: docker build -f backend/Dockerfile .
+
+  # Formatting and validity only: no credentials, nothing is planned or applied.
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Check infra/bootstrap
+        working-directory: infra/bootstrap
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate
+      - name: Check infra
+        working-directory: infra
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate

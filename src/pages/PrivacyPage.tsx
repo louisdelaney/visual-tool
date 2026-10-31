@@ -9,7 +9,7 @@ export function PrivacyPage() {
         <h2 id="privacy-h">Privacy and risks</h2>
         <ul className="key-points">
           <li><strong>Just for fun.</strong> This is a casual online test for curiosity only, and it isn't medical advice.</li>
-          <li><strong>All contributed data is public.</strong> Anyone can download every result and answer people choose to contribute.</li>
+          <li><strong>All contributed data is public.</strong> Anyone can download every result and answer people choose to contribute. The download is refreshed once a day; in it, times are rounded to the hour.</li>
           <li><strong>It's anonymous.</strong> There are no accounts, and no name, email or IP address is stored with your results.</li>
           <li><strong>Nothing extra is logged.</strong> Only what's listed below is sent, and only if you choose to contribute.</li>
         </ul>
@@ -17,7 +17,7 @@ export function PrivacyPage() {
         <h3>If you contribute</h3>
         <p>When you finish the test, this is sent and added to the public dataset:</p>
         <ul>
-          <li>Your answers from the first step: whether you have or suspect a visual perceptual disorder, which one, whether you've been diagnosed, psychedelic use and an estimate of how often, whether you take medications and which, notes, where you found the test, and your pseudonym if you gave one.</li>
+          <li>Your answers from the first step: whether you have or suspect a visual perceptual disorder, which one, whether you've been diagnosed, psychedelic use, an estimate of how often and which ones, whether you take medications and which, notes, where you found the test, and your pseudonym if you gave one.</li>
           <li>Your results: thresholds, sensitivities, and every trial (what was shown, your answer, how long you took).</li>
           <li>Technical details needed to make sense of the results: your screen size and the card measurement, viewing distance, refresh rate, window size, browser and version (for example "Chrome 131 on macOS"), language setting, and the date and time of the test.</li>
         </ul>
@@ -46,7 +46,7 @@ export function PrivacyPage() {
         <h3>Risks to you</h3>
         <ul>
           <li><strong>Someone who knows your pseudonym</strong> can see all your contributed results and answers, including any health conditions, medications and psychedelic use.</li>
-          <li><strong>Anything you type is public</strong>, in the notes, medications or "other" boxes. Don't include names, places, contact details or anything else that identifies you.</li>
+          <li><strong>Anything you type is public</strong>, in the notes, medications, psychedelics or "other" boxes. Don't include names, places, contact details or anything else that identifies you.</li>
           <li><strong>Details can add up.</strong> Someone who already knows a lot about you, such as when you took the test and on what computer, might recognise your record from its date, screen and browser. Leaving out a pseudonym and keeping notes general makes that much harder.</li>
           <li><strong>Contributions can't be withdrawn.</strong> There are no accounts, so there's no way to prove a pseudonym or a result is yours, and so no safe way to delete it on request. Only contribute what you're happy to have public for good.</li>
           <li><strong>The test shows flickering and moving dots.</strong> Don't take it if you have photosensitive epilepsy, and stop if you feel unwell.</li>

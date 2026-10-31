@@ -18,6 +18,7 @@ interface Draft {
   psychedelics: PsychedelicUse | "";
   /** As typed; checked to be a whole number on Continue. */
   uses: string;
+  psychedelicsUsed: string;
   takesMedication: YesNo | "";
   medications: string;
   notes: string;
@@ -25,7 +26,7 @@ interface Draft {
   foundViaOther: string;
 }
 
-const EMPTY: Draft = { contribute: "", pseudonym: "", disorder: "", condition: "", otherCondition: "", diagnosed: "", psychedelics: "", uses: "", takesMedication: "", medications: "", notes: "", foundVia: "", foundViaOther: "" };
+const EMPTY: Draft = { contribute: "", pseudonym: "", disorder: "", condition: "", otherCondition: "", diagnosed: "", psychedelics: "", uses: "", psychedelicsUsed: "", takesMedication: "", medications: "", notes: "", foundVia: "", foundViaOther: "" };
 
 /** The form as it was answered, for coming back to change something. */
 function fromChoice(c: ContributionChoice | null): Draft {
@@ -41,6 +42,7 @@ function fromChoice(c: ContributionChoice | null): Draft {
     diagnosed: a.diagnosed ?? "",
     psychedelics: a.psychedelics ?? "",
     uses: a.psychedelic_uses == null ? "" : String(a.psychedelic_uses),
+    psychedelicsUsed: a.psychedelics_used ?? "",
     takesMedication: a.takes_medication ?? "",
     medications: a.medications ?? "",
     notes: a.notes ?? "",
@@ -71,6 +73,7 @@ function toAnswers(d: Draft): ContributionAnswers {
     diagnosed: d.disorder === "yes" ? d.diagnosed || null : null,
     psychedelics: d.psychedelics || null,
     psychedelic_uses: d.psychedelics === "yes" ? parseUses(d.uses) : null,
+    psychedelics_used: d.psychedelics === "yes" ? d.psychedelicsUsed.trim() || null : null,
     takes_medication: d.takesMedication || null,
     medications: d.takesMedication === "yes" ? d.medications.trim() || null : null,
     notes: d.notes.trim() || null,
@@ -201,6 +204,11 @@ export function ContributePage() {
                 <fieldset>
                   <legend><label htmlFor="cq-uses">Estimate how many times</label></legend>
                   <input type="number" id="cq-uses" min={1} step={1} inputMode="numeric" value={d.uses} onChange={e => set("uses", e.target.value)} />
+                </fieldset>
+                <fieldset>
+                  <legend><label htmlFor="cq-psychedelics-used">Which ones have you used? (optional)</label></legend>
+                  <input type="text" id="cq-psychedelics-used" maxLength={300} autoComplete="off" value={d.psychedelicsUsed} onChange={e => set("psychedelicsUsed", e.target.value)} />
+                  <p className="hint">Public, like all your answers: no names of people or places.</p>
                 </fieldset>
               </div>
             )}
