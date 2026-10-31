@@ -122,6 +122,19 @@ function Radio<T extends string>({ name, value, checked, onPick, id, children }:
   );
 }
 
+const CopyIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+    <rect x="6" y="6" width="9" height="9" rx="1.5" />
+    <path d="M12 6V4.5A1.5 1.5 0 0 0 10.5 3h-6A1.5 1.5 0 0 0 3 4.5v6A1.5 1.5 0 0 0 4.5 12H6" />
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 9.5l3.2 3L14 5.5" />
+  </svg>
+);
+
 /** A picked radio can't be unpicked, so an optional question needs a way back to unanswered. */
 function ClearAnswer({ onClear, focusId }: { onClear: () => void; focusId: string }) {
   return <p className="hint"><button type="button" className="linkish" onClick={() => { onClear(); document.getElementById(focusId)?.focus(); }}>Clear answer</button></p>;
@@ -140,8 +153,22 @@ export function ContributePage() {
     setGenerating(false);
     set("pseudonym", p);
   };
+  /** After Copy: "copied", or "select" when the browser won't allow it and the text is selected instead. */
+  const [copied, setCopied] = useState<"" | "copied" | "select">("");
+  const copyPseudonym = (): void => {
+    const fallback = (): void => {
+      setCopied("select");
+      const input = document.getElementById("cq-pseudonym") as HTMLInputElement | null;
+      input?.focus(); input?.select();
+    };
+    try {
+      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(d.pseudonym.trim()).then(() => setCopied("copied"), fallback);
+      else fallback();
+    } catch { fallback(); }
+  };
   const set = <K extends keyof Draft>(key: K, value: Draft[K]): void => {
     setDraft(prev => ({ ...prev, [key]: value }));
+    if (key === "pseudonym") setCopied("");
     setStatus("");
     // Answering the flagged question clears its highlight.
     if (key === missing?.field) setMissing(null);
@@ -189,10 +216,16 @@ export function ContributePage() {
             <fieldset>
               <legend><label htmlFor="cq-pseudonym">Pseudonym (optional)</label></legend>
               <div className="inline">
-                <input type="text" id="cq-pseudonym" maxLength={40} autoComplete="off" spellCheck={false} value={d.pseudonym} onChange={e => set("pseudonym", e.target.value)} />
+                <span className="with-action">
+                  <input type="text" id="cq-pseudonym" maxLength={40} autoComplete="off" spellCheck={false} value={d.pseudonym} onChange={e => set("pseudonym", e.target.value)} />
+                  <button type="button" className="icon-btn" id="cq-copy" disabled={!d.pseudonym.trim()} onClick={copyPseudonym} aria-label={copied === "copied" ? "Copied" : "Copy pseudonym"} title={copied === "copied" ? "Copied" : "Copy"}>
+                    {copied === "copied" ? <CheckIcon /> : <CopyIcon />}
+                  </button>
+                </span>
                 <button type="button" className="btn secondary" id="cq-generate" disabled={generating} onClick={() => void generate()}>{generating ? "Generating…" : "Generate one"}</button>
               </div>
-              <p className="hint">Completely optional. Leave it blank and your results can't be looked up or linked together, which is the most private choice. If you use one, use the same one each time to see your results over time. It's public: anyone who enters it can see every result and answer sent with it, so don't use your name, a username you use elsewhere, or anything else that points to you. A generated one is safest; write it down.</p>
+              <p className="hint" role="status" aria-live="polite">{copied === "copied" ? "Copied your pseudonym." : copied === "select" ? "Copying isn't allowed here. It's selected: press Ctrl+C, or ⌘C on a Mac." : ""}</p>
+              <p className="hint">Completely optional. Leave it blank and your results can't be looked up or linked together, which is the most private choice. If you use one, use the same one each time to see your results over time. It's public: anyone who enters it can see every result and answer sent with it, so don't use your name, a username you use elsewhere, or anything else that points to you. A generated one is safest; copy it somewhere or write it down.</p>
             </fieldset>
 
             <fieldset {...flag("disorder")}>

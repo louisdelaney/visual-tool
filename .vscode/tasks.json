@@ -1,0 +1,18 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      // The backend on the build server (REMOTE_HOST) with its debugger tunnelled to :9229, and
+      // the site on http://localhost:5180. Ready once Vite is.
+      "label": "dev+server",
+      "type": "shell",
+      "command": "sh .claude/dev-server.sh",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "dev+server",
+        "pattern": { "regexp": "^__never__$" },
+        "background": { "activeBegins": true, "beginsPattern": ".", "endsPattern": "ready in" }
+      }
+    }
+  ]
+}

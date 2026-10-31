@@ -169,3 +169,46 @@ fieldset.invalid legend {
   font-size: var(--t-sm);
   color: var(--accent);
 }
+
+/* A text input with a small icon button inside its right end, such as Copy. */
+.with-action {
+  position: relative;
+  display: inline-block;
+  width: min(100%,28em);
+}
+
+.with-action input[type="text"] {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.icon-btn {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.icon-btn:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--accent-wash);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

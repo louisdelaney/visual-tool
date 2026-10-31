@@ -1,6 +1,8 @@
 {
-  // Attaches to the backend started by `npm run backend:debug` (compose.debug.yaml), through
-  // `ssh -N -L 9229:localhost:9229 <server>`. See "Offloading to a build server" in CONTRIBUTING.md.
+  // "Site + backend" starts everything (the dev+server task in tasks.json), opens the site in
+  // Chrome and attaches to the backend. "Attach to backend" alone works with `npm run
+  // backend:debug` and `ssh -N -L 9229:localhost:9229 <server>`. See "Offloading to a build
+  // server" in CONTRIBUTING.md.
   "version": "0.2.0",
   "configurations": [
     {
@@ -13,6 +15,21 @@
       "remoteRoot": "/work",
       "restart": true,
       "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Open site",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5180",
+      "webRoot": "${workspaceFolder}"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Site + backend",
+      "configurations": ["Open site", "Attach to backend"],
+      "preLaunchTask": "dev+server",
+      "stopAll": true
     }
   ]
 }

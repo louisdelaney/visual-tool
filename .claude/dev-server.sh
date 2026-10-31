@@ -18,6 +18,14 @@ scripts/remote.sh env ALLOWED_ORIGIN=http://localhost:5173,http://localhost:$POR
 ssh -n -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 9229:localhost:9229 "$REMOTE_HOST" \
   "cd $REMOTE_DIR && docker compose logs -f --no-log-prefix --since 1s backend" &
 tunnel=$!
-trap 'kill $tunnel 2>/dev/null' EXIT INT TERM
+trap 'kill $tunnel 2>/dev/null' EXIT
+trap 'exit 0' INT TERM
 
-npm run dev -- --port "$PORT" --strictPort
+# Vite's "ready" line is what VS Code waits for before attaching, so the tunnel must be up first.
+for _ in $(seq 30); do nc -z localhost 9229 2>/dev/null && break; sleep 1; done
+
+# In the background with a wait, so a stop signal is handled now rather than when Vite exits.
+node_modules/.bin/vite --port "$PORT" --strictPort &
+site=$!
+trap 'kill $tunnel $site 2>/dev/null' EXIT
+wait $site
