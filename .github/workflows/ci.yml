@@ -1,5 +1,5 @@
-# Type-checks, unit-tests and builds the site and the backend, and checks the Terraform in
-# infra/, on every push and pull request.
+# Type-checks, unit-tests and builds the site and the backend (its tests run against the
+# Firestore emulator), and checks the Terraform in infra/, on every push and pull request.
 name: CI
 
 on:
@@ -27,6 +27,14 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
+      # The Firestore emulator, so tests/firestore.test.ts runs here instead of skipping. Started
+      # first so the image pull overlaps with npm ci; a plain `docker run` rather than a job
+      # service because services can't override the image's command. Same image and flags as
+      # compose.yaml.
+      - name: Start the Firestore emulator
+        run: |
+          docker run -d --name firestore -p 8081:8081 gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators \
+            gcloud emulators firestore start --host-port=0.0.0.0:8081 --project=demo-visual-tool
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -34,7 +42,20 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - run: npm run typecheck
+      - name: Wait for the emulator
+        run: |
+          for i in $(seq 1 45); do
+            curl -sf http://localhost:8081 >/dev/null && exit 0
+            sleep 2
+          done
+          echo "the Firestore emulator did not come up"
+          docker logs firestore
+          exit 1
       - run: npm test
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8081
+          GOOGLE_CLOUD_PROJECT: demo-visual-tool
+          METADATA_SERVER_DETECTION: none
       - run: npm run build
       # Builds the container image from the repository root, so a broken Dockerfile is caught
       # here rather than by a deploy.

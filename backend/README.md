@@ -76,7 +76,7 @@ CONTRIBUTING.md covers running these on a build server with `scripts/remote.sh`.
 npm test
 ```
 
-Vitest runs everything except the Firestore emulator tests (8 of them), which run only when `FIRESTORE_EMULATOR_HOST` is set. To include it, start the emulator in one terminal and run the tests in another:
+Vitest runs everything except the Firestore emulator tests (8 of them), which run only when `FIRESTORE_EMULATOR_HOST` is set. CI starts the emulator, so they always run there. To include them locally, start the emulator in one terminal and run the tests in another:
 
 ```sh
 gcloud emulators firestore start --host-port=127.0.0.1:8081
