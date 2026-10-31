@@ -5,14 +5,16 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
-const { runBlindSpot, PX_PER_CM } = require("./bs-helper.js");
-const { PAGE_URL, OUT } = require("./paths.js");
+const { runBlindSpot, PX_PER_CM } = require("./bs-helper.cjs");
+const { OUT, serve } = require("./paths.cjs");
 
 fs.mkdirSync(OUT, { recursive: true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const TOLERANCE = 0.03;
 
 (async () => {
+  const server = await serve();
+  const PAGE_URL = server.url;
   const browser = await chromium.launch();
   const scenarios = [
     { name: "13.3in laptop, arm's length", w: 1085, h: 680, D: 72 },
@@ -30,6 +32,8 @@ const TOLERANCE = 0.03;
     const p = await ctx.newPage();
     p.on("pageerror", e => errors.push(`${sc.name}: ${e.message}`));
     await p.goto(PAGE_URL); await sleep(300);
+    await p.check('#contrib-form input[name="contribute"][value="no"]');
+    await p.click("#contrib-go"); await sleep(100);
     await p.click("#start"); await sleep(100);
     await p.click("#screen-next"); await sleep(150);
     const note = await p.$eval("#window-note", el => el.hidden ? "(none)" : el.textContent);
@@ -56,5 +60,6 @@ const TOLERANCE = 0.03;
   }
   console.log("\nERRORS:", errors.length ? errors : "none", "\nFAILURES:", failures.length ? failures : "none");
   await browser.close();
+  await server.close();
   if (errors.length || failures.length) process.exitCode = 1;
 })().catch(e => { console.error(e); process.exit(1); });

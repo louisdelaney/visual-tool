@@ -1,0 +1,89 @@
+/* Screen size and viewing distance: the card outline, its slider, and the distance readouts. */
+.card-stage {
+  background: var(--surface-2);
+  border-radius: 6px;
+  padding: 28px 20px;
+  overflow-x: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.card {
+  --card-w: 323px;
+  position: relative;
+  flex: none;
+  width: var(--card-w);
+  aspect-ratio: 85.6/53.98;
+  border: 2px solid var(--ink);
+  border-radius: calc(var(--card-w) * .0371);
+  box-sizing: border-box;
+  background: repeating-linear-gradient(135deg,transparent 0 10px,var(--grid) 10px 11px);
+}
+
+.card .chip {
+  position: absolute;
+  left: 11%;
+  top: 35%;
+  width: 13%;
+  aspect-ratio: 1.33;
+  border: 1.5px solid var(--ink-2);
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.card .card-label {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 9%;
+  font: 500 12px/1.3 var(--font-data);
+  color: var(--ink-2);
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.slider-row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.readout {
+  font: 500 15px/1.4 var(--font-data);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.result {
+  font-size: 17px;
+}
+
+.manual {
+  display: grid;
+  gap: 8px;
+}
+
+.manual label {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.fit {
+  font-size: 15px;
+  color: var(--ink-2);
+}
+
+.field-msg {
+  font-size: var(--t-sm);
+  color: var(--ink);
+}

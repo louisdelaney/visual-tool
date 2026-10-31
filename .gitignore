@@ -1,5 +1,8 @@
 node_modules/
+dist/
 tests/output/
+.env
+.env.local
 
 # Exported sessions are people's results: keep them out of git.
 data/
