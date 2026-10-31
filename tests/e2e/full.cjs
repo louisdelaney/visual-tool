@@ -2,22 +2,23 @@
 // Full runs with a simulated observer: drives the real page in headless Chromium through screen size,
 // blind-spot distance and both tasks, then checks the results, the data export and the stimulus
 // timing. Screenshots go to tests/output.
-// Usage: node tests/e2e-full.js [clinic|atkinson|both] [late]
+// Usage: node tests/e2e/full.cjs [late]
 //   late: answer motion trials 300 ms after the dots appear, instead of the moment they appear.
 const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
-const { runBlindSpot } = require("./bs-helper.js");
-const { PAGE_URL, OUT } = require("./paths.js");
+const { runBlindSpot } = require("./bs-helper.cjs");
+const { OUT, serve } = require("./paths.cjs");
 
 fs.mkdirSync(OUT, { recursive: true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const log = (...a) => console.log(...a);
-const which = ["clinic", "atkinson"].includes(process.argv[2]) ? process.argv[2] : "both";
 const late = process.argv.includes("late");
 const OLD_KEY = "form-motion-coherence/v1";
 
 (async () => {
+  const server = await serve();
+  const PAGE_URL = server.url;
   const browser = await chromium.launch();
   const errors = [], failures = [];
   const check = (ok, msg) => { if (!ok) failures.push(msg); };
@@ -28,13 +29,13 @@ const OLD_KEY = "form-motion-coherence/v1";
 
   async function fullRun(protocol, alphas) {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-    // A browser that ran version 0.1.0 may have the old until-you-answer motion display saved.
+    // A browser that ran an older version may have test settings saved, from when there were options.
     // Seed that before the page loads: the page must ignore it.
     await ctx.addInitScript(key => {
       try {
         if (!localStorage.getItem("seeded")) {
           localStorage.setItem("seeded", "1");
-          localStorage.setItem(key, JSON.stringify({ settings: { protocol: "clinic", motionDisplay: "until-answer" } }));
+          localStorage.setItem(key, JSON.stringify({ settings: { protocol: "atkinson", motionDisplay: "until-answer", order: "form-first" } }));
         }
       } catch (e) { /* storage blocked */ }
     }, OLD_KEY);
@@ -46,12 +47,12 @@ const OLD_KEY = "form-motion-coherence/v1";
     await p.evaluate(() => {
       const om = Core.mulberry32;
       Core.mulberry32 = seed => { const r = om(seed); let first = true; return () => { const v = r(); if (first) { first = false; window.__first = v; window.__coh = 0; } return v; }; };
-      const of = Core.buildFormStimulus; Core.buildFormStimulus = o => { window.__coh = o.coherence; return of(o); };
-      const OM = Core.MotionStimulus; Core.MotionStimulus = class extends OM { constructor(o) { super(o); window.__coh = o.coherence; } };
       const OU = Core.UpDownMotion; Core.UpDownMotion = class extends OU { constructor(o) { super(o); window.__coh = o.coherence; } };
       const og = Core.glassFrame; Core.glassFrame = o => { window.__coh = Math.max(window.__coh || 0, o.coherence); return og(o); };
     });
-    if (protocol === "atkinson") { await p.click("#settings summary"); await p.check("#proto-atkinson"); await sleep(200); }
+    await p.check('#contrib-form input[name="contribute"][value="no"]');
+    await p.click("#contrib-go"); await sleep(150);
+    check(!(await p.$("#settings")) && !(await p.$('input[name="protocol"]')), "[clinic] setup still offers test settings");
     await p.screenshot({ path: path.join(OUT, `full-setup-${protocol}.png`), fullPage: true });
     await p.click("#start"); await sleep(150);
     await p.click("#screen-next"); await sleep(150);
@@ -65,7 +66,6 @@ const OLD_KEY = "form-motion-coherence/v1";
     let rs = 2024;
     const rnd = () => { rs = (rs * 1103515245 + 12345) & 0x7fffffff; return rs / 0x7fffffff; };
     const KINDS = [
-      { prefix: "Left:", pick: f => (f < 0.5 ? "left" : "right"), keys: { left: "ArrowLeft", right: "ArrowRight" }, other: { left: "right", right: "left" } },
       { prefix: "Up:", pick: f => (f < 0.5 ? "up" : "down"), keys: { up: "ArrowUp", down: "ArrowDown" }, other: { up: "down", down: "up" } },
       { prefix: "First flash:", pick: f => (f < 0.5 ? "1" : "2"), keys: { "1": "1", "2": "2" }, other: { "1": "2", "2": "1" } },
     ];
@@ -127,12 +127,20 @@ const OLD_KEY = "form-motion-coherence/v1";
     await runTask("form");
     log(`  [${protocol}] tasks took ${((Date.now() - t0) / 1000).toFixed(0)} s`);
     await sleep(300);
+    check(await p.$eval('[data-view="results"]', el => !el.hidden), `[${protocol}] results didn't follow the tasks`);
     await p.screenshot({ path: path.join(OUT, `full-results-${protocol}.png`), fullPage: true });
     log("  tiles:", await p.$$eval(".tile", els => els.map(e => e.innerText.replace(/\n+/g, " | "))));
     log("  meta:", (await p.$$eval("#meta dt, #meta dd", els => els.map(e => e.textContent))).join(" ; "));
+    // The results at phone width: no horizontal scrolling. Leave full screen first, or the window can't resize.
+    await p.evaluate(() => document.fullscreenElement ? document.exitFullscreen() : null); await sleep(300);
+    await p.setViewportSize({ width: 360, height: 860 }); await sleep(300);
+    check(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `[${protocol}] results scroll horizontally at 360px`);
+    await p.screenshot({ path: path.join(OUT, `full-results-360-${protocol}.png`), fullPage: true });
+    await p.setViewportSize({ width: 1440, height: 900 }); await sleep(300);
 
     await p.click("#copy-json"); await sleep(250);
     const data = JSON.parse(await p.$eval("#raw-json", el => el.value));
+    check(data.contribution && data.contribution.contribute === false && !data.contribution.answers, `[${protocol}] choosing No should record no answers`);
     const by = {};
     for (const t of data.trials) { const k = t.task + ":" + t.phase; by[k] = (by[k] || 0) + 1; }
     log("  phases:", JSON.stringify(by), "| unique seeds", new Set(data.trials.map(t => t.seed)).size, "of", data.trials.length);
@@ -150,19 +158,20 @@ const OLD_KEY = "form-motion-coherence/v1";
       const motion = data.trials.filter(t => t.task === "motion");
       log("  spiral flash ms: n", fl.length, "min", Math.min(...fl), "max", Math.max(...fl));
       log("  motion display ms: n", md.length, "min", md[0], "median", md[md.length >> 1], "max", md[md.length - 1], "| median rt", motion.map(t => t.rt_ms).sort((a, b) => a - b)[motion.length >> 1]);
-      log("  export settings:", JSON.stringify(data.settings), "| version:", data.version);
+      log("  export settings:", JSON.stringify(data.settings), "| test_version:", data.test_version, "| schema_version:", data.schema_version);
+      check(data.schema === "visual-tool/session" && data.schema_version === 1 && data.test_version === 1, `[clinic] export versions wrong: ${data.schema} ${data.schema_version} ${data.test_version}`);
       // 200 ms targets, allowing one late frame from a busy headless machine
       check(fl.length > 0 && Math.min(...fl) >= 195 && Math.max(...fl) <= 240, `[clinic] spiral flashes ran ${Math.min(...fl)}-${Math.max(...fl)} ms`);
       check(md.length === motion.length && md[0] >= 195 && md[md.length - 1] <= 240, `[clinic] motion displays ran ${md[0]}-${md[md.length - 1]} ms`);
-      check(data.settings.motionDisplay === "brief", `[clinic] export says motion display ${data.settings.motionDisplay}`);
+      check(data.settings.motionDisplay === "brief" && data.settings.order === "motion-first", `[clinic] an old saved setting leaked into the session: ${JSON.stringify(data.settings)}`);
       check(!(await p.evaluate(() => !!document.querySelector('input[name="motionDisplay"]'))), "[clinic] setup still offers a motion display option");
     }
     await ctx.close();
   }
 
-  if (which !== "atkinson") await fullRun("clinic", { motion: 8, form: 20 });
-  if (which !== "clinic") await fullRun("atkinson", { motion: 12, form: 16 });
+  await fullRun("clinic", { motion: 8, form: 20 });
   log("\nERRORS:", errors.length ? errors : "none", "\nFAILURES:", failures.length ? failures : "none");
   await browser.close();
+  await server.close();
   if (errors.length || failures.length) process.exitCode = 1;
 })().catch(e => { console.error(e); process.exit(1); });
