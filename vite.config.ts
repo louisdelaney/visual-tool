@@ -1,6 +1,9 @@
 /// <reference types="vitest/config" />
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+import fs from "node:fs";
+import path from "node:path";
+import { INFO_PAGES } from "./src/app/types";
 
 // The built page may contact only itself and the backend. The browser blocks everything else,
 // so no future change can quietly add a tracker, a CDN or a font host. Only added to builds:
@@ -27,8 +30,27 @@ function contentSecurityPolicy(apiUrl: string): Plugin {
   };
 }
 
+// A copy of the page at each info page's address (dist/privacy/index.html and so on), so
+// /privacy/ loads on a static host like GitHub Pages, which can't send every address to one
+// page. One folder down, so its relative paths point up a level.
+function infoPageCopies(): Plugin {
+  let outDir = "dist";
+  return {
+    name: "info-page-copies",
+    apply: "build",
+    configResolved: config => { outDir = path.resolve(config.root, config.build.outDir); },
+    writeBundle: () => {
+      const html = fs.readFileSync(path.join(outDir, "index.html"), "utf8").replace(/(src|href)="\.\//g, '$1="../');
+      for (const page of INFO_PAGES) {
+        fs.mkdirSync(path.join(outDir, page), { recursive: true });
+        fs.writeFileSync(path.join(outDir, page, "index.html"), html);
+      }
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), contentSecurityPolicy(loadEnv(mode, process.cwd(), "VITE_").VITE_API_URL ?? "")],
+  plugins: [react(), contentSecurityPolicy(loadEnv(mode, process.cwd(), "VITE_").VITE_API_URL ?? ""), infoPageCopies()],
   // Relative asset paths, so the build works under GitHub Pages' /visual-tool/ path or any other.
   base: "./",
   // Never inline assets as data: URLs: the security policy allows files from this site only.

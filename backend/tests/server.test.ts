@@ -12,7 +12,7 @@ import { createApp, type ServerOptions } from "../src/server";
 import { makeSession, withThresholds } from "./fixture";
 
 const ORIGIN = "https://site.example";
-const EXPORT_URL = "https://storage.example/visual-data.json";
+const EXPORT_URL = "https://github.com/owner/visual-tool/releases/download/data/visual-data.json.gz";
 
 const servers: Server[] = [];
 const tempDirs: string[] = [];

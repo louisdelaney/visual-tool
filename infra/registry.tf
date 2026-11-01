@@ -2,7 +2,7 @@ resource "google_artifact_registry_repository" "images" {
   location      = var.region
   repository_id = local.repository_id
   format        = "DOCKER"
-  description   = "Images for the API and the nightly export job"
+  description   = "Images for the API"
 
   cleanup_policies {
     id     = "keep-recent"

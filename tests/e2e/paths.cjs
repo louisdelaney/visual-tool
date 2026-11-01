@@ -17,7 +17,9 @@ function serve(DIST = module.exports.DIST, port = 0) {
   if (!fs.existsSync(path.join(DIST, "index.html"))) throw new Error(`${path.relative(ROOT, DIST)}/ has no build: run \`npm run build\` first`);
   const server = http.createServer((req, res) => {
     const rel = decodeURIComponent(new URL(req.url, "http://x").pathname).replace(/^\/+/, "") || "index.html";
-    const file = path.join(DIST, rel);
+    let file = path.join(DIST, rel);
+    // A folder serves its index.html, as GitHub Pages does: /privacy/ is dist/privacy/index.html.
+    if (file.startsWith(DIST) && fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, "index.html");
     if (!file.startsWith(DIST) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); res.end(); return; }
     res.writeHead(200, { "Content-Type": TYPES[path.extname(file)] || "application/octet-stream" });
     fs.createReadStream(file).pipe(res);

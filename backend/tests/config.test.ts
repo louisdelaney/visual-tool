@@ -29,8 +29,4 @@ describe("openStore", () => {
 describe("exportDir", () => {
   it("is the default folder when nothing is set", () => expect(exportDir({})).toBe("./data/export"));
   it("is EXPORT_DIR when given", () => expect(exportDir({ EXPORT_DIR: "/data/export" })).toBe("/data/export"));
-  it("is null when a bucket is set, whatever the store", () => {
-    expect(exportDir({ EXPORT_BUCKET: "b" })).toBeNull();
-    expect(exportDir({ EXPORT_BUCKET: "b", EXPORT_DIR: "/x", BACKEND: "memory" })).toBeNull();
-  });
 });

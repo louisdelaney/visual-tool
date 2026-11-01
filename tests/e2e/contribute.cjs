@@ -49,7 +49,7 @@ const freePort = () => new Promise((resolve, reject) => {
 
 // Starts the backend here, in memory, persisted to dataFile. Resolves { url, stop }.
 async function localBackend(tmp, dataFile) {
-  const installed = ["esbuild", "typescript", "@google-cloud/firestore", "@google-cloud/storage"].every(m => fs.existsSync(path.join(ROOT, "backend", "node_modules", m)));
+  const installed = ["esbuild", "typescript", "@google-cloud/firestore"].every(m => fs.existsSync(path.join(ROOT, "backend", "node_modules", m)));
   if (!installed) execFileSync("npm", ["--prefix", "backend", "ci"], { cwd: ROOT, stdio: "inherit" });
   execFileSync("npm", ["--prefix", "backend", "run", "--silent", "build"], { cwd: ROOT, stdio: "inherit" });
   const port = await freePort();

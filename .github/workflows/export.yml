@@ -1,0 +1,66 @@
+# Rebuilds the public download every night: reads every stored session from Firestore and
+# publishes them as one gzipped JSON file, visual-data.json.gz, on the release tagged "data".
+# GitHub serves release files for free, so downloads cost nothing however many there are.
+#
+# There is only ever one file: each run replaces it (for a few seconds in between there is
+# none). GitHub turns scheduled workflows off after 60 days without a commit to the
+# repository; re-enable it on the Actions tab if the export stops refreshing.
+#
+# It signs in to Google with Workload Identity Federation, as an account that can only read
+# Firestore, so no keys are stored. Repository variables (infra/set-github-vars.sh sets them):
+#   GCP_PROJECT         the Google Cloud project ID
+#   FIRESTORE_DATABASE  the Firestore database
+#   WIF_PROVIDER        the Workload Identity Federation provider
+#   EXPORTER_SA         the read-only account this workflow signs in as
+# Until WIF_PROVIDER is set the job is skipped.
+name: Export data
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write # to create the release and replace its file
+  id-token: write
+
+concurrency:
+  group: export
+  cancel-in-progress: false
+
+jobs:
+  export:
+    if: vars.WIF_PROVIDER != ''
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.EXPORTER_SA }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Build the export
+        working-directory: backend
+        run: |
+          npm ci
+          npm run build
+      - name: Write the export
+        working-directory: backend
+        run: npm run export
+        env:
+          BACKEND: firestore
+          GOOGLE_CLOUD_PROJECT: ${{ vars.GCP_PROJECT }}
+          FIRESTORE_DATABASE: ${{ vars.FIRESTORE_DATABASE }}
+          EXPORT_DIR: ${{ runner.temp }}/export
+      - name: Publish it on the data release
+        run: |
+          cp "$RUNNER_TEMP/export/visual-data.json" "$RUNNER_TEMP/visual-data.json.gz"
+          gh release view data >/dev/null 2>&1 || gh release create data --title "Data export" --latest=false \
+            --notes "Every contributed session, rebuilt nightly. Licensed under CC BY 4.0; see the Data page on the site."
+          gh release upload data "$RUNNER_TEMP/visual-data.json.gz" --clobber

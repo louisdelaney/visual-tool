@@ -13,19 +13,9 @@ output "service_name" {
   value       = google_cloud_run_v2_service.api.name
 }
 
-output "export_job_name" {
-  description = "Name of the Cloud Run export job (the EXPORT_JOB_NAME repository variable)."
-  value       = google_cloud_run_v2_job.export.name
-}
-
 output "artifact_repository" {
   description = "Where CI pushes images (the ARTIFACT_REPO repository variable)."
   value       = "${google_artifact_registry_repository.images.location}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.images.repository_id}"
-}
-
-output "export_bucket" {
-  description = "Name of the public export bucket."
-  value       = google_storage_bucket.export.name
 }
 
 output "service_url" {
@@ -35,7 +25,7 @@ output "service_url" {
 
 output "export_url" {
   description = "Public URL of the nightly export file."
-  value       = "https://storage.googleapis.com/${google_storage_bucket.export.name}/visual-data.json"
+  value       = local.export_url
 }
 
 output "wif_provider" {
@@ -46,4 +36,14 @@ output "wif_provider" {
 output "deployer_service_account" {
   description = "Email of the account GitHub Actions deploys as (the DEPLOYER_SA repository variable)."
   value       = google_service_account.deployer.email
+}
+
+output "firestore_database" {
+  description = "Name of the Firestore database (the FIRESTORE_DATABASE repository variable)."
+  value       = google_firestore_database.default.name
+}
+
+output "exporter_service_account" {
+  description = "Email of the read-only account the export workflow signs in as (the EXPORTER_SA repository variable)."
+  value       = google_service_account.exporter.email
 }

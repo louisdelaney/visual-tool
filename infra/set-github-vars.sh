@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sets the GitHub repository variables the deploy workflow reads, from the
+# Sets the GitHub repository variables the deploy and export workflows read, from the
 # Terraform outputs in this folder.
 #
 #   ./set-github-vars.sh [owner/name]
@@ -40,7 +40,8 @@ set_var API_URL service_url
 set_var GCP_PROJECT project_id
 set_var GCP_REGION region
 set_var SERVICE_NAME service_name
-set_var EXPORT_JOB_NAME export_job_name
+set_var FIRESTORE_DATABASE firestore_database
 set_var ARTIFACT_REPO artifact_repository
 set_var WIF_PROVIDER wif_provider
 set_var DEPLOYER_SA deployer_service_account
+set_var EXPORTER_SA exporter_service_account

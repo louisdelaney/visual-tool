@@ -3,6 +3,7 @@
 import { INFO_PAGES, type Step, type TaskName, type View } from "./types";
 import { TASK_ORDER } from "./protocol";
 import { round } from "./format";
+import { linkedPage, pageHref } from "./address";
 import { calibMatchesScreen, getState, setState, touch } from "./store";
 import { createSession, finalizeSession } from "./session";
 import { sendContribution } from "./contribution";
@@ -13,28 +14,37 @@ import { runBlindSpot } from "../stage/blindSpot";
 import { wantFullscreen } from "../stage/fullscreen";
 
 /** Shows a step or page, with an optional one-line message above it. Info pages get their own address. */
-export function show(view: View, message = ""): void {
+export function show(view: View, message = "", fromAddress = false): void {
   const { view: current, returnTo } = getState();
   const isInfo = (INFO_PAGES as readonly View[]).includes(view);
   // Back from an info page returns to the step that was showing before it.
   const nextReturn: Step = (INFO_PAGES as readonly View[]).includes(current) ? returnTo : (current as Step);
   setState({ view, flash: message, returnTo: isInfo ? nextReturn : returnTo });
-  const hash = isInfo ? `#${view}` : "";
-  if (window.location.hash !== hash) history.replaceState(null, "", hash || window.location.pathname + window.location.search);
+  // Opening an info page from a step adds a history entry, so the browser's Back button returns
+  // to the step; moving between info pages replaces it.
+  const href = pageHref(view);
+  if (window.location.pathname !== href || window.location.hash) {
+    const fromStep = isInfo && !(INFO_PAGES as readonly View[]).includes(current);
+    if (fromStep && !fromAddress) history.pushState({ fromStep: true }, "", href + window.location.search);
+    else history.replaceState(isInfo ? history.state : null, "", href + window.location.search);
+  }
   window.scrollTo(0, 0);
 }
 
 /**
- * Follows the address: a link to #privacy or similar, or the browser's Back and Forward buttons,
- * switches pages without reloading. Leaving an info page's address returns to the step. Call once.
+ * Follows the address: the browser's Back and Forward buttons switch pages without reloading,
+ * and leaving an info page's address returns to the step. Call once.
  */
 export function initRouting(): void {
-  window.addEventListener("hashchange", () => {
-    const page = window.location.hash.slice(1);
+  // An old #privacy-style link: move it to the page's own address.
+  const linked = linkedPage();
+  if (linked) show(linked, "", true);
+  window.addEventListener("popstate", () => {
+    const page = linkedPage();
     const { view, busy } = getState();
     if (busy) return;
-    if ((INFO_PAGES as readonly string[]).includes(page)) { if (page !== view) show(page as View); }
-    else if ((INFO_PAGES as readonly View[]).includes(view)) back();
+    if (page) { if (page !== view) show(page, "", true); }
+    else if ((INFO_PAGES as readonly View[]).includes(view)) show(getState().returnTo, "", true);
   });
 }
 
@@ -63,8 +73,11 @@ export function backFromTask(task: TaskName): void {
   show(prev);
 }
 
-/** Leaves an info page for the step that was showing before it. */
-export const back = (): void => show(getState().returnTo);
+/** Leaves an info page for the step that was showing before it, as the browser's Back button would. */
+export function back(): void {
+  if ((history.state as { fromStep?: boolean } | null)?.fromStep) history.back();
+  else show(getState().returnTo);
+}
 
 /** Opens past results, looking up this pseudonym straight away if one is given. */
 export function showHistory(pseudonym = ""): void {

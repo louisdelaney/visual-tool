@@ -13,14 +13,6 @@ resource "google_logging_project_exclusion" "cloud_run_requests" {
   depends_on = [google_project_service.apis]
 }
 
-resource "google_logging_project_exclusion" "cloud_scheduler" {
-  name        = "${var.name_prefix}-cloud-scheduler"
-  description = "Cloud Scheduler job logs"
-  filter      = "resource.type=\"cloud_scheduler_job\""
-
-  depends_on = [google_project_service.apis]
-}
-
 # Keep whatever does reach the _Default bucket for a short time only. (The _Required
 # bucket holds admin audit logs, which record the maintainer's own IP when they change
 # infrastructure; Google fixes its retention at 400 days.)

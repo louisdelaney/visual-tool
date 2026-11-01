@@ -38,9 +38,9 @@ fs.mkdirSync(OUT, { recursive: true });
       await p.screenshot({ path: path.join(OUT, `layout-setup-${vw}-${scheme}.png`), fullPage: true });
       const pageOverflow = {};
       for (const page of ["privacy", "references", "history"]) {
-        await p.goto(`${PAGE_URL}#${page}`); await p.waitForTimeout(300);
+        await p.goto(`${PAGE_URL}${page}/`); await p.waitForTimeout(300);
         pageOverflow[page] = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-        if (!(await p.$(`[data-view="${page}"]`))) failures.push(`${vw}px ${scheme}: #${page} didn't open the ${page} page`);
+        if (!(await p.$(`[data-view="${page}"]`))) failures.push(`${vw}px ${scheme}: /${page}/ didn't open the ${page} page`);
         await p.screenshot({ path: path.join(OUT, `layout-${page}-${vw}-${scheme}.png`), fullPage: true });
       }
       console.log(`${vw}px ${scheme}: horizontal overflow on contribute ${contribOverflow > 0}, on setup ${setupOverflow > 0}, on ${Object.entries(pageOverflow).map(([k, v]) => `${k} ${v > 0}`).join(", ")}`);

@@ -1,5 +1,6 @@
-# Container image for the backend API. The export job runs the same image with a different
-# command (`node dist/jobs/export.js`).
+# Container image for the backend API. Locally, compose.yaml also runs the export job from it
+# with a different command (`node dist/jobs/export.js`); in production the job runs in
+# .github/workflows/export.yml.
 #
 # The build context is the REPOSITORY ROOT, not backend/, because the backend imports the
 # site's schema and rules from ../src/app (and src/core). Build it from the root:

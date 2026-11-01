@@ -1,12 +1,13 @@
 locals {
-  service_name    = "${var.name_prefix}-api"
-  export_job_name = "${var.name_prefix}-export"
-  repository_id   = var.name_prefix
-  export_bucket   = "${var.name_prefix}-export-${var.project_id}"
+  service_name  = "${var.name_prefix}-api"
+  repository_id = var.name_prefix
 
-  api_account_id       = "${var.name_prefix}-api"
-  deployer_account_id  = "${var.name_prefix}-deployer"
-  scheduler_account_id = "${var.name_prefix}-scheduler"
+  # The nightly export, which .github/workflows/export.yml publishes on the "data" release.
+  export_url = "https://github.com/${var.github_repository}/releases/download/data/visual-data.json.gz"
+
+  api_account_id      = "${var.name_prefix}-api"
+  deployer_account_id = "${var.name_prefix}-deployer"
+  exporter_account_id = "${var.name_prefix}-exporter"
 
   # Pool and provider share an id; the pool is project-wide, so the prefix keeps
   # two copies in one project apart.

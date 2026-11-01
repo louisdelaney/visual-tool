@@ -1,8 +1,8 @@
 // Which store and export sink to use, from the environment:
 //   BACKEND=firestore   Firestore (the default when GOOGLE_CLOUD_PROJECT is set)
 //   BACKEND=memory      in memory, persisted to DATA_FILE if set
-//   EXPORT_BUCKET       the export goes to this Cloud Storage bucket; otherwise to the folder
-//                       EXPORT_DIR (default ./data/export), which the server serves at /export/*
+//   EXPORT_DIR          the folder the export job writes to (default ./data/export), which the
+//                       server serves at /export/* when no EXPORT_URL is set
 // The store and the sink are independent: the emulator-backed backend in compose.yaml uses
 // Firestore with a folder. Memory mode is for laptops and tests. It's refused on Cloud Run
 // (K_SERVICE is set there), where a restart would silently lose everything.
@@ -20,9 +20,9 @@ export function backendMode(env: NodeJS.ProcessEnv = process.env): Backend {
 
 export const EXPORT_DIR_DEFAULT = "./data/export";
 
-/** The folder exports are written to and served from, or null when they go to a bucket. */
-export function exportDir(env: NodeJS.ProcessEnv = process.env): string | null {
-  return env.EXPORT_BUCKET ? null : (env.EXPORT_DIR ?? EXPORT_DIR_DEFAULT);
+/** The folder exports are written to and, locally, served from. */
+export function exportDir(env: NodeJS.ProcessEnv = process.env): string {
+  return env.EXPORT_DIR ?? EXPORT_DIR_DEFAULT;
 }
 
 export async function openStore(env: NodeJS.ProcessEnv = process.env): Promise<Store> {

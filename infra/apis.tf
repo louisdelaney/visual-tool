@@ -3,7 +3,6 @@ locals {
     "run.googleapis.com",
     "firestore.googleapis.com",
     "artifactregistry.googleapis.com",
-    "cloudscheduler.googleapis.com",
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",
     "sts.googleapis.com",
