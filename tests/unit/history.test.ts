@@ -44,5 +44,14 @@ test("history: malformed responses are rejected", () => {
     { pseudonym: "x", sessions: [{ ...ok, test_version: "1" }] },
     { pseudonym: "x", sessions: [{ ...ok, values: { ...ok.values, motion_threshold_pct: "10" } }] },
     { pseudonym: "x", sessions: [{ ...ok, notes: 3 }] },
+    { pseudonym: "x", sessions: [{ ...ok, staircases: { motion: [] } }] },
+    { pseudonym: "x", sessions: [{ ...ok, staircases: { motion: [{ coherence_pct: "20", correct: true, reversal: false }], form: [] } }] },
+    { pseudonym: "x", sessions: [{ ...ok, staircases: { motion: Array(301).fill({ coherence_pct: 20, correct: true, reversal: false }), form: [] } }] },
   ]) assert.equal(parseHistory(bad), null, JSON.stringify(bad));
+});
+
+test("history: staircases are optional, so an older backend's entries still parse", () => {
+  const { staircases: _, ...old } = sampleHistory("x").sessions[0]!;
+  assert.equal(parseHistory({ pseudonym: "x", sessions: [old] })!.sessions[0]!.staircases, null);
+  assert.equal(parseHistory({ pseudonym: "x", sessions: [{ ...old, staircases: null }] })!.sessions[0]!.staircases, null);
 });

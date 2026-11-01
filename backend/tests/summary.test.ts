@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupOf, historyEntry, measuresOf, summaryRow } from "../src/summary";
+import { groupOf, historyEntry, measuresOf, staircasesOf, summaryRow } from "../src/summary";
 import { makeSession } from "./fixture";
 
 describe("summaryRow", () => {
@@ -14,7 +14,7 @@ describe("summaryRow", () => {
     expect(summaryRow(makeSession({ answers: { pseudonym: null } }), "id").pseudonym).toBeNull();
   });
 
-  it("copies the id, start, version, every answer and the measures", () => {
+  it("copies the id, start, version, every answer, the measures and the staircases", () => {
     const s = makeSession({ answers: { medications: ["Lamotrigine"], notes: "Tired today.", psychedelics: "yes" } });
     expect(summaryRow(s, "abc")).toEqual({
       submission_id: "abc",
@@ -34,6 +34,7 @@ describe("summaryRow", () => {
       notes: "Tired today.",
       found_via: "forum",
       found_via_other: null,
+      staircases: staircasesOf(s),
     });
   });
 });
@@ -68,10 +69,22 @@ describe("historyEntry", () => {
   it("drops the pseudonym, disorder and psychedelics answers", () => {
     const row = summaryRow(makeSession({ answers: { notes: "hello" } }), "abc");
     const entry = historyEntry(row);
-    expect(Object.keys(entry).sort()).toEqual(["medications", "notes", "started_at", "submission_id", "test_version", "values"]);
+    expect(Object.keys(entry).sort()).toEqual(["medications", "notes", "staircases", "started_at", "submission_id", "test_version", "values"]);
     expect(entry).not.toHaveProperty("pseudonym");
     expect(entry).not.toHaveProperty("disorder");
     expect(entry).not.toHaveProperty("psychedelics");
     expect(entry.notes).toBe("hello");
+  });
+});
+
+describe("staircasesOf", () => {
+  it("keeps each task's scored trials, in order", () => {
+    const s = makeSession();
+    const st = staircasesOf(s);
+    const scored = (task: string) => s.trials.filter(t => t.task === task && t.phase === "test");
+    expect(st.motion).toHaveLength(scored("motion").length);
+    expect(st.form).toHaveLength(scored("form").length);
+    expect(st.motion[0]).toEqual({ coherence_pct: Math.round(scored("motion")[0]!.effective_level_pct * 100) / 100, correct: scored("motion")[0]!.correct, reversal: scored("motion")[0]!.reversal });
+    expect(summaryRow(s, "id").staircases).toEqual(st);
   });
 });

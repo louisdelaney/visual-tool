@@ -8,7 +8,8 @@ import { getState, setState } from "../app/store";
 import { show, showHistory } from "../app/flow";
 import { sendContribution } from "../app/contribution";
 import { downloadFile, fileBase, sessionJSON, summaryJSON } from "../app/export";
-import { StaircaseChart } from "../components/StaircaseChart";
+import { StaircaseChart, StaircaseKey } from "../components/StaircaseChart";
+import { staircasePoints } from "../app/history";
 import { GroupComparison } from "../components/GroupComparison";
 import { FunNotice } from "../components/FunNotice";
 
@@ -151,16 +152,11 @@ export function ResultsPage({ session: s }: ResultsPageProps) {
         <h3>Staircases</h3>
         <div className="charts" id="charts">
           {tasks.length ? tasks.map(t => (
-            <StaircaseChart key={t} task={t} trials={s.tasks[t]!.trials} result={R[t]}
+            <StaircaseChart key={t} task={t} points={staircasePoints(s.tasks[t]!.trials, t)} threshold={R[t]?.threshold_pct ?? null}
               subtitle="Coherence (%) on each scored trial, log scale" />
           )) : <p className="hint">No trials were completed.</p>}
         </div>
-        <div className="chart-key" aria-hidden="true">
-          <span><svg width="14" height="14" viewBox="0 0 14 14"><circle className="k-ok" cx="7" cy="7" r="4" /></svg>Correct</span>
-          <span><svg width="14" height="14" viewBox="0 0 14 14"><circle className="k-miss" cx="7" cy="7" r="4" /></svg>Wrong</span>
-          <span><svg width="18" height="18" viewBox="0 0 18 18"><circle className="k-rev" cx="9" cy="9" r="7.5" /></svg>Reversal</span>
-          <span><svg width="20" height="10" viewBox="0 0 20 10"><line className="k-thr" x1="0" x2="20" y1="5" y2="5" /></svg>Threshold, mean of the last reversals</span>
-        </div>
+        <StaircaseKey />
         <hr className="section-rule" />
         <h3>Session</h3>
         <dl className="meta" id="meta">
