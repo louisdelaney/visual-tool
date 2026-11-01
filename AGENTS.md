@@ -30,9 +30,10 @@ Rules:
 
 What the site promises users, on the Privacy and risks page:
 
-- All contributed data is public and anonymous, and nothing extra is logged.
+- All contributed data is public and anonymous, and nothing that identifies a person is logged.
 - The pseudonym is optional, and it's the only key (no passwords or accounts).
 - No IP addresses or request headers are stored or logged, including User-Agent, Sec-CH-UA and Accept-Language.
+- The backend's own logs, kept for 7 days, hold only errors and one anonymous line per request: method, route name, status, duration and a random id (also returned to the caller when a request fails). Never an IP, a header, a path or query string, a request body or a pseudonym. Cloud Run's own request logs stay excluded.
 - No cookies, analytics or third-party requests. Fonts are bundled, every fetch omits credentials and referrer, and the build adds a strict Content Security Policy.
 
 Don't add anything that breaks these promises. If a change touches what's collected or sent, update the Privacy and risks page to match.
