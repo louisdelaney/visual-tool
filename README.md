@@ -161,7 +161,7 @@ infra/                Terraform for everything on Google Cloud (see infra/README
 
 Each session is stored three ways so that nothing the page asks for grows with the dataset: `/groups` reads one document of flat value arrays, `/history` reads one person's rows, and only the export job reads the raw sessions. Rate limits are a token bucket per instance, not per caller: the backend never looks at who is asking. Per instance and minute: 10 posts, 60 history lookups, and 600 other GETs. A history lookup returns at most 50 sessions.
 
-Two stores, chosen by `BACKEND`: `firestore` (the default when `GOOGLE_CLOUD_PROJECT` is set) and `memory`, which needs no Google account and keeps everything in `DATA_FILE` if one is set. Memory mode refuses to run on Cloud Run. The export goes to the folder `EXPORT_DIR`; without an `EXPORT_URL`, the server serves it itself at `/export/*`.
+Two stores, chosen by `BACKEND`: `firestore` (the default when `GOOGLE_CLOUD_PROJECT` is set) and `memory`, which needs no Google account and keeps everything in `DATA_FILE` if one is set. Memory mode refuses to run on Cloud Run. The export job writes to the folder `EXPORT_DIR`. A server without `EXPORT_URL` (anywhere but Cloud Run) builds the same file on each `GET /export` instead, so a local copy needs no export step.
 
 ```sh
 cd backend

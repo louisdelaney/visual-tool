@@ -1,14 +1,10 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { createServer, get, type Server } from "node:http";
+import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseGroups } from "../../src/app/comparison";
 import { parseHistory } from "../../src/app/history";
 import { TEST_VERSION } from "../../src/core/protocol";
 import { MemoryStore } from "../src/db-memory";
-import { dirSink, runExport } from "../src/jobs/export";
 import { createApp, type ServerOptions } from "../src/server";
 import { makeSession, withThresholds } from "./fixture";
 
@@ -16,10 +12,8 @@ const ORIGIN = "https://site.example";
 const EXPORT_URL = "https://github.com/owner/visual-tool/releases/download/data/visual-data.json.gz";
 
 const servers: Server[] = [];
-const tempDirs: string[] = [];
 afterEach(async () => {
   vi.restoreAllMocks();
-  for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
   await Promise.all(servers.splice(0).map(s => new Promise(resolve => { s.closeAllConnections(); s.close(resolve); })));
 });
 
@@ -38,13 +32,6 @@ async function start(db = new MemoryStore(), options: Partial<ServerOptions> = {
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   return { db, base };
 }
-
-/** A GET that sends the path exactly as given: fetch would tidy `/export/../x` into `/x`. */
-const rawGet = (base: string, path: string) =>
-  new Promise<number>((resolve, reject) => {
-    const { hostname, port } = new URL(base);
-    get({ hostname, port, path }, res => { res.resume(); resolve(res.statusCode!); }).on("error", reject);
-  });
 
 const post = (base: string, body: unknown, init: RequestInit = {}) =>
   fetch(`${base}/sessions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: typeof body === "string" ? body : JSON.stringify(body), ...init });
@@ -230,28 +217,18 @@ describe("GET /export", () => {
     expect(res.headers.get("location")).toBe(EXPORT_URL);
   });
 
-  it("returns 404 when none is set", async () => {
+  it("returns 404 when none is set and the export isn't built locally", async () => {
     const { base } = await start(new MemoryStore(), { exportUrl: "" });
     const res = await fetch(`${base}/export`, { redirect: "manual" });
     expect(res.status).toBe(404);
   });
-});
 
-describe("GET /export/*", () => {
-  /** A temp folder holding a real export of two sessions. */
-  async function exported() {
-    const dir = mkdtempSync(join(tmpdir(), "export-"));
-    tempDirs.push(dir);
+  it("builds the file from the store when local, gzip-encoded as a download, which fetch unpacks", async () => {
     const db = new MemoryStore();
     await db.storeSession(makeSession({ seed: 1 }), new Date("2026-09-15T10:00:00Z"));
     await db.storeSession(makeSession({ seed: 2 }), new Date("2026-10-15T10:00:00Z"));
-    await runExport(db, dirSink(dir), new Date("2026-10-31T12:00:00Z"));
-    return start(new MemoryStore(), { exportDir: dir });
-  }
-
-  it("serves the file gzip-encoded as a download, which fetch unpacks", async () => {
-    const { base } = await exported();
-    const res = await fetch(`${base}/export/visual-data.json`);
+    const { base } = await start(db, { exportUrl: "", liveExport: true });
+    const res = await fetch(`${base}/export`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-encoding")).toBe("gzip");
     expect(res.headers.get("content-type")).toBe("application/json");
@@ -261,18 +238,9 @@ describe("GET /export/*", () => {
     expect(file.sessions.map(s => s.seed)).toEqual([1, 2]);
   });
 
-  it("returns 404 for a file that isn't there, and for paths that climb out of the folder", async () => {
-    const { base } = await exported();
-    expect((await fetch(`${base}/export/nope.json`)).status).toBe(404);
-    expect((await fetch(`${base}/export/../package.json`)).status).toBe(404); // fetch resolves this to /package.json
-    expect(await rawGet(base, "/export/../package.json")).toBe(404);
-    expect(await rawGet(base, "/export/%2e%2e/package.json")).toBe(404);
-    expect(await rawGet(base, "/export/..%2fpackage.json")).toBe(404);
-  });
-
-  it("serves nothing under /export/ when no folder is set", async () => {
-    const { base } = await start();
-    expect((await fetch(`${base}/export/visual-data.json`)).status).toBe(404);
+  it("prefers the export URL even when local building is allowed", async () => {
+    const { base } = await start(new MemoryStore(), { liveExport: true });
+    expect((await fetch(`${base}/export`, { redirect: "manual" })).status).toBe(302);
   });
 });
 

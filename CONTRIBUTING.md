@@ -37,11 +37,10 @@ You never need this to contribute. Memory mode, above, covers everything the sit
 docker compose up firestore backend      # emulator on :8081, backend on :8080
 docker compose run --rm backend-test     # backend tests, including the Firestore emulator tests
 docker compose run --rm e2e              # end-to-end tests, in Microsoft's Playwright image
-docker compose run --rm export           # run the export job once (profile: tools)
 docker compose down
 ```
 
-The `backend` service is the production image, built from `backend/Dockerfile`, pointed at the emulator (project `demo-visual-tool`). Set `ALLOWED_ORIGIN` if your site isn't at `http://localhost:5173`. Exports go to a named volume and are served at `http://localhost:8080/export/`. The `e2e` image has to match the `playwright` version in `package.json`; if you bump one, bump the other.
+The `backend` service is the production image, built from `backend/Dockerfile`, pointed at the emulator (project `demo-visual-tool`). Set `ALLOWED_ORIGIN` if your site isn't at `http://localhost:5173`. Its `http://localhost:8080/export` builds the export file from the emulator's data each time it's opened, so the Data page's download works with no extra step. The `e2e` image has to match the `playwright` version in `package.json`; if you bump one, bump the other.
 
 The emulator's data is kept in the `firestore-data` volume, so it survives restarts and `docker compose down`. The emulator itself holds data in memory only, so `scripts/firestore-emulator.sh` saves a snapshot every minute and when the container stops, keeps the newest five, and loads the newest on start. A crash loses at most the last minute. To start empty, run `docker compose down -v`, which deletes the volume. The backend's Firestore tests each use a new database, and the `backend-e2e` service (below) uses one called `e2e`; snapshots save only the default database, so neither is kept or mixed with the backend's data. (A separate project wouldn't do: this emulator keeps every project's documents together.)
 
@@ -71,7 +70,6 @@ REMOTE_HOST=debian
 | `npm run backend:debug` | Starts the emulator and the backend with Node's debugger (`compose.debug.yaml`). |
 | `npm run backend:down` | Stops them. The emulator's data is kept. |
 | `npm run backend:logs` | Follows their logs. |
-| `npm run backend:export` | Runs the export job once. |
 | `npm run check:firestore` | Backend tests, with the Firestore emulator tests included. |
 | `npm run check:e2e` | The end-to-end tests. |
 | `npm run remote -- <command>` | Any other command. |
