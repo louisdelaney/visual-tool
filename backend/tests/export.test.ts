@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
 import { MemoryStore } from "../src/db-memory";
-import { coarsen, dirSink, monthOf, runExport, toHour, type ExportedSession, type ExportIndex, type ExportSink } from "../src/jobs/export";
+import { coarsen, dirSink, runExport, toHour, type ExportFile, type ExportSink } from "../src/jobs/export";
 import { makeSession } from "./fixture";
 
 /** A sink that keeps what's written to it. */
@@ -18,8 +18,7 @@ function memorySink() {
   return { sink, files };
 }
 
-const readMonth = (files: ReturnType<typeof memorySink>["files"], name: string) =>
-  JSON.parse(gunzipSync(files.get(name)!.data).toString("utf8")) as { month: string; sessions: ExportedSession[] };
+const readExport = (data: Buffer) => JSON.parse(gunzipSync(data).toString("utf8")) as ExportFile;
 
 /** A store holding these sessions, each received at this time. */
 async function storeWith(rows: { receivedAt: string; session: ReturnType<typeof makeSession> }[]) {
@@ -36,10 +35,6 @@ describe("toHour", () => {
   });
   it("works in UTC whatever the offset written", () => expect(toHour("2026-10-18T21:39:12+02:00")).toBe("2026-10-18T19:00:00.000Z"));
   it("leaves something that isn't a date as it is", () => expect(toHour("not a date")).toBe("not a date"));
-});
-
-describe("monthOf", () => {
-  it("is the year and month of an ISO time", () => expect(monthOf("2026-10-31T23:59:59.000Z")).toBe("2026-10"));
 });
 
 describe("coarsen", () => {
@@ -84,49 +79,41 @@ describe("runExport", () => {
   ];
   const now = new Date("2026-10-31T12:00:00.000Z");
 
-  it("writes one gzipped file per month, then the index", async () => {
+  it("writes every session to one gzipped file, in order of arrival", async () => {
     const { sink, files } = memorySink();
-    const { store, ids } = await storeWith(rows);
-    const index = await runExport(store, sink, now);
+    const { store, ids } = await storeWith([rows[2]!, rows[0]!, rows[1]!]);
+    const result = await runExport(store, sink, now);
 
-    expect([...files.keys()]).toEqual(["sessions-2026-09.json", "sessions-2026-10.json", "index.json"]);
+    expect([...files.keys()]).toEqual(["sessions.json"]);
+    const file = files.get("sessions.json")!;
+    expect(file.contentEncoding).toBe("gzip");
+    expect(file.contentType).toBe("application/json");
 
-    const sep = files.get("sessions-2026-09.json")!;
-    expect(sep.contentEncoding).toBe("gzip");
-    expect(sep.contentType).toBe("application/json");
-    const septemberFile = readMonth(files, "sessions-2026-09.json");
-    expect(septemberFile.month).toBe("2026-09");
-    expect(septemberFile.sessions.map(s => s.submission_id)).toEqual([ids[0]]);
-
-    const october = readMonth(files, "sessions-2026-10.json");
-    expect(october.month).toBe("2026-10");
-    expect(october.sessions.map(s => [s.submission_id, s.seed])).toEqual([[ids[1], 2], [ids[2], 3]]);
-    expect(october.sessions[1]).toEqual(coarsen(ids[2]!, rows[2]!.receivedAt, rows[2]!.session));
-    expect(october.sessions.every(s => s.trials.every(t => !("at" in t)))).toBe(true);
-
-    const written = JSON.parse(files.get("index.json")!.data.toString("utf8")) as ExportIndex;
-    expect(written).toEqual(index);
+    const written = readExport(file.data);
+    expect(written).toEqual(result);
     expect(written.exported_at).toBe(now.toISOString());
     expect(written.schema).toBe("visual-tool/export");
     expect(written.total_sessions).toBe(3);
-    expect(written.files.map(f => [f.file, f.month, f.sessions])).toEqual([["sessions-2026-09.json", "2026-09", 1], ["sessions-2026-10.json", "2026-10", 2]]);
-    expect(written.files.map(f => f.bytes)).toEqual([sep.data.length, files.get("sessions-2026-10.json")!.data.length]);
-    // The index isn't encoded: it's small and read by hand.
-    expect(files.get("index.json")!.contentEncoding).toBeUndefined();
+    expect(written.sessions.map(s => [s.submission_id, s.seed])).toEqual([[ids[1], 1], [ids[2], 2], [ids[0], 3]]);
+    expect(written.sessions[2]).toEqual(coarsen(ids[0]!, rows[2]!.receivedAt, rows[2]!.session));
+    expect(written.sessions.every(s => s.trials.every(t => !("at" in t)))).toBe(true);
   });
 
-  it("writes an index with no files when nothing is stored", async () => {
+  it("orders sessions from the same hour by their exact arrival", async () => {
     const { sink, files } = memorySink();
-    const index = await runExport(new MemoryStore(), sink, now);
-    expect([...files.keys()]).toEqual(["index.json"]);
-    expect(index).toMatchObject({ files: [], total_sessions: 0 });
-  });
-
-  it("orders months by date even when sessions arrive out of order", async () => {
-    const { sink, files } = memorySink();
-    const { store } = await storeWith([rows[2]!, rows[0]!]);
+    const { store, ids: stored } = await storeWith([
+      { receivedAt: "2026-10-18T19:50:00.000Z", session: makeSession({ seed: 2 }) },
+      { receivedAt: "2026-10-18T19:10:00.000Z", session: makeSession({ seed: 1 }) },
+    ]);
     await runExport(store, sink, now);
-    expect([...files.keys()]).toEqual(["sessions-2026-09.json", "sessions-2026-10.json", "index.json"]);
+    expect(readExport(files.get("sessions.json")!.data).sessions.map(s => s.submission_id)).toEqual([stored[1], stored[0]]);
+  });
+
+  it("writes a file with no sessions when nothing is stored", async () => {
+    const { sink, files } = memorySink();
+    const result = await runExport(new MemoryStore(), sink, now);
+    expect([...files.keys()]).toEqual(["sessions.json"]);
+    expect(result).toMatchObject({ sessions: [], total_sessions: 0 });
   });
 });
 
@@ -136,7 +123,7 @@ describe("dirSink", () => {
     for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
   });
 
-  it("writes the month files and the index into a folder it creates", async () => {
+  it("writes the file into a folder it creates", async () => {
     const root = mkdtempSync(join(tmpdir(), "export-"));
     dirs.push(root);
     const dir = join(root, "nested", "export");
@@ -144,14 +131,11 @@ describe("dirSink", () => {
       { receivedAt: "2026-09-15T10:00:00.000Z", session: makeSession({ seed: 1 }) },
       { receivedAt: "2026-10-15T10:00:00.000Z", session: makeSession({ seed: 2 }) },
     ]);
-    const index = await runExport(store, dirSink(dir), new Date("2026-10-31T12:00:00.000Z"));
+    const result = await runExport(store, dirSink(dir), new Date("2026-10-31T12:00:00.000Z"));
 
-    expect(readdirSync(dir).sort()).toEqual(["index.json", "sessions-2026-09.json", "sessions-2026-10.json"]);
-    expect(JSON.parse(readFileSync(join(dir, "index.json"), "utf8"))).toEqual(index);
-    const september = JSON.parse(gunzipSync(readFileSync(join(dir, "sessions-2026-09.json"))).toString("utf8")) as { month: string; sessions: ExportedSession[] };
-    expect(september.month).toBe("2026-09");
-    expect(september.sessions.map(s => s.submission_id)).toEqual([ids[0]]);
-    expect(readFileSync(join(dir, "sessions-2026-10.json")).length).toBe(index.files[1]!.bytes);
+    expect(readdirSync(dir)).toEqual(["sessions.json"]);
+    expect(readExport(readFileSync(join(dir, "sessions.json")))).toEqual(result);
+    expect(result.sessions.map(s => s.submission_id)).toEqual(ids);
   });
 
   it("overwrites files from an earlier run", async () => {
@@ -160,8 +144,8 @@ describe("dirSink", () => {
     const { store } = await storeWith([{ receivedAt: "2026-10-15T10:00:00.000Z", session: makeSession() }]);
     await runExport(store, dirSink(root), new Date("2026-10-30T12:00:00.000Z"));
     await store.storeSession(makeSession({ seed: 9 }), new Date("2026-10-16T10:00:00.000Z"));
-    const index = await runExport(store, dirSink(root), new Date("2026-10-31T12:00:00.000Z"));
-    expect(index.total_sessions).toBe(2);
-    expect((JSON.parse(readFileSync(join(root, "index.json"), "utf8")) as ExportIndex).total_sessions).toBe(2);
+    const result = await runExport(store, dirSink(root), new Date("2026-10-31T12:00:00.000Z"));
+    expect(result.total_sessions).toBe(2);
+    expect(readExport(readFileSync(join(root, "sessions.json"))).total_sessions).toBe(2);
   });
 });

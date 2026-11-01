@@ -1,0 +1,31 @@
+{
+  "pkg": "visual-tool",
+  "globalName": "VisualTool",
+  "projectId": "301d6537-31e6-4528-b554-8d3f1ed0f9b0",
+  "shape": "package",
+  "srcDir": "src",
+  "buildCmd": "cat src/styles/tokens.css src/styles/base.css src/styles/forms.css .design-sync/preview-surface.css > .design-sync/ds-styles.css",
+  "cssEntry": ".design-sync/ds-styles.css",
+  "componentSrcMap": {
+    "ChipInput": "src/components/ChipInput.tsx",
+    "Footer": "src/components/Footer.tsx",
+    "FunNotice": "src/components/FunNotice.tsx",
+    "Masthead": "src/components/Masthead.tsx",
+    "Stepper": "src/components/Stepper.tsx"
+  },
+  "extraFonts": [
+    "node_modules/@fontsource/atkinson-hyperlegible-next/400.css",
+    "node_modules/@fontsource/atkinson-hyperlegible-next/700.css",
+    "node_modules/@fontsource/atkinson-hyperlegible-next/800.css",
+    "node_modules/@fontsource/atkinson-hyperlegible-mono/400.css",
+    "node_modules/@fontsource/atkinson-hyperlegible-mono/500.css"
+  ],
+  "dtsPropsFor": {
+    "ChipInput": "/** Id for the text input, so a <label htmlFor> can point at it. */\n  id: string;\n  /** Names one entry, for the buttons: \"medication\" gives \"Add medication\" and \"Remove \u2026\". */\n  noun: string;\n  /** Controlled value: the chips added so far, plus any text typed but not yet added. */\n  value: { items: string[]; typing: string };\n  onChange: (c: { items: string[]; typing: string }) => void;",
+    "Footer": "/** No props \u2014 the footer's content is fixed. */",
+    "FunNotice": "/** No props \u2014 the notice's wording is fixed. */",
+    "Masthead": "/** Which step or info page is showing. Drives the current nav link, and the Stepper\n   * (which is hidden on the info pages: history, privacy, references, data). */\n  view: \"contribute\" | \"questions\" | \"setup\" | \"screen\" | \"distance\" | \"motion\" | \"form\" | \"results\" | \"history\" | \"privacy\" | \"references\" | \"data\";",
+    "Stepper": "/** Which step is showing. Its phase is marked current and earlier phases done. */\n  view: \"contribute\" | \"questions\" | \"setup\" | \"screen\" | \"distance\" | \"motion\" | \"form\" | \"results\" | \"history\" | \"privacy\" | \"references\" | \"data\";"
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}

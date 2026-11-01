@@ -2,8 +2,8 @@
 // EXPORT_DIR):
 //   PORT            Cloud Run sets it; 8080 otherwise
 //   ALLOWED_ORIGIN  the site's origin, the only one browsers may call from (or several, comma-separated)
-//   EXPORT_URL      where GET /export redirects (the public index.json). Without EXPORT_BUCKET
-//                   it defaults to this server's own /export/index.json (a relative redirect),
+//   EXPORT_URL      where GET /export redirects (the public sessions.json). Without EXPORT_BUCKET
+//                   it defaults to this server's own /export/sessions.json (a relative redirect),
 //                   served from EXPORT_DIR.
 // Nothing about a request is logged: not the path, not the headers, not the address.
 import { createReadStream, statSync } from "node:fs";
@@ -11,6 +11,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { join, normalize, resolve } from "node:path";
 import { backendMode, exportDir as exportDirOf, openStore } from "./config";
 import { cors, HttpError, sendJSON } from "./http";
+import { EXPORT_FILE } from "./jobs/export";
 import { logError, logInfo } from "./log";
 import { TokenBucket } from "./ratelimit";
 import { Routes, type Reply } from "./routes";
@@ -79,7 +80,7 @@ export function createApp({ allowedOrigin, exportUrl, db, exportDir, postsPerMin
   };
 }
 
-/** One file from the export folder, as the bucket would serve it: gzip-encoded JSON, or the index. */
+/** One file from the export folder, as the bucket would serve it: gzip-encoded JSON, as a download. */
 function serveFile(dir: string, name: string): Reply {
   const path = normalize(join(dir, name));
   if (!path.startsWith(dir) || !/^[\w.-]+$/.test(name)) throw new HttpError(404, "not found");
@@ -89,8 +90,7 @@ function serveFile(dir: string, name: string): Reply {
   } catch {
     throw new HttpError(404, "not found");
   }
-  const headers: Record<string, string> = { "Content-Type": "application/json", "Content-Length": String(size), "Cache-Control": "public, max-age=60" };
-  if (name !== "index.json") headers["Content-Encoding"] = "gzip";
+  const headers: Record<string, string> = { "Content-Type": "application/json", "Content-Encoding": "gzip", "Content-Disposition": `attachment; filename="${name}"`, "Content-Length": String(size), "Cache-Control": "public, max-age=60" };
   return { status: 200, headers, stream: createReadStream(path) };
 }
 
@@ -100,7 +100,7 @@ if (process.env.NODE_ENV !== "test" && process.argv[1] && /server\.(js|ts)$/.tes
   // With an EXPORT_URL (Cloud Run: the public bucket) nothing is served from here.
   const exportDir = process.env.EXPORT_URL ? undefined : (exportDirOf() ?? undefined);
   // Relative, so it points at whatever address the client reached this server by.
-  const exportUrl = process.env.EXPORT_URL ?? (exportDir ? "/export/index.json" : "");
+  const exportUrl = process.env.EXPORT_URL ?? (exportDir ? `/export/${EXPORT_FILE}` : "");
   openStore()
     .then(db => {
       const handle = createApp({ allowedOrigin: process.env.ALLOWED_ORIGIN ?? "", exportUrl, db, exportDir });

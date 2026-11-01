@@ -1,9 +1,12 @@
 #!/bin/sh
-# For .claude/launch.json ("dev+server"): starts the backend on the build server with Node's
+# For the "dev+server" task in .vscode/tasks.json: starts the backend on the build server with Node's
 # debugger, tunnels the debugger to localhost:9229 and streams the backend's logs, then runs the
 # site on localhost:5180. Needs REMOTE_HOST in .env.local.
 set -eu
 cd "$(dirname "$0")/.."
+
+# The task's beginsPattern in .vscode/tasks.json; nothing else may print it.
+echo "dev+server: starting"
 
 PORT=5180
 REMOTE_HOST=$(grep '^REMOTE_HOST=' .env.local | tail -n 1 | cut -d= -f2-)
@@ -19,7 +22,8 @@ ssh -n -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 9229:localhost:9
   "cd $REMOTE_DIR && docker compose logs -f --no-log-prefix --since 1s backend" &
 tunnel=$!
 trap 'kill $tunnel 2>/dev/null' EXIT
-trap 'exit 0' INT TERM
+# HUP too: closing the task's terminal sends it, and the tunnel and site must not outlive it.
+trap 'exit 0' HUP INT TERM
 
 # Vite's "ready" line is what VS Code waits for before attaching, so the tunnel must be up first.
 for _ in $(seq 30); do nc -z localhost 9229 2>/dev/null && break; sleep 1; done

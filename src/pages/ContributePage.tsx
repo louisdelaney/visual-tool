@@ -1,5 +1,6 @@
-// Step 1: whether to contribute results to the public dataset, and if so a few questions. Nothing
-// is sent here: the answers are kept and sent with the results when the tasks finish.
+// Step 1: whether to contribute results to the public dataset, and if so a pseudonym, then on a
+// second page a few questions. Nothing is sent here: the answers are kept and sent with the
+// results when the tasks finish.
 import { useState, type FormEvent } from "react";
 import { freshPseudonym } from "../app/api";
 import { normalizePseudonym } from "../app/history";
@@ -140,7 +141,11 @@ function ClearAnswer({ onClear, focusId }: { onClear: () => void; focusId: strin
   return <p className="hint"><button type="button" className="linkish" onClick={() => { onClear(); document.getElementById(focusId)?.focus(); }}>Clear answer</button></p>;
 }
 
-export function ContributePage() {
+/**
+ * Step 1 is two pages: whether to contribute (and a pseudonym), then the questions. App renders
+ * both with this one component in the same place, so React keeps the draft between them.
+ */
+export function ContributePage({ part }: { part: "contribute" | "questions" }) {
   const [d, setDraft] = useState<Draft>(() => fromChoice(getState().contribution));
   const [status, setStatus] = useState("");
   const [missing, setMissing] = useState<Missing | null>(null);
@@ -179,16 +184,144 @@ export function ContributePage() {
     document.getElementById(m.focus)?.focus();
   };
 
-  const onSubmit = (e: FormEvent): void => {
+  /** Keeps what's been answered so far, so Back and the info pages don't lose it. */
+  const keepDraft = (): void => setState({ contribution: { contribute: true, answers: toAnswers(d) } });
+
+  const onSubmitChoice = (e: FormEvent): void => {
     e.preventDefault();
     if (!d.contribute) { flagMissing({ field: "contribute", message: "Please choose whether to contribute.", focus: "cq-contribute-yes" }); return; }
     if (d.contribute === "no") { setState({ contribution: { contribute: false } }); show("setup"); return; }
+    keepDraft();
+    show("questions");
+  };
+
+  const onSubmitAnswers = (e: FormEvent): void => {
+    e.preventDefault();
     const answers = toAnswers(d);
     const m = missingAnswer(answers);
     if (m) { flagMissing(m); return; }
     setState({ contribution: { contribute: true, answers } });
     show("setup");
   };
+
+  const backToChoice = (): void => {
+    keepDraft();
+    setMissing(null);
+    setStatus("");
+    show("contribute");
+  };
+
+  if (part === "questions") {
+    const pseudonym = normalizePseudonym(d.pseudonym);
+    return (
+      <section className="view panel" data-view="questions" aria-labelledby="questions-h">
+        {pseudonym ? (
+          <header className="as-pseudonym">
+            <h2 id="questions-h"><span className="visually-hidden">Questions for </span><span className="pseudonym">{pseudonym}</span></h2>
+            <p className="hint">Your answers and results are sent under this pseudonym.</p>
+          </header>
+        ) : (
+          <h2 id="questions-h">About you</h2>
+        )}
+        <form id="questions-form" className="contrib-form" noValidate onSubmit={onSubmitAnswers}>
+          {pseudonym && <h3>About you</h3>}
+        <fieldset {...flag("disorder")}>
+          <legend>Do you have, or suspect you have, a visual perceptual disorder?</legend>
+          <Radio name="disorder" value="yes" id="cq-disorder-yes" checked={d.disorder === "yes"} onPick={v => set("disorder", v)}>Yes</Radio>
+          <Radio name="disorder" value="no" checked={d.disorder === "no"} onPick={v => set("disorder", v)}>No</Radio>
+          <FieldError missing={missing} field="disorder" />
+        </fieldset>
+        {d.disorder === "yes" && (
+          <div className="follow-up" id="cq-disorder-more">
+            <fieldset {...flag("condition")}>
+              <legend>Which one?</legend>
+              {CONDITIONS.map(([value, label]) => (
+                <Radio key={value} name="condition" value={value} id={`cq-${value}`} checked={d.condition === value} onPick={v => set("condition", v)}>{label}</Radio>
+              ))}
+              {d.condition === "other" && (
+                <input type="text" id="cq-other-text" maxLength={100} aria-label="Other disorder (optional, public)" placeholder="Which disorder? (optional)" value={d.otherCondition} onChange={e => set("otherCondition", e.target.value)} />
+              )}
+              <FieldError missing={missing} field="condition" />
+            </fieldset>
+            <fieldset {...flag("diagnosed")}>
+              <legend>Have you been diagnosed by a doctor?</legend>
+              <Radio name="diagnosed" value="yes" id="cq-diagnosed-yes" checked={d.diagnosed === "yes"} onPick={v => set("diagnosed", v)}>Yes</Radio>
+              <Radio name="diagnosed" value="no" checked={d.diagnosed === "no"} onPick={v => set("diagnosed", v)}>No</Radio>
+              <FieldError missing={missing} field="diagnosed" />
+            </fieldset>
+          </div>
+        )}
+
+        <fieldset>
+          <legend>Have you ever used psychedelic drugs? (optional)</legend>
+          <Radio name="psychedelics" value="yes" id="cq-psychedelics-yes" checked={d.psychedelics === "yes"} onPick={v => set("psychedelics", v)}>Yes</Radio>
+          <Radio name="psychedelics" value="no" checked={d.psychedelics === "no"} onPick={v => set("psychedelics", v)}>No</Radio>
+          <Radio name="psychedelics" value="prefer-not-to-say" checked={d.psychedelics === "prefer-not-to-say"} onPick={v => set("psychedelics", v)}>Prefer not to say</Radio>
+          {d.psychedelics && <ClearAnswer onClear={() => set("psychedelics", "")} focusId="cq-psychedelics-yes" />}
+        </fieldset>
+        {d.psychedelics === "yes" && (
+          <div className="follow-up" id="cq-psychedelics-more">
+            <fieldset {...flag("uses")}>
+              <legend><label htmlFor="cq-uses">Estimate how many times</label></legend>
+              <input type="number" id="cq-uses" min={1} step={1} inputMode="numeric" value={d.uses} onChange={e => set("uses", e.target.value)} />
+              <FieldError missing={missing} field="uses" />
+            </fieldset>
+            <fieldset>
+              <legend><label htmlFor="cq-psychedelics-used">Which ones have you used? (optional)</label></legend>
+              <ChipInput id="cq-psychedelics-used" noun="psychedelic" value={d.psychedelicsUsed} onChange={c => set("psychedelicsUsed", c)} />
+              <p className="hint">Add one at a time. Public, like all your answers: no names of people or places.</p>
+            </fieldset>
+          </div>
+        )}
+
+        <fieldset>
+          <legend>Do you take any medications? (optional)</legend>
+          <Radio name="medication" value="yes" id="cq-medication-yes" checked={d.takesMedication === "yes"} onPick={v => set("takesMedication", v)}>Yes</Radio>
+          <Radio name="medication" value="no" checked={d.takesMedication === "no"} onPick={v => set("takesMedication", v)}>No</Radio>
+          {d.takesMedication && <ClearAnswer onClear={() => set("takesMedication", "")} focusId="cq-medication-yes" />}
+        </fieldset>
+        {d.takesMedication === "yes" && (
+          <div className="follow-up" id="cq-medication-more">
+            <fieldset>
+              <legend><label htmlFor="cq-meds">Which ones? (optional)</label></legend>
+              <ChipInput id="cq-meds" noun="medication" value={d.medications} onChange={c => set("medications", c)} />
+              <p className="hint">Add the names one at a time. Public, like all your answers: no names of people or places.</p>
+            </fieldset>
+          </div>
+        )}
+
+          <section className="q-section" aria-labelledby="cq-extras-h">
+            <h3 id="cq-extras-h">Optional extras</h3>
+          <fieldset>
+            <legend><label htmlFor="cq-notes">Notes (optional)</label></legend>
+            <textarea className="answer" id="cq-notes" rows={4} maxLength={2000} value={d.notes} onChange={e => set("notes", e.target.value)} />
+            <p className="hint">For example, a change in medication or symptoms since your last test, if you're tracking over time. Public: no names, contact details, or anything else that points to you.</p>
+          </fieldset>
+
+          <fieldset>
+            <legend><label htmlFor="cq-found">Where did you find us? (optional)</label></legend>
+            <select id="cq-found" value={d.foundVia} onChange={e => set("foundVia", e.target.value as FoundVia | "")}>
+              <option value="">Choose…</option>
+              {FOUND_VIA.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+            {d.foundVia === "other" && (
+              <>
+                <input type="text" id="cq-found-other" maxLength={100} autoComplete="off" aria-label="Where did you find us? (public)" placeholder="Where?" value={d.foundViaOther} onChange={e => set("foundViaOther", e.target.value)} />
+                <p className="hint">Public: no names of people or private groups.</p>
+              </>
+            )}
+          </fieldset>
+          </section>
+
+          <div className="actions">
+            <button type="submit" className="btn" id="questions-go">Continue</button>
+            <button type="button" className="btn secondary back" id="questions-back" onClick={backToChoice}>Back</button>
+          </div>
+          <p className="status" id="questions-status" role="status" aria-live="polite">{status}</p>
+        </form>
+      </section>
+    );
+  }
 
   return (
     <section className="view panel" data-view="contribute" aria-labelledby="contribute-h">
@@ -203,7 +336,7 @@ export function ContributePage() {
         <button type="button" className="linkish" onClick={() => show("privacy")}>Read about privacy and the risks</button> before you decide.
         Contributed before? <button type="button" className="linkish" id="history-open" onClick={() => showHistory()}>See your previous results</button>.
       </p>
-      <form id="contrib-form" noValidate onSubmit={onSubmit}>
+      <form id="contrib-form" className="contrib-form" noValidate onSubmit={onSubmitChoice}>
         <fieldset {...flag("contribute")}>
           <legend>Contribute anonymous data?</legend>
           <Radio name="contribute" value="yes" id="cq-contribute-yes" checked={d.contribute === "yes"} onPick={v => set("contribute", v)}>Yes, add my results and answers to the public dataset</Radio>
@@ -212,115 +345,20 @@ export function ContributePage() {
         </fieldset>
 
         {d.contribute === "yes" && (
-          <div id="contrib-questions">
-            <div className="q-section">
-              <fieldset>
-                <legend><label htmlFor="cq-pseudonym">Pseudonym (optional)</label></legend>
-                <div className="inline">
-                  <span className="with-action">
-                    <input type="text" id="cq-pseudonym" maxLength={40} autoComplete="off" spellCheck={false} value={d.pseudonym} onChange={e => set("pseudonym", e.target.value)} />
-                    <button type="button" className="icon-btn" id="cq-copy" disabled={!d.pseudonym.trim()} onClick={copyPseudonym} aria-label={copied === "copied" ? "Copied" : "Copy pseudonym"} title={copied === "copied" ? "Copied" : "Copy"}>
-                      {copied === "copied" ? <CheckIcon /> : <CopyIcon />}
-                    </button>
-                  </span>
-                  <button type="button" className="btn secondary" id="cq-generate" disabled={generating} onClick={() => void generate()}>{generating ? "Generating…" : "Generate one"}</button>
-                </div>
-                <p className="hint" role="status" aria-live="polite">{copied === "copied" ? "Copied your pseudonym." : copied === "select" ? "Copying isn't allowed here. It's selected: press Ctrl+C, or ⌘C on a Mac." : ""}</p>
-                <p className="hint">Completely optional. Leave it blank and your results can't be looked up or linked together, which is the most private choice. If you use one, use the same one each time to see your results over time. It's public: anyone who enters it can see every result and answer sent with it, so don't use your name, a username you use elsewhere, or anything else that points to you. A generated one is safest; copy it somewhere or write it down.</p>
-              </fieldset>
+          <fieldset>
+            <legend><label htmlFor="cq-pseudonym">Pseudonym (optional)</label></legend>
+            <div className="inline">
+              <span className="with-action">
+                <input type="text" id="cq-pseudonym" maxLength={40} autoComplete="off" spellCheck={false} value={d.pseudonym} onChange={e => set("pseudonym", e.target.value)} />
+                <button type="button" className="icon-btn" id="cq-copy" disabled={!d.pseudonym.trim()} onClick={copyPseudonym} aria-label={copied === "copied" ? "Copied" : "Copy pseudonym"} title={copied === "copied" ? "Copied" : "Copy"}>
+                  {copied === "copied" ? <CheckIcon /> : <CopyIcon />}
+                </button>
+              </span>
+              <button type="button" className="btn secondary" id="cq-generate" disabled={generating} onClick={() => void generate()}>{generating ? "Generating…" : "Generate one"}</button>
             </div>
-
-            <section className="q-section" aria-labelledby="cq-about-h">
-              <h3 id="cq-about-h">About you</h3>
-              <fieldset {...flag("disorder")}>
-                <legend>Do you have, or suspect you have, a visual perceptual disorder?</legend>
-                <Radio name="disorder" value="yes" id="cq-disorder-yes" checked={d.disorder === "yes"} onPick={v => set("disorder", v)}>Yes</Radio>
-                <Radio name="disorder" value="no" checked={d.disorder === "no"} onPick={v => set("disorder", v)}>No</Radio>
-                <FieldError missing={missing} field="disorder" />
-              </fieldset>
-              {d.disorder === "yes" && (
-                <div className="follow-up" id="cq-disorder-more">
-                  <fieldset {...flag("condition")}>
-                    <legend>Which one?</legend>
-                    {CONDITIONS.map(([value, label]) => (
-                      <Radio key={value} name="condition" value={value} id={`cq-${value}`} checked={d.condition === value} onPick={v => set("condition", v)}>{label}</Radio>
-                    ))}
-                    {d.condition === "other" && (
-                      <input type="text" id="cq-other-text" maxLength={100} aria-label="Other disorder (optional, public)" placeholder="Which disorder? (optional)" value={d.otherCondition} onChange={e => set("otherCondition", e.target.value)} />
-                    )}
-                    <FieldError missing={missing} field="condition" />
-                  </fieldset>
-                  <fieldset {...flag("diagnosed")}>
-                    <legend>Have you been diagnosed by a doctor?</legend>
-                    <Radio name="diagnosed" value="yes" id="cq-diagnosed-yes" checked={d.diagnosed === "yes"} onPick={v => set("diagnosed", v)}>Yes</Radio>
-                    <Radio name="diagnosed" value="no" checked={d.diagnosed === "no"} onPick={v => set("diagnosed", v)}>No</Radio>
-                    <FieldError missing={missing} field="diagnosed" />
-                  </fieldset>
-                </div>
-              )}
-
-              <fieldset>
-                <legend>Have you ever used psychedelic drugs? (optional)</legend>
-                <Radio name="psychedelics" value="yes" id="cq-psychedelics-yes" checked={d.psychedelics === "yes"} onPick={v => set("psychedelics", v)}>Yes</Radio>
-                <Radio name="psychedelics" value="no" checked={d.psychedelics === "no"} onPick={v => set("psychedelics", v)}>No</Radio>
-                <Radio name="psychedelics" value="prefer-not-to-say" checked={d.psychedelics === "prefer-not-to-say"} onPick={v => set("psychedelics", v)}>Prefer not to say</Radio>
-                {d.psychedelics && <ClearAnswer onClear={() => set("psychedelics", "")} focusId="cq-psychedelics-yes" />}
-              </fieldset>
-              {d.psychedelics === "yes" && (
-                <div className="follow-up" id="cq-psychedelics-more">
-                  <fieldset {...flag("uses")}>
-                    <legend><label htmlFor="cq-uses">Estimate how many times</label></legend>
-                    <input type="number" id="cq-uses" min={1} step={1} inputMode="numeric" value={d.uses} onChange={e => set("uses", e.target.value)} />
-                    <FieldError missing={missing} field="uses" />
-                  </fieldset>
-                  <fieldset>
-                    <legend><label htmlFor="cq-psychedelics-used">Which ones have you used? (optional)</label></legend>
-                    <ChipInput id="cq-psychedelics-used" noun="psychedelic" value={d.psychedelicsUsed} onChange={c => set("psychedelicsUsed", c)} />
-                    <p className="hint">Add one at a time. Public, like all your answers: no names of people or places.</p>
-                  </fieldset>
-                </div>
-              )}
-
-              <fieldset>
-                <legend>Do you take any medications? (optional)</legend>
-                <Radio name="medication" value="yes" id="cq-medication-yes" checked={d.takesMedication === "yes"} onPick={v => set("takesMedication", v)}>Yes</Radio>
-                <Radio name="medication" value="no" checked={d.takesMedication === "no"} onPick={v => set("takesMedication", v)}>No</Radio>
-                {d.takesMedication && <ClearAnswer onClear={() => set("takesMedication", "")} focusId="cq-medication-yes" />}
-              </fieldset>
-              {d.takesMedication === "yes" && (
-                <div className="follow-up" id="cq-medication-more">
-                  <fieldset>
-                    <legend><label htmlFor="cq-meds">Which ones? (optional)</label></legend>
-                    <ChipInput id="cq-meds" noun="medication" value={d.medications} onChange={c => set("medications", c)} />
-                    <p className="hint">Add the names one at a time. Public, like all your answers: no names of people or places.</p>
-                  </fieldset>
-                </div>
-              )}
-            </section>
-
-            <section className="q-section" aria-labelledby="cq-extras-h">
-              <h3 id="cq-extras-h">Optional extras</h3>
-              <fieldset>
-                <legend><label htmlFor="cq-notes">Notes (optional)</label></legend>
-                <textarea className="answer" id="cq-notes" rows={4} maxLength={2000} value={d.notes} onChange={e => set("notes", e.target.value)} />
-                <p className="hint">For example, a change in medication or symptoms since your last test, if you're tracking over time. Public: no names, contact details, or anything else that points to you.</p>
-              </fieldset>
-
-              <fieldset>
-                <legend><label htmlFor="cq-found">Where did you find us? (optional)</label></legend>
-                <select id="cq-found" value={d.foundVia} onChange={e => set("foundVia", e.target.value as FoundVia | "")}>
-                  <option value="">Choose…</option>
-                  {FOUND_VIA.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
-                {d.foundVia === "other" && (
-                  <>
-                    <input type="text" id="cq-found-other" maxLength={100} autoComplete="off" aria-label="Where did you find us? (public)" placeholder="Where?" value={d.foundViaOther} onChange={e => set("foundViaOther", e.target.value)} />
-                    <p className="hint">Public: no names of people or private groups.</p>
-                  </>
-                )}
-              </fieldset>
-            </section>
-          </div>
+            <p className="hint" role="status" aria-live="polite">{copied === "copied" ? "Copied your pseudonym." : copied === "select" ? "Copying isn't allowed here. It's selected: press Ctrl+C, or ⌘C on a Mac." : ""}</p>
+            <p className="hint">Completely optional. Leave it blank and your results can't be looked up or linked together, which is the most private choice. If you use one, use the same one each time to see your results over time. It's public: anyone who enters it can see every result and answer sent with it, so don't use your name, a username you use elsewhere, or anything else that points to you. A generated one is safest; copy it somewhere or write it down.</p>
+          </fieldset>
         )}
 
         <div className="actions">

@@ -3,14 +3,14 @@
 import type { Staircase } from "../core";
 
 export type TaskName = "motion" | "form";
-export type Step = "contribute" | "setup" | "screen" | "distance" | TaskName | "results";
+export type Step = "contribute" | "questions" | "setup" | "screen" | "distance" | TaskName | "results";
 
 /** Pages outside the steps, each with its own address (#history and so on) so they can be linked to. */
-export type InfoPage = "history" | "privacy" | "references";
+export type InfoPage = "history" | "privacy" | "references" | "data";
 
 export type View = Step | InfoPage;
 
-export const INFO_PAGES: readonly InfoPage[] = ["history", "privacy", "references"];
+export const INFO_PAGES: readonly InfoPage[] = ["history", "privacy", "references", "data"];
 
 /**
  * How a session was run. There's one version of the test and nothing is configurable, but every

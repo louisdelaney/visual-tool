@@ -1,5 +1,5 @@
 // The public download, rebuilt nightly by a Cloud Run Job: every stored session, as sent,
-// written to a public bucket as one gzipped JSON file per month of arrival plus an index.
+// written to a public bucket as one gzipped JSON file, sessions.json.
 // Times are rounded to the hour and trial times dropped, which the README suggests: exact
 // times help single people out and aren't needed to analyse the results.
 //   EXPORT_BUCKET   the bucket's name; without it, the files go to the folder
@@ -18,20 +18,16 @@ export interface ExportedSession extends Omit<SessionExportV1, "trials"> {
   trials: Omit<SessionExportV1["trials"][number], "at">[];
 }
 
-export interface MonthFile {
-  file: string;
-  month: string;
-  sessions: number;
-  bytes: number;
-}
-
-export interface ExportIndex {
+/** The whole download. Written gzip-encoded; browsers and `curl --compressed` unpack it. */
+export interface ExportFile {
   exported_at: string;
   schema: "visual-tool/export";
-  /** Each file is gzip-encoded JSON `{ month, sessions: ExportedSession[] }`; browsers and `curl --compressed` unpack it. */
-  files: MonthFile[];
   total_sessions: number;
+  /** In order of arrival. */
+  sessions: ExportedSession[];
 }
+
+export const EXPORT_FILE = "sessions.json";
 
 export const toHour = (iso: string): string => {
   const d = new Date(iso);
@@ -44,8 +40,6 @@ export function coarsen(id: string, receivedAt: string, s: SessionExportV1): Exp
   const trials = s.trials.map(({ at: _at, ...rest }) => rest);
   return { ...s, submission_id: id, received_at: toHour(receivedAt), started_at: toHour(s.started_at), finished_at: s.finished_at && toHour(s.finished_at), trials };
 }
-
-export const monthOf = (iso: string): string => iso.slice(0, 7);
 
 export interface ExportSink {
   write(name: string, gz: Buffer, contentType: string, contentEncoding?: string): Promise<void>;
@@ -76,28 +70,19 @@ export function dirSink(dir: string): ExportSink {
 }
 
 /**
- * Groups sessions by month of arrival and writes each month's file, then the index. Rewriting
- * every month each night is simplest and, at a few MB a month gzipped, cheap enough; months
- * only ever gain sessions, so nothing already published disappears.
+ * Writes every session to the one file, replacing last night's. Rewriting it all each night is
+ * simplest and, at a few MB a month gzipped, cheap enough; sessions are only ever added, so
+ * nothing already published disappears.
  */
-export async function runExport(db: Store, sink: ExportSink, now: Date = new Date()): Promise<ExportIndex> {
-  const months = new Map<string, ExportedSession[]>();
-  for await (const { id, stored, session } of db.allSessions()) {
-    const m = monthOf(stored.received_at);
-    if (!months.has(m)) months.set(m, []);
-    months.get(m)!.push(coarsen(id, stored.received_at, session));
-  }
-  const files: MonthFile[] = [];
-  for (const month of [...months.keys()].sort()) {
-    const sessions = months.get(month)!;
-    const file = `sessions-${month}.json`;
-    const gz = gzipSync(JSON.stringify({ month, sessions }));
-    await sink.write(file, gz, "application/json", "gzip");
-    files.push({ file, month, sessions: sessions.length, bytes: gz.length });
-  }
-  const index: ExportIndex = { exported_at: now.toISOString(), schema: "visual-tool/export", files, total_sessions: files.reduce((n, f) => n + f.sessions, 0) };
-  await sink.write("index.json", Buffer.from(JSON.stringify(index, null, 2)), "application/json");
-  return index;
+export async function runExport(db: Store, sink: ExportSink, now: Date = new Date()): Promise<ExportFile> {
+  const rows: { receivedAt: string; session: ExportedSession }[] = [];
+  for await (const { id, stored, session } of db.allSessions()) rows.push({ receivedAt: stored.received_at, session: coarsen(id, stored.received_at, session) });
+  // By the exact time, before it's rounded, so sessions from the same hour keep their order.
+  rows.sort((a, b) => a.receivedAt.localeCompare(b.receivedAt));
+  const sessions = rows.map(r => r.session);
+  const file: ExportFile = { exported_at: now.toISOString(), schema: "visual-tool/export", total_sessions: sessions.length, sessions };
+  await sink.write(EXPORT_FILE, gzipSync(JSON.stringify(file)), "application/json", "gzip");
+  return file;
 }
 
 if (process.argv[1] && /export\.(js|ts)$/.test(process.argv[1])) {
@@ -107,7 +92,7 @@ if (process.argv[1] && /export\.(js|ts)$/.test(process.argv[1])) {
     return runExport(await openStore(), sink);
   };
   run()
-    .then(i => logInfo(`exported ${i.total_sessions} sessions in ${i.files.length} files`))
+    .then(i => logInfo(`exported ${i.total_sessions} sessions`))
     .catch(err => {
       logError("export failed", err);
       process.exit(1);

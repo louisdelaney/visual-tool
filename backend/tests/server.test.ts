@@ -12,7 +12,7 @@ import { createApp, type ServerOptions } from "../src/server";
 import { makeSession, withThresholds } from "./fixture";
 
 const ORIGIN = "https://site.example";
-const EXPORT_URL = "https://storage.example/index.json";
+const EXPORT_URL = "https://storage.example/sessions.json";
 
 const servers: Server[] = [];
 const tempDirs: string[] = [];
@@ -219,7 +219,7 @@ describe("GET /export", () => {
 });
 
 describe("GET /export/*", () => {
-  /** A temp folder holding a real export of two months. */
+  /** A temp folder holding a real export of two sessions. */
   async function exported() {
     const dir = mkdtempSync(join(tmpdir(), "export-"));
     tempDirs.push(dir);
@@ -230,25 +230,16 @@ describe("GET /export/*", () => {
     return start(new MemoryStore(), { exportDir: dir });
   }
 
-  it("serves the index as plain JSON", async () => {
+  it("serves the file gzip-encoded as a download, which fetch unpacks", async () => {
     const { base } = await exported();
-    const res = await fetch(`${base}/export/index.json`);
-    expect(res.status).toBe(200);
-    expect(res.headers.get("content-encoding")).toBeNull();
-    expect(res.headers.get("content-type")).toBe("application/json");
-    const index = (await res.json()) as { total_sessions: number; files: { file: string }[] };
-    expect(index.total_sessions).toBe(2);
-    expect(index.files.map(f => f.file)).toEqual(["sessions-2026-09.json", "sessions-2026-10.json"]);
-  });
-
-  it("serves a month file gzip-encoded, which fetch unpacks", async () => {
-    const { base } = await exported();
-    const res = await fetch(`${base}/export/sessions-2026-10.json`);
+    const res = await fetch(`${base}/export/sessions.json`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-encoding")).toBe("gzip");
-    const month = (await res.json()) as { month: string; sessions: { seed: number }[] };
-    expect(month.month).toBe("2026-10");
-    expect(month.sessions.map(s => s.seed)).toEqual([2]);
+    expect(res.headers.get("content-type")).toBe("application/json");
+    expect(res.headers.get("content-disposition")).toBe('attachment; filename="sessions.json"');
+    const file = (await res.json()) as { total_sessions: number; sessions: { seed: number }[] };
+    expect(file.total_sessions).toBe(2);
+    expect(file.sessions.map(s => s.seed)).toEqual([1, 2]);
   });
 
   it("returns 404 for a file that isn't there, and for paths that climb out of the folder", async () => {
@@ -262,7 +253,7 @@ describe("GET /export/*", () => {
 
   it("serves nothing under /export/ when no folder is set", async () => {
     const { base } = await start();
-    expect((await fetch(`${base}/export/index.json`)).status).toBe(404);
+    expect((await fetch(`${base}/export/sessions.json`)).status).toBe(404);
   });
 });
 

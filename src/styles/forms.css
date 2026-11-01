@@ -164,62 +164,78 @@ fieldset.invalid {
   color: var(--error);
 }
 
-/* Step 1's questions: two titled groups, questions in the ink colour above their answers, and
-   follow-ups set in under the question that opened them. */
-#contrib-form {
-  display: grid;
-  gap: 24px;
+/* Step 1's two pages: more room than the other panels, titled groups, questions in the ink colour
+   above their answers, and follow-ups set in under the question that opened them. */
+.panel[data-view="contribute"],
+.panel[data-view="questions"] {
+  padding-block: 36px 40px;
+  padding-inline: clamp(16px,5vw,40px);
+  gap: 22px;
 }
 
-#contrib-form fieldset {
+.contrib-form {
+  display: grid;
+  gap: 28px;
+}
+
+.contrib-form fieldset {
   margin: 0;
   gap: 8px;
 }
 
-#contrib-form legend {
+.contrib-form legend {
   font-size: var(--t-base);
   color: var(--ink);
   margin-bottom: 2px;
   max-width: 60ch;
 }
 
-#contrib-form .opt {
+.contrib-form .opt {
   font-size: var(--t-base);
 }
 
-#contrib-form .hint {
+.contrib-form .hint {
   max-width: 58ch;
 }
 
-#contrib-form input[type="text"],
-#contrib-form input[type="number"],
-#contrib-form select,
-#contrib-form textarea.answer,
-#contrib-form .btn.secondary {
+.contrib-form input[type="text"],
+.contrib-form input[type="number"],
+.contrib-form select,
+.contrib-form textarea.answer,
+.contrib-form .btn.secondary {
   border-color: var(--field-border);
 }
 
-#contrib-questions {
-  display: grid;
-  gap: 36px;
+.contrib-form h3 {
+  margin: 0;
 }
 
 .q-section {
   display: grid;
-  gap: 24px;
-  padding-top: 20px;
+  gap: 28px;
+  margin-top: 8px;
+  padding-top: 28px;
   border-top: 1px solid var(--rule);
 }
 
-.q-section h3 {
-  margin: 0;
-}
-
-#contrib-form .follow-up {
-  gap: 20px;
-  margin: -4px 0 0 7px;
+.contrib-form .follow-up {
+  gap: 22px;
+  margin: -6px 0 0 7px;
   padding-left: 18px;
   border-left: 1px solid var(--rule);
+}
+
+/* Page two, headed by the pseudonym the answers go under. */
+.as-pseudonym {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.as-pseudonym .pseudonym {
+  font: 600 32px/1.15 var(--font-data);
+  letter-spacing: -.01em;
+  overflow-wrap: anywhere;
 }
 
 /* A text input with a small icon button inside its right end, such as Copy. */

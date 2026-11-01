@@ -121,13 +121,14 @@ async function storedSession(id, dataFile) {
     await p.goto(server.url); await sleep(300);
     await p.check('#contrib-form input[name="contribute"][value="yes"]');
     await p.fill("#cq-pseudonym", PSEUDONYM);
-    await p.check('#contrib-form input[name="disorder"][value="no"]');
-    await p.check('#contrib-form input[name="psychedelics"][value="yes"]');
+    await p.click("#contrib-go"); await sleep(150);
+    await p.check('#questions-form input[name="disorder"][value="no"]');
+    await p.check('#questions-form input[name="psychedelics"][value="yes"]');
     await p.fill("#cq-uses", "5");
     for (const drug of ["LSD", "psilocybin"]) { await p.fill("#cq-psychedelics-used", drug); await p.press("#cq-psychedelics-used", "Enter"); }
-    await p.check('#contrib-form input[name="medication"][value="no"]');
+    await p.check('#questions-form input[name="medication"][value="no"]');
     await p.fill("#cq-notes", "end-to-end test");
-    await p.click("#contrib-go"); await sleep(150);
+    await p.click("#questions-go"); await sleep(150);
     check(await p.$eval('[data-view="setup"]', el => !el.hidden), "Continue on the Contribute step didn't lead to setup");
 
     // Know each trial's answer, through the page's Core, so the observer can be right as often as a person would.

@@ -34,8 +34,8 @@ output "service_url" {
 }
 
 output "export_url" {
-  description = "Public URL of the nightly export index."
-  value       = "https://storage.googleapis.com/${google_storage_bucket.export.name}/index.json"
+  description = "Public URL of the nightly export file."
+  value       = "https://storage.googleapis.com/${google_storage_bucket.export.name}/sessions.json"
 }
 
 output "wif_provider" {

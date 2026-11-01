@@ -1,6 +1,7 @@
 // Step 2: what the tasks look like and what you need.
 import { useState } from "react";
 import { show } from "../app/flow";
+import { getState } from "../app/store";
 import { useWindowSize } from "../hooks";
 import { StimulusPreview } from "../components/StimulusPreview";
 
@@ -38,7 +39,7 @@ export function SetupPage() {
 
       <div className="actions">
         <button type="button" className="btn" id="start" onClick={() => show("screen")}>Start</button>
-        <button type="button" className="btn secondary back" id="setup-back" onClick={() => show("contribute")}>Back</button>
+        <button type="button" className="btn secondary back" id="setup-back" onClick={() => show(getState().contribution?.contribute ? "questions" : "contribute")}>Back</button>
       </div>
     </section>
   );

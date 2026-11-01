@@ -1,0 +1,15 @@
+/* design-sync: page surface.
+   This design system is dark-only by ruling — see the note at the top of src/styles/tokens.css
+   ("Dark only, for everyone: bright white pages are much more distressing than dark ones for
+   people with visual perceptual disorders"). The page background is therefore part of the
+   system, not a preview-only concern, so this ships to generated designs too.
+
+   `html body` (specificity 0,0,2) is deliberate: the preview card template ends with an inline
+   `body{background:#fff}` that loads after this stylesheet, and base.css's own `html, body`
+   rule (0,0,1) would lose to it on source order. Without this, every card renders #E8EDEA
+   text on white. */
+html body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+}

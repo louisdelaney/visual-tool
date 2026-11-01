@@ -90,18 +90,18 @@ The page validates the response and shows nothing from one that doesn't match (s
 
 Return an empty `sessions` list for a pseudonym nobody has used; the page's "Generate one" button relies on that to avoid handing out a pseudonym that's taken.
 
-`GET /export`: the public download of every stored session, as a crude raw dump. It's for people who want the data, not for the page, which doesn't call it. It redirects (302) to `index.json` in a public Cloud Storage bucket, rebuilt nightly by the export job:
+`GET /export`: the public download of every stored session, as a crude raw dump. It's for people who want the data; the page links to it from the Data page but never fetches it. It redirects (302) to `sessions.json` in a public Cloud Storage bucket, rebuilt nightly by the export job:
 
 ```json
 {
   "exported_at": "2026-10-31T03:00:00Z",
   "schema": "visual-tool/export",
-  "files": [ { "file": "sessions-2026-10.json", "month": "2026-10", "sessions": 412, "bytes": 3817220 } ],
-  "total_sessions": 412
+  "total_sessions": 412,
+  "sessions": [ … ]
 }
 ```
 
-- Each monthly file is `{ "month": "2026-10", "sessions": [ … ] }`, gzip-encoded on the wire (browsers and `curl --compressed` unpack it), and holds every session that arrived that month exactly as `POST /sessions` stored it, plus its `submission_id` and `received_at`, from every test version and every answer, including people who reported a disorder. This is the "anyone can download" the Privacy and risks page promises.
+- The file is gzip-encoded on the wire (browsers and `curl --compressed` unpack it) and served as a download. It holds every session in order of arrival, exactly as `POST /sessions` stored it, plus its `submission_id` and `received_at`, from every test version and every answer, including people who reported a disorder. This is the "anyone can download" the Privacy and risks page promises.
 - Times are coarsened: `started_at`, `finished_at` and `received_at` are rounded to the hour, and each trial's `at` is dropped (see below).
 - The data is up to a day old.
 
@@ -154,7 +154,7 @@ backend/
   src/store.ts        What a store does.  src/db.ts  Firestore.  src/db-memory.ts  In memory, optionally a JSON file.
   src/config.ts       Which store and export sink the environment asks for.
   src/routes.ts       The four endpoints.  src/server.ts  CORS, limits, errors, the server.
-  src/jobs/export.ts  The export job: one gzipped JSON file per month plus index.json, to the bucket or EXPORT_DIR.
+  src/jobs/export.ts  The export job: one gzipped JSON file, sessions.json, to the bucket or EXPORT_DIR.
   tests/              Vitest, on the memory store; the Firestore test runs only when FIRESTORE_EMULATOR_HOST is set.
 infra/                Terraform for everything on Google Cloud (see infra/README.md).
 ```

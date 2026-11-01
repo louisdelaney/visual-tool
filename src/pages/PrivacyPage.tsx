@@ -1,6 +1,6 @@
 // What's collected, who can see what, and the risks of taking part. Keep this accurate: if the
 // app or the backend starts collecting or logging anything new, this page must say so.
-import { back } from "../app/flow";
+import { back, show } from "../app/flow";
 
 export function PrivacyPage() {
   return (
@@ -9,7 +9,7 @@ export function PrivacyPage() {
         <h2 id="privacy-h">Privacy and risks</h2>
         <ul className="key-points">
           <li><strong>Just for fun.</strong> This is a casual online test for curiosity only, and it isn't medical advice.</li>
-          <li><strong>All contributed data is public.</strong> Anyone can download every result and answer people choose to contribute. The download is refreshed once a day; in it, times are rounded to the hour.</li>
+          <li><strong>All contributed data is public.</strong> Anyone can <a href="#data" onClick={e => { e.preventDefault(); show("data"); }}>download</a> every result and answer people choose to contribute. The download is refreshed once a day; in it, times are rounded to the hour.</li>
           <li><strong>It's anonymous.</strong> There are no accounts, and no name, email or IP address is stored with your results.</li>
           <li><strong>Nothing extra is logged.</strong> Only what's listed below is sent, and only if you choose to contribute.</li>
         </ul>
