@@ -37,6 +37,16 @@ resource "google_cloud_run_v2_service_iam_member" "shutoff_developer" {
   member   = google_service_account.shutoff.member
 }
 
+# The update sends the service back whole, container image included, and Cloud Run checks
+# that the caller can pull that image.
+resource "google_artifact_registry_repository_iam_member" "shutoff_image_reader" {
+  project    = var.project_id
+  location   = google_artifact_registry_repository.images.location
+  repository = google_artifact_registry_repository.images.name
+  role       = "roles/artifactregistry.reader"
+  member     = google_service_account.shutoff.member
+}
+
 resource "google_service_account_iam_member" "shutoff_acts_as_api" {
   service_account_id = google_service_account.api.name
   role               = "roles/iam.serviceAccountUser"
