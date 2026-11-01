@@ -9,7 +9,7 @@ export const CSV_COLUMNS: readonly (keyof Trial)[] = ["protocol", "task", "phase
 /** The contribution without its in-flight sending state. */
 function exportContribution(c: SessionContribution): ExportedContribution {
   if (!c.contribute) return c;
-  const { sending: _sending, failed: _failed, ...rest } = c;
+  const { sending: _sending, failed: _failed, failure_id: _failureId, ...rest } = c;
   return rest;
 }
 

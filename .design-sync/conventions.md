@@ -3,6 +3,40 @@
 A small, deliberately plain React + CSS system for one site: a browser vision test. Five components,
 one global stylesheet, no framework.
 
+## Hard rules — these override any design instinct
+
+This is a casual vision test, **not** a medical or diagnostic product. The maintainer's rulings below
+are not style preferences; a design that breaks one is wrong even if it looks better. If a request
+seems to require breaking one, say so rather than quietly complying.
+
+**Copy.**
+
+- The site is just for fun, and says so plainly on the home page and anywhere results appear.
+- Never say or imply the test can **diagnose, screen for, detect or indicate** any condition — and
+  don't raise diagnosis even to deny it ("this can't diagnose anything" is also out).
+- Never **judge a result**. Banned in both copy and visual encoding: "normal", "abnormal", "typical",
+  "healthy", "impaired", "at risk", "below/above most people", and any badge, flag, traffic-light or
+  red/green colour marking a value as good, bad, or outside a range.
+
+**Showing results.** A results view may show the person's own value, a control group, and a
+"used psychedelics" group — nothing else.
+
+- **Never show people who reported a visual perceptual disorder as a group.** No chart, statistic,
+  legend entry or label built from them, anywhere.
+- **Information only**: the median, middle half and middle 80%, plus the person's value. Draw no
+  conclusion from where their value falls — no verdicts, rankings, classifications, or colour that
+  implies one.
+- A group is hidden until it has at least 30 people. Design the under-30 state as a plain absence,
+  not a warning or an error.
+
+**Invented data.** Realistic placeholder numbers are fine inside a design, but they must read as
+placeholders and must never be presented as a real person's result.
+
+**Privacy.** The site promises no cookies, no analytics, and no third-party requests of any kind.
+Never add a tracking snippet, an external font or stylesheet link, a CDN script, or a remote image.
+Fonts are bundled and already loaded by `styles.css`. A strict Content-Security-Policy enforces this,
+so an external reference won't just be off-brand — it will be blocked.
+
 ## Setup
 
 **No provider, no theme object, no wrapper component.** Import a component and render it. All styling

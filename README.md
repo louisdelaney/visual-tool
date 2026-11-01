@@ -90,7 +90,7 @@ The page validates the response and shows nothing from one that doesn't match (s
 
 Return an empty `sessions` list for a pseudonym nobody has used; the page's "Generate one" button relies on that to avoid handing out a pseudonym that's taken.
 
-`GET /export`: the public download of every stored session, as a crude raw dump. It's for people who want the data; the page links to it from the Data page but never fetches it. It redirects (302) to `sessions.json` in a public Cloud Storage bucket, rebuilt nightly by the export job:
+`GET /export`: the public download of every stored session, as a crude raw dump. It's for people who want the data; the page links to it from the Data page but never fetches it. It redirects (302) to `visual-data.json` in a public Cloud Storage bucket, rebuilt nightly by the export job:
 
 ```json
 {
@@ -154,7 +154,7 @@ backend/
   src/store.ts        What a store does.  src/db.ts  Firestore.  src/db-memory.ts  In memory, optionally a JSON file.
   src/config.ts       Which store and export sink the environment asks for.
   src/routes.ts       The four endpoints.  src/server.ts  CORS, limits, errors, the server.
-  src/jobs/export.ts  The export job: one gzipped JSON file, sessions.json, to the bucket or EXPORT_DIR.
+  src/jobs/export.ts  The export job: one gzipped JSON file, visual-data.json, to the bucket or EXPORT_DIR.
   tests/              Vitest, on the memory store; the Firestore test runs only when FIRESTORE_EMULATOR_HOST is set.
 infra/                Terraform for everything on Google Cloud (see infra/README.md).
 ```

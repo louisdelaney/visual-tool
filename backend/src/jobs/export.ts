@@ -1,5 +1,5 @@
 // The public download, rebuilt nightly by a Cloud Run Job: every stored session, as sent,
-// written to a public bucket as one gzipped JSON file, sessions.json.
+// written to a public bucket as one gzipped JSON file, visual-data.json.
 // Times are rounded to the hour and trial times dropped, which the README suggests: exact
 // times help single people out and aren't needed to analyse the results.
 //   EXPORT_BUCKET   the bucket's name; without it, the files go to the folder
@@ -27,7 +27,7 @@ export interface ExportFile {
   sessions: ExportedSession[];
 }
 
-export const EXPORT_FILE = "sessions.json";
+export const EXPORT_FILE = "visual-data.json";
 
 export const toHour = (iso: string): string => {
   const d = new Date(iso);

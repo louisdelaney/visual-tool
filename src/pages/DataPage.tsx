@@ -30,7 +30,7 @@ export function DataPage() {
 
         <h3>Format</h3>
         <p>
-          The download is one JSON file, <code>sessions.json</code>. It holds every session in order of arrival, in the same format as the file you can save from your own results, plus the date each was received.
+          The download is one JSON file, <code>visual-data.json</code>. It holds every session in order of arrival, in the same format as the file you can save from your own results, plus the date each was received.
           {" "}Each session records its <code>test_version</code>; only compare sessions from the same version, since a new version means the test itself changed.
         </p>
         <p>The results come from people taking a casual online test on their own screens, unsupervised, so screens, viewing distances and attention vary.</p>

@@ -20,6 +20,17 @@ variable "firestore_database" {
   default     = "(default)"
 }
 
+variable "log_retention_days" {
+  description = "How long the app's error lines are kept. Shorter keeps less; longer helps diagnose problems."
+  type        = number
+  default     = 7
+
+  validation {
+    condition     = var.log_retention_days >= 1 && var.log_retention_days <= 30
+    error_message = "Use 1 to 30 days."
+  }
+}
+
 variable "region" {
   description = "Region for Cloud Run, Firestore, Artifact Registry, Cloud Scheduler and the export bucket."
   type        = string
