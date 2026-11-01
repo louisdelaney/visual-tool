@@ -28,9 +28,9 @@ npm run build      # dist/server.js and dist/jobs/export.js
 | `PORT` | Port to listen on. Cloud Run sets it; 8080 otherwise. |
 | `BACKEND` | `firestore` or `memory`. |
 | `ALLOWED_ORIGIN` | The site's origin, the only one browsers may call from. Several may be given, separated by commas, for example two local dev servers. |
-| `EXPORT_URL` | Where `GET /export` redirects (on Cloud Run, `visual-data.json.gz` on the GitHub `data` release). If it is unset, `/export` redirects to the server's own `/export/visual-data.json`. |
+| `EXPORT_URL` | Where `GET /export` redirects (on Cloud Run, `visual-data.json.gz` on the GitHub `data` release). If it is unset and the server isn't on Cloud Run, `/export` builds the file from the store on each request instead, with the export job's code. |
 | `DATA_FILE` | Memory mode: file to keep sessions in between runs, for example `./data/sessions.json`. |
-| `EXPORT_DIR` | Where the export job writes (default `./data/export`), with either store. Without `EXPORT_URL`, the server serves it at `/export/*`. |
+| `EXPORT_DIR` | Where the export job writes (default `./data/export`), with either store. |
 | `GOOGLE_CLOUD_PROJECT` | Firestore mode: the project. |
 | `FIRESTORE_DATABASE` | Firestore mode: the database to use. |
 
@@ -46,15 +46,14 @@ In production the export job runs in `.github/workflows/export.yml`, which write
 docker build -f backend/Dockerfile .      # from the repository root
 ```
 
-CI builds it on every push, and `.github/workflows/deploy-backend.yml` builds and pushes it on pushes to `main`. The image runs the server; locally, compose's `export` service runs the export job from the same image.
+CI builds it on every push, and `.github/workflows/deploy-backend.yml` builds and pushes it on pushes to `main`. The image runs the server.
 
 `compose.yaml` at the repository root runs it with a Firestore emulator. None of it is needed for memory mode.
 
 | Service | What it is |
 | --- | --- |
 | `firestore` | The Firestore emulator on 8081, project `demo-visual-tool`. Data is in memory only, so `docker compose down` loses it. |
-| `backend` | The production image on 8080, pointed at the emulator. `ALLOWED_ORIGIN` defaults to `http://localhost:5173`. Exports are written to a named volume and served at `/export/*`. |
-| `export` | Runs the export job once (profile `tools`). |
+| `backend` | The production image on 8080, pointed at the emulator. `ALLOWED_ORIGIN` defaults to `http://localhost:5173`. Its `/export` builds the export from the emulator's data on each request. |
 | `backend-test` | The backend tests, including the Firestore emulator tests (profile `checks`). |
 | `e2e` | The Playwright end-to-end tests in Microsoft's Playwright image, which must match the `playwright` version in the root `package.json` (profile `checks`). |
 

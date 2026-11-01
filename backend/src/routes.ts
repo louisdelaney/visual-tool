@@ -1,12 +1,14 @@
 // The four endpoints the README documents. Each handler gets the parsed URL and the request,
 // and returns what to send; the server does CORS, limits and error handling around them.
 import type { IncomingMessage } from "node:http";
+import { Readable } from "node:stream";
 import type { HistoryResponse } from "../../src/app/history";
 import { normalizePseudonym } from "../../src/app/history";
 import { TEST_VERSION } from "../../src/core/protocol";
 import type { Store } from "./store";
 import { HttpError, readBody } from "./http";
 import { groupsResponse } from "./stats";
+import { EXPORT_FILE, runExport } from "./jobs/export";
 import { historyEntry } from "./summary";
 import { MAX_BODY_BYTES, validateSession } from "./validate";
 
@@ -14,7 +16,7 @@ export interface Reply {
   status: number;
   body?: unknown;
   headers?: Record<string, string>;
-  /** A file to pipe instead of a body (memory mode's export files). */
+  /** Bytes to pipe instead of a JSON body (a locally built export). */
   stream?: NodeJS.ReadableStream;
 }
 
@@ -26,7 +28,7 @@ const GROUPS_CACHE_MS = 60_000;
 export class Routes {
   private groupsCache: { at: number; body: unknown } | null = null;
 
-  constructor(private readonly db: Store, private readonly exportUrl: string) {}
+  constructor(private readonly db: Store, private readonly exportUrl: string, private readonly liveExport = false) {}
 
   async postSession(req: IncomingMessage): Promise<Reply> {
     const text = await readBody(req, MAX_BODY_BYTES);
@@ -62,8 +64,13 @@ export class Routes {
     return { status: 200, body };
   }
 
-  getExport(): Reply {
-    if (!this.exportUrl) throw new HttpError(404, "no export is configured");
-    return { status: 302, headers: { Location: this.exportUrl, "Cache-Control": "public, max-age=3600" } };
+  async getExport(): Promise<Reply> {
+    if (this.exportUrl) return { status: 302, headers: { Location: this.exportUrl, "Cache-Control": "public, max-age=3600" } };
+    if (!this.liveExport) throw new HttpError(404, "no export is configured");
+    // A local copy: the same file the nightly job publishes, built from the store now.
+    let gz: Buffer = Buffer.alloc(0);
+    await runExport(this.db, { async write(_name, data) { gz = data; } });
+    const headers = { "Content-Type": "application/json", "Content-Encoding": "gzip", "Content-Disposition": `attachment; filename="${EXPORT_FILE}"`, "Content-Length": String(gz.length), "Cache-Control": "no-store" };
+    return { status: 200, headers, stream: Readable.from([gz]) };
   }
 }

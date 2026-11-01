@@ -3,7 +3,8 @@
 // the repository's "data" release as visual-data.json.gz.
 // Times are rounded to the hour and trial times dropped, which the README suggests: exact
 // times help single people out and aren't needed to analyse the results.
-//   EXPORT_DIR      where the file goes (default ./data/export); a local server serves it at /export/*
+//   EXPORT_DIR      where the file goes (default ./data/export)
+// A local server without EXPORT_URL builds the same file on each GET /export instead (server.ts).
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
@@ -45,7 +46,7 @@ export interface ExportSink {
   write(name: string, gz: Buffer, contentType: string, contentEncoding?: string): Promise<void>;
 }
 
-/** Files in a folder, with the same names; a local server serves them at /export/*. */
+/** Files in a folder, with the same names. */
 export function dirSink(dir: string): ExportSink {
   mkdirSync(dir, { recursive: true });
   return { async write(name, data) { writeFileSync(join(dir, name), data); } };
