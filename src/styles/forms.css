@@ -149,25 +149,77 @@ textarea {
   line-height: 1;
 }
 
-/* A required question left unanswered when Continue was pressed. */
+/* A required question left unanswered when Continue was pressed. An outline, not a border or
+   padding, so marking and clearing it never moves the answers under the pointer. */
 fieldset.invalid {
-  border-left: 4px solid var(--accent);
-  background: var(--accent-wash);
-  border-radius: 6px;
-  padding: 10px 12px 12px;
-}
-
-fieldset.invalid legend {
-  /* Legends float over a fieldset's padding; keep it inside the highlighted box. */
-  float: left;
-  width: 100%;
+  outline: 1px solid var(--error);
+  outline-offset: 8px;
+  border-radius: 4px;
 }
 
 .field-error {
   margin: 0;
   font-weight: 700;
   font-size: var(--t-sm);
-  color: var(--accent);
+  color: var(--error);
+}
+
+/* Step 1's questions: two titled groups, questions in the ink colour above their answers, and
+   follow-ups set in under the question that opened them. */
+#contrib-form {
+  display: grid;
+  gap: 24px;
+}
+
+#contrib-form fieldset {
+  margin: 0;
+  gap: 8px;
+}
+
+#contrib-form legend {
+  font-size: var(--t-base);
+  color: var(--ink);
+  margin-bottom: 2px;
+  max-width: 60ch;
+}
+
+#contrib-form .opt {
+  font-size: var(--t-base);
+}
+
+#contrib-form .hint {
+  max-width: 58ch;
+}
+
+#contrib-form input[type="text"],
+#contrib-form input[type="number"],
+#contrib-form select,
+#contrib-form textarea.answer,
+#contrib-form .btn.secondary {
+  border-color: var(--field-border);
+}
+
+#contrib-questions {
+  display: grid;
+  gap: 36px;
+}
+
+.q-section {
+  display: grid;
+  gap: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--rule);
+}
+
+.q-section h3 {
+  margin: 0;
+}
+
+#contrib-form .follow-up {
+  gap: 20px;
+  margin: -4px 0 0 7px;
+  padding-left: 18px;
+  border-left: 1px solid var(--rule);
 }
 
 /* A text input with a small icon button inside its right end, such as Copy. */
