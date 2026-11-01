@@ -1,14 +1,14 @@
-# Builds the site and publishes it to GitHub Pages.
-#
-# Runs only when started by hand from the Actions tab until Pages is switched on (repository
-# Settings → Pages → Source: GitHub Actions). Then add `push: branches: [main]` under `on` to
-# publish every change to main.
+# Builds the site and publishes it to GitHub Pages on every push to main, or when started by
+# hand from the Actions tab. Pages must be switched on (repository Settings → Pages → Source:
+# GitHub Actions).
 #
 # The backend URL comes from the repository variable API_URL (Settings → Secrets and
 # variables → Actions → Variables). Leave it unset and the site sends nothing.
 name: Publish to GitHub Pages
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:

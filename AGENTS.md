@@ -21,9 +21,10 @@ Rules:
 - **Never show people who reported a disorder as a group on the site.** Putting one in front of the person is too suggestive. Their data is in the public export for others to interpret as they like, but the project does no interpreting: no group, chart, statistic or claim built from them on any page, and no endpoint the page uses that returns one.
 - People who answered "prefer not to say" about psychedelics are in neither group.
 - **Information only.** Show the numbers (median, middle half, middle 80%) and the person's own value. Draw no conclusions from where a value falls: no verdicts, labels, colours or text that rank or classify the person.
-- A group isn't shown until it has at least 30 people (`MIN_GROUP` in `src/app/comparison.ts`). The backend enforces the same minimum.
+- A group isn't shown until it has at least 5 people (`MIN_GROUP` in `src/app/comparison.ts`). The backend enforces the same minimum.
 - Only groups from the same `test_version` are ever compared or pooled.
-- The User results page draws only the control group's middle half and median behind a person's history.
+- Both pages show sensitivity bars in the clinic's "Glass Patterns" style: the person's motion, form and motion − form bars, then each group's median bars with a line across the middle half. On the User results page they're for the person's latest session.
+- The User results page's over-time charts draw only the control group's middle half and median behind a person's history.
 - No example, sample or simulated results in the production site. Development-only sample data must be clearly labelled and never ship in a build.
 
 ## Privacy
@@ -42,5 +43,5 @@ Don't add anything that breaks these promises. If a change touches what's collec
 
 - Everyone takes the same test, with no configurable timings, sizes or modes, so results are consistent across computers.
 - Any change to stimuli, timing or the staircase is a new test: bump `TEST_VERSION` in `src/core/protocol.ts`.
-- A change to the exported JSON shape bumps `schema_version` in `src/app/schema.ts`. Exception: until the site is first deployed, the schema is still being defined, so it stays at 1 and shape changes are made in place (still update the type, its test and the backend validation). Remove this exception at the first deploy.
+- A change to the exported JSON shape bumps `schema_version` in `src/app/schema.ts`.
 - Changes to `src/core/` or `src/stage/` need the end-to-end tests run (`npm run test:e2e`).

@@ -1,7 +1,36 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "dev", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--", "--port", "5173", "--strictPort"], "port": 5173 },
-    { "name": "dev+server", "runtimeExecutable": "sh", "runtimeArgs": [".claude/dev-server.sh"], "port": 5180, "autoPort": false }
+    {
+      "name": "dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "dev+server",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        ".claude/dev-server.sh"
+      ],
+      "port": 5180,
+      "autoPort": false
+    },
+    {
+      "name": "dev-sample",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "VITE_API_URL= npm run dev -- --port 5174 --strictPort"
+      ],
+      "port": 5174
+    }
   ]
 }

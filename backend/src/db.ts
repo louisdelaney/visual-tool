@@ -1,6 +1,6 @@
 // Firestore. Three collections, written together when a session arrives:
 //   sessions/{id}   the body as sent, gzipped: read only by the export job
-//   summaries/{id}  the small row GET /history reads
+//   summaries/{id}  every answer and the three measures; GET /history reads it
 //   groups/{tv}     flat arrays of the three measures per comparison group, for GET /groups
 import { randomUUID } from "node:crypto";
 import { gunzipSync, gzipSync } from "node:zlib";

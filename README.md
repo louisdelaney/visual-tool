@@ -22,7 +22,7 @@ Open it in a desktop browser (tested in Chrome). You need a laptop or desktop wi
 5. **Motion task**, then **form task**: adaptive staircases that find each threshold.
 6. **Results**: thresholds, sensitivities, staircase charts and the session data. If you chose to contribute, the results are sent here.
 
-On the results page, **Save session (JSON)** downloads the raw session data, **Save trials (CSV)** downloads the trial table, and **Copy session data** copies the JSON to the clipboard.
+On the results page, **Save summary** downloads a short JSON file of what the page shows (pseudonym, answers, thresholds and sensitivities, and the staircase points). **Show the raw data** shows the whole session as JSON, exactly as it's sent to the backend, and **Save full data (JSON)** downloads it.
 
 ### Sending results and the group comparison
 
@@ -33,7 +33,7 @@ The Results page then shows the person's thresholds beside two groups, as people
 - **Control group**: answered **No** to having or suspecting a visual perceptual disorder, and **No** to having used psychedelic drugs.
 - **Used psychedelics**: answered **No** to the disorder question, and **Yes** to having used psychedelic drugs.
 
-For each measure it shows each group's 10th–90th and 25th–75th percentile ranges and median, with the person's own value marked. It's information only: the page draws no conclusions from where someone's results fall. It appears for everyone, contributors or not: fetching the summary sends nothing about them. The User results page draws the control group's middle half behind each chart.
+It starts with sensitivity bars in the style of the clinic's "Glass Patterns" chart: the person's motion, form and motion − form sensitivity, then each group's medians with a line across the middle half. Below that, for each measure it shows each group's 10th–90th and 25th–75th percentile ranges and median, with the person's own value marked. It's information only: the page draws no conclusions from where someone's results fall. It appears for everyone, contributors or not: fetching the summary sends nothing about them. The User results page shows the same bars for the latest session, and draws the control group's middle half behind each over-time chart.
 
 Both use one backend, set with `VITE_API_URL` at build time (see `.env.example`). While it's unset, the Contribute step still runs but nothing is sent and no comparison is shown, except in `npm run dev`, which shows labelled sample data.
 
@@ -65,7 +65,7 @@ Four endpoints under `VITE_API_URL`. The page calls the first three from the bro
 - Both groups are stored sessions with `contribution.answers.perceptual_disorder` = `"no"`, the current `test_version`, and both tasks `"complete"` in `results`.
 - `control` also has `psychedelics` = `"no"`; `psychedelics` has `psychedelics` = `"yes"`. Sessions answering `"prefer-not-to-say"`, or leaving the question unanswered (`null`), are in neither group.
 - The measures come from `results.motion.threshold_pct`, `results.form.threshold_pct` and `results.motion_minus_form.sensitivity`.
-- `n` is the number of people in the group. While it's under 30, return `"measures": null`: too few to mean much, and too few to keep individuals hidden. The page enforces the same minimum, per group.
+- `n` is the number of people in the group. While it's under 5, return `"measures": null`: too few to mean much, and too few to keep individuals hidden. The page enforces the same minimum, per group.
 - Return only these numbers, never individual sessions or answers.
 
 The page validates the response and shows nothing from one that doesn't match (see `src/app/comparison.ts`).
@@ -138,7 +138,7 @@ The stage's markup lives in `index.html`, outside the React root. The pages hand
 
 ### Hosting on GitHub Pages
 
-`npm run build` writes the static site to `dist/`, with relative paths so it works under any folder. The info pages have real addresses (`/privacy/`, `/references/`, `/data/`, `/history/`): GitHub Pages can't send every address to one page, so the build writes a copy of the page into each of those folders. Old `#privacy`-style links are moved to the new address. `.github/workflows/pages.yml` builds and publishes it. It runs only when started from the Actions tab until Pages is switched on: in the repository's Settings → Pages, set Source to GitHub Actions. The backend URL comes from the repository variable `API_URL`.
+`npm run build` writes the static site to `dist/`, with relative paths so it works under any folder. The info pages have real addresses (`/privacy/`, `/references/`, `/data/`, `/history/`): GitHub Pages can't send every address to one page, so the build writes a copy of the page into each of those folders. Old `#privacy`-style links are moved to the new address. `.github/workflows/pages.yml` builds and publishes it on every push to `main`, or when started from the Actions tab. Pages is set to build from GitHub Actions (Settings → Pages → Source). The backend URL comes from the repository variable `API_URL`.
 
 The page contacts nothing but its own site and the backend. Fonts are bundled, the built page carries a Content Security Policy that makes the browser block any other server (added in `vite.config.ts`), and requests send no referrer or cookies. The layout test fails if the page requests anything from another origin. GitHub, as the host, still sees visitors' IP addresses in its own server logs, which the Privacy and risks page says.
 
@@ -196,7 +196,7 @@ The page's **Method and sources** table lists every parameter and where it comes
 
 ## Data
 
-Sessions can be saved as JSON or CSV, or copied as JSON, with every trial, the calibration and the full protocol parameters. During the test the session is held in memory only; it's exported, and sent if the person chose to contribute, when the tasks finish.
+Sessions can be saved as JSON, with every trial, the calibration and the full protocol parameters. During the test the session is held in memory only; it's exported, and sent if the person chose to contribute, when the tasks finish.
 
 Each JSON file carries two version numbers:
 

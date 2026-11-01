@@ -6,12 +6,15 @@ import type { GroupKey, MeasureKey } from "../../src/app/comparison";
 import type { HistoryEntry } from "../../src/app/history";
 import { normalizePseudonym } from "../../src/app/history";
 import type { SessionExportV1 } from "../../src/app/schema";
+import type { ContributionAnswers } from "../../src/app/types";
 
-/** One row in the `summaries` collection. */
-export interface SummaryRow extends HistoryEntry {
+/**
+ * One row in the `summaries` collection: every answer the person gave, beside the measures.
+ * perceptual_disorder is stored as `disorder`, the name rows have had from the start.
+ */
+export interface SummaryRow extends HistoryEntry, Omit<ContributionAnswers, "pseudonym" | "perceptual_disorder" | "medications" | "notes"> {
   pseudonym: string | null;
-  disorder: "yes" | "no" | null;
-  psychedelics: "yes" | "no" | "prefer-not-to-say" | null;
+  disorder: ContributionAnswers["perceptual_disorder"];
 }
 
 /** The three measures of a session, null where it didn't reach a value. */
@@ -37,10 +40,18 @@ export function summaryRow(s: SessionExportV1, submissionId: string): SummaryRow
     started_at: s.started_at,
     test_version: s.test_version,
     disorder: a?.perceptual_disorder ?? null,
+    condition: a?.condition ?? null,
+    other_condition: a?.other_condition ?? null,
+    diagnosed: a?.diagnosed ?? null,
     psychedelics: a?.psychedelics ?? null,
+    psychedelic_uses: a?.psychedelic_uses ?? null,
+    psychedelics_used: a?.psychedelics_used ?? null,
+    takes_medication: a?.takes_medication ?? null,
     values: measuresOf(s),
     medications: a?.medications ?? null,
     notes: a?.notes ?? null,
+    found_via: a?.found_via ?? null,
+    found_via_other: a?.found_via_other ?? null,
   };
 }
 

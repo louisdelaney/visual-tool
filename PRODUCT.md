@@ -35,7 +35,7 @@ A careful rebuild of a clinic-style test, open to anyone, with every parameter t
 
 - Flow: Contribute choice and questions → Setup → Screen size (card match) → Viewing distance (blind-spot check) → Motion task → Form task → Results.
 - Info pages: User results (history by pseudonym), Privacy and risks, Method and references.
-- Results offer JSON and CSV downloads and copying the session data. TODO.md asks for a downloadable PDF with the graph and description.
+- Results offer a short summary download and the full session JSON. TODO.md asks for a downloadable PDF with the graph and description.
 - The tasks run fullscreen on a canvas with exact timing. Stimuli are drawn in degrees of visual angle from the calibration.
 
 ## Capabilities and Constraints
@@ -43,7 +43,7 @@ A careful rebuild of a clinic-style test, open to anyone, with every parameter t
 Binding rules live in AGENTS.md and override anything here. In short:
 
 - **Just for fun, not medical advice**, clearly on the home page and wherever results appear. No wording that diagnoses, screens or judges a result.
-- **Results show only** the person, the control group and the used-psychedelics group, as numbers (median, middle half, middle 80%). No verdicts, ranking colours or labels. A group needs at least 30 people. Groups are compared only within the same `test_version`.
+- **Results show only** the person, the control group and the used-psychedelics group, as numbers (median, middle half, middle 80%). No verdicts, ranking colours or labels. A group needs at least 5 people. Groups are compared only within the same `test_version`.
 - **Privacy**: public and anonymous data, an optional pseudonym as the only key, no IPs or headers logged, no cookies, analytics or third-party requests, bundled fonts, strict CSP.
 - **One fixed test**: no configurable timings, sizes or modes. Stimulus, timing or staircase changes bump `TEST_VERSION`.
 - Desktop browser with a keyboard is required. Tested in Chrome.
