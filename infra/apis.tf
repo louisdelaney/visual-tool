@@ -3,7 +3,6 @@ locals {
     "run.googleapis.com",
     "firestore.googleapis.com",
     "artifactregistry.googleapis.com",
-    "cloudscheduler.googleapis.com",
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",
     "sts.googleapis.com",
@@ -12,6 +11,9 @@ locals {
     "monitoring.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "storage.googleapis.com",
+    "pubsub.googleapis.com",
+    "workflows.googleapis.com",
+    "eventarc.googleapis.com",
   ]
 }
 

@@ -18,5 +18,5 @@
   },
   // The site's schema, group rules and pseudonym handling are imported from ../src/app, so the
   // backend can't drift from the page. Those files have no DOM dependencies.
-  "include": ["src", "tests", "../src/app/schema.ts", "../src/app/comparison.ts", "../src/app/history.ts"]
+  "include": ["src", "tests", "../src/app/schema.ts", "../src/app/comparison.ts", "../src/app/history.ts", "../src/core/protocol.ts"]
 }

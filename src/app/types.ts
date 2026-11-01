@@ -5,7 +5,7 @@ import type { Staircase } from "../core";
 export type TaskName = "motion" | "form";
 export type Step = "contribute" | "questions" | "setup" | "screen" | "distance" | TaskName | "results";
 
-/** Pages outside the steps, each with its own address (#history and so on) so they can be linked to. */
+/** Pages outside the steps, each with its own address (/history/ and so on) so they can be linked to. */
 export type InfoPage = "history" | "privacy" | "references" | "data";
 
 export type View = Step | InfoPage;

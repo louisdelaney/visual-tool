@@ -7,3 +7,4 @@ name_prefix       = "visual-tool"
 budget_amount     = 5
 budget_currency   = "USD" # must match the billing account's currency
 alert_email       = "you@example.com"
+api_public        = false # true opens the API to the internet

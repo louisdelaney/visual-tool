@@ -43,7 +43,7 @@ Four endpoints under `VITE_API_URL`. The page calls the first three from the bro
 
 `POST /sessions`: body is one session in the current schema (`schema_version` 1, the `SessionExportV1` type in `src/app/schema.ts`). Store it as one document. Reply with any 2xx status; anything else counts as a failure and the page offers a retry. Reject bodies over about 200 KB, a `schema` other than `"visual-tool/session"`, or a `schema_version` it doesn't know.
 
-`GET /groups?test_version=N`: summary statistics for each comparison group on that test version.
+`GET /groups`: summary statistics for each comparison group on the current test version (`TEST_VERSION`). There is no way to ask for another version, and `POST /sessions` only accepts the current one.
 
 ```json
 {
@@ -62,7 +62,7 @@ Four endpoints under `VITE_API_URL`. The page calls the first three from the bro
 }
 ```
 
-- Both groups are stored sessions with `contribution.answers.perceptual_disorder` = `"no"`, the requested `test_version`, and both tasks `"complete"` in `results`.
+- Both groups are stored sessions with `contribution.answers.perceptual_disorder` = `"no"`, the current `test_version`, and both tasks `"complete"` in `results`.
 - `control` also has `psychedelics` = `"no"`; `psychedelics` has `psychedelics` = `"yes"`. Sessions answering `"prefer-not-to-say"`, or leaving the question unanswered (`null`), are in neither group.
 - The measures come from `results.motion.threshold_pct`, `results.form.threshold_pct` and `results.motion_minus_form.sensitivity`.
 - `n` is the number of people in the group. While it's under 30, return `"measures": null`: too few to mean much, and too few to keep individuals hidden. The page enforces the same minimum, per group.
@@ -70,7 +70,7 @@ Four endpoints under `VITE_API_URL`. The page calls the first three from the bro
 
 The page validates the response and shows nothing from one that doesn't match (see `src/app/comparison.ts`).
 
-`GET /history?pseudonym=P`: every session sent with that pseudonym, for the "User results" page. Pseudonyms are matched in stored form: trimmed, lower case, inner spaces collapsed (the page sends them that way). There's no password: the dataset is public, and the pseudonym is optional.
+`GET /history?pseudonym=P`: every session sent with that pseudonym (at most 50, oldest first), for the "User results" page. Pseudonyms are matched in stored form: trimmed, lower case, inner spaces collapsed (the page sends them that way). There's no password: the dataset is public, and the pseudonym is optional.
 
 ```json
 {
@@ -90,7 +90,7 @@ The page validates the response and shows nothing from one that doesn't match (s
 
 Return an empty `sessions` list for a pseudonym nobody has used; the page's "Generate one" button relies on that to avoid handing out a pseudonym that's taken.
 
-`GET /export`: the public download of every stored session, as a crude raw dump. It's for people who want the data; the page links to it from the Data page but never fetches it. It redirects (302) to `visual-data.json` in a public Cloud Storage bucket, rebuilt nightly by the export job:
+`GET /export`: the public download of every stored session, as a crude raw dump. It's for people who want the data; the page links to it from the Data page but never fetches it. It redirects (302) to `visual-data.json.gz` on the repository's `data` release, which `.github/workflows/export.yml` rebuilds nightly. GitHub serves release files for free, so downloads can't run up a bill. Gzip-decoded, it is:
 
 ```json
 {
@@ -138,7 +138,7 @@ The stage's markup lives in `index.html`, outside the React root. The pages hand
 
 ### Hosting on GitHub Pages
 
-`npm run build` writes the static site to `dist/`, with relative paths so it works under any folder. `.github/workflows/pages.yml` builds and publishes it. It runs only when started from the Actions tab until Pages is switched on: in the repository's Settings → Pages, set Source to GitHub Actions. The backend URL comes from the repository variable `API_URL`.
+`npm run build` writes the static site to `dist/`, with relative paths so it works under any folder. The info pages have real addresses (`/privacy/`, `/references/`, `/data/`, `/history/`): GitHub Pages can't send every address to one page, so the build writes a copy of the page into each of those folders. Old `#privacy`-style links are moved to the new address. `.github/workflows/pages.yml` builds and publishes it. It runs only when started from the Actions tab until Pages is switched on: in the repository's Settings → Pages, set Source to GitHub Actions. The backend URL comes from the repository variable `API_URL`.
 
 The page contacts nothing but its own site and the backend. Fonts are bundled, the built page carries a Content Security Policy that makes the browser block any other server (added in `vite.config.ts`), and requests send no referrer or cookies. The layout test fails if the page requests anything from another origin. GitHub, as the host, still sees visitors' IP addresses in its own server logs, which the Privacy and risks page says.
 
@@ -152,16 +152,16 @@ backend/
   src/summary.ts      The small row /history reads, and which comparison group a session joins.
   src/stats.ts        Percentiles from the per-group value arrays; the /groups response.
   src/store.ts        What a store does.  src/db.ts  Firestore.  src/db-memory.ts  In memory, optionally a JSON file.
-  src/config.ts       Which store and export sink the environment asks for.
+  src/config.ts       Which store and export folder the environment asks for.
   src/routes.ts       The four endpoints.  src/server.ts  CORS, limits, errors, the server.
-  src/jobs/export.ts  The export job: one gzipped JSON file, visual-data.json, to the bucket or EXPORT_DIR.
+  src/jobs/export.ts  The export job: one gzipped JSON file, visual-data.json, to EXPORT_DIR.
   tests/              Vitest, on the memory store; the Firestore test runs only when FIRESTORE_EMULATOR_HOST is set.
 infra/                Terraform for everything on Google Cloud (see infra/README.md).
 ```
 
-Each session is stored three ways so that nothing the page asks for grows with the dataset: `/groups` reads one document of flat value arrays, `/history` reads one person's rows, and only the export job reads the raw sessions. Rate limits are a token bucket per instance, not per caller: the backend never looks at who is asking.
+Each session is stored three ways so that nothing the page asks for grows with the dataset: `/groups` reads one document of flat value arrays, `/history` reads one person's rows, and only the export job reads the raw sessions. Rate limits are a token bucket per instance, not per caller: the backend never looks at who is asking. Per instance and minute: 10 posts, 60 history lookups, and 600 other GETs. A history lookup returns at most 50 sessions.
 
-Two stores, chosen by `BACKEND`: `firestore` (the default when `GOOGLE_CLOUD_PROJECT` is set) and `memory`, which needs no Google account and keeps everything in `DATA_FILE` if one is set. Memory mode refuses to run on Cloud Run. The export goes to the bucket named by `EXPORT_BUCKET`, or without one to the folder `EXPORT_DIR`, which the server then serves itself at `/export/*`.
+Two stores, chosen by `BACKEND`: `firestore` (the default when `GOOGLE_CLOUD_PROJECT` is set) and `memory`, which needs no Google account and keeps everything in `DATA_FILE` if one is set. Memory mode refuses to run on Cloud Run. The export goes to the folder `EXPORT_DIR`; without an `EXPORT_URL`, the server serves it itself at `/export/*`.
 
 ```sh
 cd backend
@@ -173,7 +173,7 @@ npm run export     # in memory mode, writes the export files to backend/data/exp
 
 With `VITE_API_URL=http://localhost:8080` in `.env.local`, `npm run dev` at the top level runs the whole thing locally. It has to be the dev server, not `vite preview`: a built page's Content Security Policy only allows the API origin that was set when it was built.
 
-Hosting: Cloud Run (0–2 instances, so the bill is bounded), Firestore in Native mode, a public bucket for the export, Cloud Scheduler for the nightly job, a Cloud Logging exclusion for request logs, and a $5 budget alert, all in `infra/`. Every resource is named from the `name_prefix` variable (`<prefix>-api`, `<prefix>-export` and so on), so a fork deploys its own copy into its own project; `infra/README.md` has the one-time setup, ending with `infra/set-github-vars.sh`, which copies the Terraform outputs into the repository variables that `.github/workflows/deploy-backend.yml` reads. That workflow builds the container from `backend/Dockerfile` on GitHub's runners and deploys it on every push to `main` that touches the backend, authenticating with Workload Identity Federation rather than a stored key, and only from this repository's `main`.
+Hosting: Cloud Run (0–2 instances, so the bill is bounded), Firestore in Native mode, a Cloud Logging exclusion for request logs, and a $5 budget that emails and, at 100%, closes the API automatically, all in `infra/`. The API stays closed to the internet until `api_public = true` is applied. The nightly export runs in GitHub Actions (`.github/workflows/export.yml`), signed in as a read-only Firestore account, and is published as a release file, so its downloads cost nothing. GitHub turns scheduled workflows off after 60 days without a commit; re-enable it on the Actions tab if the export stops refreshing. Every resource is named from the `name_prefix` variable (`<prefix>-api`, `<prefix>-deployer` and so on), so a fork deploys its own copy into its own project; `infra/README.md` has the one-time setup, ending with `infra/set-github-vars.sh`, which copies the Terraform outputs into the repository variables that `.github/workflows/deploy-backend.yml` and `export.yml` read. That workflow builds the container from `backend/Dockerfile` on GitHub's runners and deploys it on every push to `main` that touches the backend, authenticating with Workload Identity Federation rather than a stored key, and only from this repository's `main`.
 
 The repository root has a `compose.yaml` that runs the backend against a Firestore emulator, and `scripts/remote.sh` runs the same commands on a build server; `CONTRIBUTING.md` explains both. Neither is needed to work on the project.
 

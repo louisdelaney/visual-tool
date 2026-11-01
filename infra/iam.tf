@@ -1,8 +1,7 @@
-# Runtime: the identity the API and the export job run as. It can read and write
-# Firestore, and write the export bucket, and nothing else.
+# Runtime: the identity the API runs as. It can read and write Firestore, and nothing else.
 resource "google_service_account" "api" {
   account_id   = local.api_account_id
-  display_name = "${local.display_name} API and export job"
+  display_name = "${local.display_name} API"
 
   depends_on = [google_project_service.apis]
 }
@@ -13,26 +12,19 @@ resource "google_project_iam_member" "api_datastore" {
   member  = google_service_account.api.member
 }
 
-resource "google_storage_bucket_iam_member" "api_export_admin" {
-  bucket = google_storage_bucket.export.name
-  role   = "roles/storage.objectAdmin"
-  member = google_service_account.api.member
-}
-
-# Scheduler: may start the export job, and nothing else.
-resource "google_service_account" "scheduler" {
-  account_id   = local.scheduler_account_id
-  display_name = "${local.display_name} export scheduler"
+# Exporter: what the nightly export workflow (.github/workflows/export.yml) acts as. It can
+# only read Firestore; the workflow publishes the file with GitHub's own token.
+resource "google_service_account" "exporter" {
+  account_id   = local.exporter_account_id
+  display_name = "${local.display_name} exporter (GitHub Actions)"
 
   depends_on = [google_project_service.apis]
 }
 
-resource "google_cloud_run_v2_job_iam_member" "scheduler_invoker" {
-  project  = var.project_id
-  location = google_cloud_run_v2_job.export.location
-  name     = google_cloud_run_v2_job.export.name
-  role     = "roles/run.invoker"
-  member   = google_service_account.scheduler.member
+resource "google_project_iam_member" "exporter_datastore" {
+  project = var.project_id
+  role    = "roles/datastore.viewer"
+  member  = google_service_account.exporter.member
 }
 
 # Deployer: what GitHub Actions acts as to push images and roll out revisions.
@@ -95,6 +87,12 @@ resource "google_iam_workload_identity_pool_provider" "github" {
 
 resource "google_service_account_iam_member" "deployer_from_github" {
   service_account_id = google_service_account.deployer.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${var.github_repository}"
+}
+
+resource "google_service_account_iam_member" "exporter_from_github" {
+  service_account_id = google_service_account.exporter.name
   role               = "roles/iam.workloadIdentityUser"
   member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${var.github_repository}"
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { TEST_VERSION } from "../../src/core/protocol";
 import { validateSession } from "../src/validate";
 import { makeSession } from "./fixture";
 
@@ -27,9 +28,11 @@ describe("validateSession", () => {
     rejects({ ...makeSession(), schema_version: undefined }, /schema_version/);
   });
 
-  it("needs a positive integer test_version", () => {
+  it("needs the current test_version", () => {
     rejects(makeSession({ test_version: 0 }), /test_version/);
     rejects(makeSession({ test_version: 1.5 }), /test_version/);
+    rejects(makeSession({ test_version: TEST_VERSION + 1 }), /test_version/);
+    rejects(makeSession({ test_version: String(TEST_VERSION) as unknown as number }), /test_version/);
   });
 
   describe("run length", () => {

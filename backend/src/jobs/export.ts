@@ -1,9 +1,9 @@
-// The public download, rebuilt nightly by a Cloud Run Job: every stored session, as sent,
-// written to a public bucket as one gzipped JSON file, visual-data.json.
+// The public download, rebuilt nightly by .github/workflows/export.yml: every stored session,
+// as sent, written as one gzipped JSON file, visual-data.json, which the workflow publishes on
+// the repository's "data" release as visual-data.json.gz.
 // Times are rounded to the hour and trial times dropped, which the README suggests: exact
 // times help single people out and aren't needed to analyse the results.
-//   EXPORT_BUCKET   the bucket's name; without it, the files go to the folder
-//   EXPORT_DIR      (default ./data/export), which the server serves at /export/*
+//   EXPORT_DIR      where the file goes (default ./data/export); a local server serves it at /export/*
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
@@ -45,25 +45,7 @@ export interface ExportSink {
   write(name: string, gz: Buffer, contentType: string, contentEncoding?: string): Promise<void>;
 }
 
-export async function gcsSink(bucketName: string): Promise<ExportSink> {
-  const { Storage } = await import("@google-cloud/storage");
-  const bucket = new Storage().bucket(bucketName);
-  return {
-    async write(name, data, contentType, contentEncoding) {
-      await bucket.file(name).save(data, {
-        resumable: false,
-        metadata: {
-          contentType,
-          ...(contentEncoding ? { contentEncoding } : {}),
-          contentDisposition: `attachment; filename="${name}"`,
-          cacheControl: "public, max-age=3600",
-        },
-      });
-    },
-  };
-}
-
-/** Files in a folder, with the same names; the server serves them with the bucket's headers. */
+/** Files in a folder, with the same names; a local server serves them at /export/*. */
 export function dirSink(dir: string): ExportSink {
   mkdirSync(dir, { recursive: true });
   return { async write(name, data) { writeFileSync(join(dir, name), data); } };
@@ -86,11 +68,7 @@ export async function runExport(db: Store, sink: ExportSink, now: Date = new Dat
 }
 
 if (process.argv[1] && /export\.(js|ts)$/.test(process.argv[1])) {
-  const run = async () => {
-    const dir = exportDir();
-    const sink = dir ? dirSink(dir) : await gcsSink(process.env.EXPORT_BUCKET!);
-    return runExport(await openStore(), sink);
-  };
+  const run = async () => runExport(await openStore(), dirSink(exportDir()));
   run()
     .then(i => logInfo(`exported ${i.total_sessions} sessions`))
     .catch(err => {

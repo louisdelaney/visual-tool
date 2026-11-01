@@ -28,14 +28,13 @@ npm run build      # dist/server.js and dist/jobs/export.js
 | `PORT` | Port to listen on. Cloud Run sets it; 8080 otherwise. |
 | `BACKEND` | `firestore` or `memory`. |
 | `ALLOWED_ORIGIN` | The site's origin, the only one browsers may call from. Several may be given, separated by commas, for example two local dev servers. |
-| `EXPORT_URL` | Where `GET /export` redirects (the public `visual-data.json`). If it and `EXPORT_BUCKET` are both unset, `/export` redirects to the server's own `/export/visual-data.json`. |
+| `EXPORT_URL` | Where `GET /export` redirects (on Cloud Run, `visual-data.json.gz` on the GitHub `data` release). If it is unset, `/export` redirects to the server's own `/export/visual-data.json`. |
 | `DATA_FILE` | Memory mode: file to keep sessions in between runs, for example `./data/sessions.json`. |
-| `EXPORT_DIR` | Where the export job writes when `EXPORT_BUCKET` is unset (default `./data/export`), with either store. The server serves it at `/export/*`. |
+| `EXPORT_DIR` | Where the export job writes (default `./data/export`), with either store. Without `EXPORT_URL`, the server serves it at `/export/*`. |
 | `GOOGLE_CLOUD_PROJECT` | Firestore mode: the project. |
 | `FIRESTORE_DATABASE` | Firestore mode: the database to use. |
-| `EXPORT_BUCKET` | The Cloud Storage bucket the export job writes to. When it is set, `EXPORT_DIR` is not used. |
 
-The export job picks its sink from `EXPORT_BUCKET`, not from the store: a bucket if it is set, otherwise `EXPORT_DIR`. On Cloud Run the job gets `EXPORT_BUCKET` and the service gets `EXPORT_URL`, so `/export` redirects to the public bucket.
+In production the export job runs in `.github/workflows/export.yml`, which writes to a temporary `EXPORT_DIR` and uploads the file to the repository's `data` release as `visual-data.json.gz`. The Cloud Run service gets `EXPORT_URL`, so `/export` redirects there.
 
 `data/` is ignored by git, so don't keep sessions anywhere else in the repository.
 
@@ -47,7 +46,7 @@ The export job picks its sink from `EXPORT_BUCKET`, not from the store: a bucket
 docker build -f backend/Dockerfile .      # from the repository root
 ```
 
-CI builds it on every push, and `.github/workflows/deploy-backend.yml` builds and pushes it on pushes to `main`. The image runs the server; the export job runs the same image with a different command.
+CI builds it on every push, and `.github/workflows/deploy-backend.yml` builds and pushes it on pushes to `main`. The image runs the server; locally, compose's `export` service runs the export job from the same image.
 
 `compose.yaml` at the repository root runs it with a Firestore emulator. None of it is needed for memory mode.
 

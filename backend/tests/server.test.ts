@@ -6,13 +6,14 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseGroups } from "../../src/app/comparison";
 import { parseHistory } from "../../src/app/history";
+import { TEST_VERSION } from "../../src/core/protocol";
 import { MemoryStore } from "../src/db-memory";
 import { dirSink, runExport } from "../src/jobs/export";
 import { createApp, type ServerOptions } from "../src/server";
 import { makeSession, withThresholds } from "./fixture";
 
 const ORIGIN = "https://site.example";
-const EXPORT_URL = "https://storage.example/visual-data.json";
+const EXPORT_URL = "https://github.com/owner/visual-tool/releases/download/data/visual-data.json.gz";
 
 const servers: Server[] = [];
 const tempDirs: string[] = [];
@@ -67,7 +68,7 @@ describe("POST /sessions", () => {
 
   it("returns 400, with the reason, for a session that fails validation", async () => {
     const { base, db } = await start();
-    const res = await post(base, makeSession({ test_version: 0 }));
+    const res = await post(base, makeSession({ test_version: TEST_VERSION + 1 }));
     expect(res.status).toBe(400);
     expect(((await res.json()) as { error: string }).error).toMatch(/test_version/);
     expect(db.size).toBe(0);
@@ -118,7 +119,7 @@ describe("GET /groups", () => {
     await storeControls(db, 30);
     const spy = vi.spyOn(db, "readGroups");
     const { base } = await start(db);
-    const res = await fetch(`${base}/groups?test_version=1`);
+    const res = await fetch(`${base}/groups`);
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("public, max-age=300");
     const parsed = parseGroups(await res.json());
@@ -129,19 +130,22 @@ describe("GET /groups", () => {
     expect(spy).toHaveBeenCalledWith(1);
   });
 
-  it("returns 400 without a test_version, or with one that isn't a positive integer", async () => {
-    const { base } = await start();
-    for (const query of ["", "?test_version=", "?test_version=0", "?test_version=1.5", "?test_version=abc"]) {
-      expect((await fetch(`${base}/groups${query}`)).status, query).toBe(400);
-    }
+  it("always answers for the current test version, whatever the query asks for", async () => {
+    const db = new MemoryStore();
+    const spy = vi.spyOn(db, "readGroups");
+    const { base } = await start(db);
+    const res = await fetch(`${base}/groups?test_version=99`);
+    expect(res.status).toBe(200);
+    expect(parseGroups(await res.json())!.test_version).toBe(TEST_VERSION);
+    expect(spy).toHaveBeenCalledWith(TEST_VERSION);
   });
 
   it("reads the store once for repeated requests", async () => {
     const db = new MemoryStore();
     const spy = vi.spyOn(db, "readGroups");
     const { base } = await start(db);
-    await fetch(`${base}/groups?test_version=1`);
-    await fetch(`${base}/groups?test_version=1`);
+    await fetch(`${base}/groups`);
+    await fetch(`${base}/groups`);
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
@@ -149,9 +153,9 @@ describe("GET /groups", () => {
     const db = new MemoryStore();
     const spy = vi.spyOn(db, "readGroups");
     const { base } = await start(db);
-    await fetch(`${base}/groups?test_version=1`);
+    await fetch(`${base}/groups`);
     await post(base, makeSession());
-    await fetch(`${base}/groups?test_version=1`);
+    await fetch(`${base}/groups`);
     expect(spy).toHaveBeenCalledTimes(2);
   });
 
@@ -159,7 +163,7 @@ describe("GET /groups", () => {
     const db = new MemoryStore();
     await storeControls(db, 29);
     const { base } = await start(db);
-    const groups = async () => parseGroups(await (await fetch(`${base}/groups?test_version=1`)).json())!.groups;
+    const groups = async () => parseGroups(await (await fetch(`${base}/groups`)).json())!.groups;
 
     expect((await groups()).control).toEqual({ n: 29, measures: null });
     expect((await post(base, withThresholds(40, 50))).status).toBe(201);
@@ -186,6 +190,21 @@ describe("GET /history", () => {
     expect(parsed!.sessions[0]!.values.motion_threshold_pct).toBe(14.2);
     // Only what the page needs: no pseudonym or answers on the rows.
     expect(Object.keys((body as { sessions: object[] }).sessions[0]!)).not.toContain("pseudonym");
+  });
+
+  it("returns at most 50 sessions", async () => {
+    const db = new MemoryStore();
+    for (let i = 0; i < 55; i++) await db.storeSession(withThresholds(10, 20));
+    const { base } = await start(db);
+    const parsed = parseHistory(await (await fetch(`${base}/history?pseudonym=quiet%20heron`)).json());
+    expect(parsed!.sessions).toHaveLength(50);
+  });
+
+  it("has its own limit, separate from the other GETs", async () => {
+    const { base } = await start(new MemoryStore(), { historyPerMinute: 1 });
+    expect((await fetch(`${base}/history?pseudonym=quiet%20heron`)).status).toBe(200);
+    expect((await fetch(`${base}/history?pseudonym=quiet%20heron`)).status).toBe(429);
+    expect((await fetch(`${base}/groups`)).status).toBe(200);
   });
 
   it("returns an empty list for a pseudonym nobody has used", async () => {
@@ -269,7 +288,7 @@ describe("CORS", () => {
 
   it("refuses another origin with 403", async () => {
     const { base } = await start();
-    const res = await fetch(`${base}/groups?test_version=1`, { headers: { Origin: "https://evil.example" } });
+    const res = await fetch(`${base}/groups`, { headers: { Origin: "https://evil.example" } });
     expect(res.status).toBe(403);
     expect(res.headers.get("access-control-allow-origin")).toBeNull();
   });
@@ -282,7 +301,7 @@ describe("CORS", () => {
 
   it("serves a request with no Origin, without CORS headers", async () => {
     const { base } = await start();
-    const res = await fetch(`${base}/groups?test_version=1`);
+    const res = await fetch(`${base}/groups`);
     expect(res.status).toBe(200);
     expect(res.headers.get("access-control-allow-origin")).toBeNull();
   });
@@ -291,16 +310,16 @@ describe("CORS", () => {
     const other = "http://localhost:5180";
     const { base } = await start(undefined, { allowedOrigin: `${ORIGIN}, ${other}` });
     for (const origin of [ORIGIN, other]) {
-      const res = await fetch(`${base}/groups?test_version=1`, { headers: { Origin: origin } });
+      const res = await fetch(`${base}/groups`, { headers: { Origin: origin } });
       expect(res.status).toBe(200);
       expect(res.headers.get("access-control-allow-origin")).toBe(origin);
     }
-    expect((await fetch(`${base}/groups?test_version=1`, { headers: { Origin: "http://localhost:5181" } })).status).toBe(403);
+    expect((await fetch(`${base}/groups`, { headers: { Origin: "http://localhost:5181" } })).status).toBe(403);
   });
 
   it("adds the CORS header to responses for the allowed origin", async () => {
     const { base } = await start();
-    const res = await fetch(`${base}/groups?test_version=1`, { headers: { Origin: ORIGIN } });
+    const res = await fetch(`${base}/groups`, { headers: { Origin: ORIGIN } });
     expect(res.status).toBe(200);
     expect(res.headers.get("access-control-allow-origin")).toBe(ORIGIN);
     expect(res.headers.get("vary")).toBe("Origin");
@@ -316,7 +335,7 @@ describe("other requests", () => {
   it("returns 404 for a method the path doesn't take", async () => {
     const { base } = await start();
     expect((await fetch(`${base}/sessions`)).status).toBe(404);
-    expect((await fetch(`${base}/groups?test_version=1`, { method: "POST" })).status).toBe(404);
+    expect((await fetch(`${base}/groups`, { method: "POST" })).status).toBe(404);
   });
 
   it("answers /healthz without touching the database", async () => {
@@ -331,8 +350,8 @@ describe("other requests", () => {
 
   it("returns 429 for GETs once their limit is used up", async () => {
     const { base } = await start(new MemoryStore(), { getsPerMinute: 1 });
-    expect((await fetch(`${base}/groups?test_version=1`)).status).toBe(200);
-    expect((await fetch(`${base}/groups?test_version=1`)).status).toBe(429);
+    expect((await fetch(`${base}/groups`)).status).toBe(200);
+    expect((await fetch(`${base}/groups`)).status).toBe(429);
   });
 });
 
@@ -416,14 +435,14 @@ describe("request log", () => {
     const { base } = await start(new MemoryStore(), { postsPerMinute: 1, exportUrl: "" });
     const responses = [
       await fetch(`${base}/nope`),
-      await fetch(`${base}/groups?test_version=x`),
+      await fetch(`${base}/groups`, { method: "DELETE" }),
       await fetch(`${base}/history`),
       await fetch(`${base}/export`),
       await fetch(`${base}/healthz`, { headers: { Origin: "https://evil.example" } }),
       await post(base, "not json"),
       await post(base, "not json"),
     ];
-    expect(responses.map(r => r.status)).toEqual([404, 400, 400, 404, 403, 400, 429]);
+    expect(responses.map(r => r.status)).toEqual([404, 404, 400, 404, 403, 400, 429]);
     const ids = await Promise.all(responses.map(async r => ((await r.json()) as { id: string }).id));
     for (const id of ids) expect(id).toMatch(UUID);
     expect(new Set(ids).size).toBe(ids.length);

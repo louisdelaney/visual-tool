@@ -2,9 +2,9 @@
 // EXPORT_DIR):
 //   PORT            Cloud Run sets it; 8080 otherwise
 //   ALLOWED_ORIGIN  the site's origin, the only one browsers may call from (or several, comma-separated)
-//   EXPORT_URL      where GET /export redirects (the public visual-data.json). Without EXPORT_BUCKET
-//                   it defaults to this server's own /export/visual-data.json (a relative redirect),
-//                   served from EXPORT_DIR.
+//   EXPORT_URL      where GET /export redirects (on Cloud Run, the file on the GitHub "data"
+//                   release). Without it, this server's own /export/visual-data.json (a relative
+//                   redirect), served from EXPORT_DIR.
 // Each response is logged as one anonymous line (see log.ts): method, route name, status, time and
 // a random id, which failed requests also return in the body. Not the path, headers or address.
 import { createReadStream, statSync } from "node:fs";
@@ -24,15 +24,17 @@ export interface ServerOptions {
   db: Store;
   /** A folder to serve read-only at /export/* (exports written without a bucket), or none. */
   exportDir?: string;
-  /** Per instance, per minute. */
+  /** Per instance, per minute. History has its own limit because each lookup reads up to 50 rows. */
   postsPerMinute?: number;
   getsPerMinute?: number;
+  historyPerMinute?: number;
 }
 
-export function createApp({ allowedOrigin, exportUrl, db, exportDir, postsPerMinute = 60, getsPerMinute = 600 }: ServerOptions) {
+export function createApp({ allowedOrigin, exportUrl, db, exportDir, postsPerMinute = 10, getsPerMinute = 600, historyPerMinute = 60 }: ServerOptions) {
   const routes = new Routes(db, exportUrl);
   const posts = new TokenBucket(postsPerMinute);
   const gets = new TokenBucket(getsPerMinute);
+  const histories = new TokenBucket(historyPerMinute);
   const files = exportDir ? resolve(exportDir) : null;
 
   /** The name of the route a path belongs to, or "unmatched". Never the path itself. */
@@ -49,9 +51,12 @@ export function createApp({ allowedOrigin, exportUrl, db, exportDir, postsPerMin
     }
     if (method === "GET" || method === "HEAD") {
       if (url.pathname === "/healthz") return { status: 200, body: { ok: true } };
+      if (url.pathname === "/history") {
+        if (!histories.take()) throw new HttpError(429, "too many requests");
+        return routes.getHistory(url);
+      }
       if (!gets.take()) throw new HttpError(429, "too many requests");
-      if (url.pathname === "/groups") return routes.getGroups(url);
-      if (url.pathname === "/history") return routes.getHistory(url);
+      if (url.pathname === "/groups") return routes.getGroups();
       if (url.pathname === "/export") return routes.getExport();
       if (files && url.pathname.startsWith("/export/")) return serveFile(files, url.pathname.slice("/export/".length));
     }
@@ -111,8 +116,8 @@ function serveFile(dir: string, name: string): Reply {
 if (process.env.NODE_ENV !== "test" && process.argv[1] && /server\.(js|ts)$/.test(process.argv[1])) {
   const port = Number(process.env.PORT ?? 8080);
   const mode = backendMode();
-  // With an EXPORT_URL (Cloud Run: the public bucket) nothing is served from here.
-  const exportDir = process.env.EXPORT_URL ? undefined : (exportDirOf() ?? undefined);
+  // With an EXPORT_URL (Cloud Run: the GitHub release) nothing is served from here.
+  const exportDir = process.env.EXPORT_URL ? undefined : exportDirOf();
   // Relative, so it points at whatever address the client reached this server by.
   const exportUrl = process.env.EXPORT_URL ?? (exportDir ? `/export/${EXPORT_FILE}` : "");
   openStore()

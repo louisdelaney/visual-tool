@@ -1,6 +1,7 @@
 // What's collected, who can see what, and the risks of taking part. Keep this accurate: if the
 // app or the backend starts collecting or logging anything new, this page must say so.
 import { back, show } from "../app/flow";
+import { pageHref } from "../app/address";
 
 export function PrivacyPage() {
   return (
@@ -9,7 +10,7 @@ export function PrivacyPage() {
         <h2 id="privacy-h">Privacy and risks</h2>
         <ul className="key-points">
           <li><strong>Just for fun.</strong> This is a casual online test for curiosity only, and it isn't medical advice.</li>
-          <li><strong>All contributed data is public.</strong> Anyone can <a href="#data" onClick={e => { e.preventDefault(); show("data"); }}>download</a> every result and answer people choose to contribute. The download is refreshed once a day; in it, times are rounded to the hour.</li>
+          <li><strong>All contributed data is public.</strong> Anyone can <a href={pageHref("data")} onClick={e => { e.preventDefault(); show("data"); }}>download</a> every result and answer people choose to contribute. The download is refreshed once a day; in it, times are rounded to the hour.</li>
           <li><strong>It's anonymous.</strong> There are no accounts, and no name, email or IP address is stored with your results.</li>
           <li><strong>Nothing that identifies you is logged.</strong> Only what's listed below is sent, and only if you choose to contribute. The backend keeps a short anonymous note of each request for a week, with nothing about you in it (see "What the backend logs").</li>
         </ul>
@@ -42,7 +43,7 @@ export function PrivacyPage() {
         <h3>Who can still see your IP address</h3>
         <p>Every website has to know your IP address to send you a page. These services see it, and this project can't stop that:</p>
         <ul>
-          <li><strong>GitHub</strong>, which hosts this page on GitHub Pages, sees your IP address when you load it and may keep it in its own server logs, under GitHub's privacy statement.</li>
+          <li><strong>GitHub</strong>, which hosts this page on GitHub Pages and the data download, sees your IP address when you load the page or download the data, and may keep it in its own server logs, under GitHub's privacy statement.</li>
           <li><strong>Google Cloud</strong>, which runs the backend, receives your IP address when results are sent or looked up. The backend is set up not to store it, and to drop the per-request logs Google would otherwise keep, which include it. Google's network still handles the connection.</li>
           <li><strong>Your internet provider</strong>, and your employer or school if you're on their network, can see that you visited this site, but not what you answered.</li>
         </ul>

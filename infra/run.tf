@@ -5,9 +5,11 @@ locals {
 }
 
 resource "google_cloud_run_v2_service" "api" {
-  name                = local.service_name
-  location            = var.region
-  ingress             = "INGRESS_TRAFFIC_ALL"
+  name     = local.service_name
+  location = var.region
+  # Closed (internal only) unless api_public is true; see variables.tf. The budget shutoff in
+  # shutoff.tf closes it too, and the next apply with api_public = true reopens it.
+  ingress             = var.api_public ? "INGRESS_TRAFFIC_ALL" : "INGRESS_TRAFFIC_INTERNAL_ONLY"
   deletion_protection = false # stateless: CI rebuilds it, and the data lives in Firestore
 
   template {
@@ -39,7 +41,7 @@ resource "google_cloud_run_v2_service" "api" {
 
       env {
         name  = "EXPORT_URL"
-        value = "https://storage.googleapis.com/${google_storage_bucket.export.name}/visual-data.json"
+        value = local.export_url
       }
 
       env {
@@ -65,64 +67,11 @@ resource "google_cloud_run_v2_service" "api" {
 }
 
 # The site calls the API from visitors' browsers with no sign-in, so it has to be public.
-# This needs constraints/iam.allowedPolicyMemberDomains to allow allUsers, as for the
-# export bucket.
+# This needs constraints/iam.allowedPolicyMemberDomains to allow allUsers.
 resource "google_cloud_run_v2_service_iam_member" "api_public" {
   project  = var.project_id
   location = google_cloud_run_v2_service.api.location
   name     = google_cloud_run_v2_service.api.name
   role     = "roles/run.invoker"
   member   = "allUsers"
-}
-
-resource "google_cloud_run_v2_job" "export" {
-  name                = local.export_job_name
-  location            = var.region
-  deletion_protection = false
-
-  template {
-    task_count = 1
-
-    template {
-      service_account = google_service_account.api.email
-      timeout         = "1800s"
-      max_retries     = 1
-
-      containers {
-        image   = local.placeholder_image
-        command = ["node", "dist/jobs/export.js"]
-
-        resources {
-          limits = {
-            cpu    = "1"
-            memory = "512Mi"
-          }
-        }
-
-        env {
-          name  = "EXPORT_BUCKET"
-          value = google_storage_bucket.export.name
-        }
-
-        env {
-          name  = "GOOGLE_CLOUD_PROJECT"
-          value = var.project_id
-        }
-
-        env {
-          name  = "FIRESTORE_DATABASE"
-          value = var.firestore_database
-        }
-      }
-    }
-  }
-
-  lifecycle {
-    ignore_changes = [template[0].template[0].containers[0].image, client, client_version]
-  }
-
-  depends_on = [
-    google_project_service.apis,
-    google_project_iam_member.api_datastore,
-  ]
 }

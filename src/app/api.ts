@@ -1,7 +1,7 @@
 // The backend API. One base URL, set at build time from VITE_API_URL:
 //   POST {VITE_API_URL}/sessions                    a contributed session's JSON (schema in schema.ts)
-//   GET  {VITE_API_URL}/groups?test_version=N        summary statistics for each comparison group
-//   GET  {VITE_API_URL}/history?pseudonym=P          every session sent with that pseudonym
+//   GET  {VITE_API_URL}/groups                       summary statistics for each comparison group, current test only
+//   GET  {VITE_API_URL}/history?pseudonym=P          every session sent with that pseudonym (at most 50)
 // Empty until the backend exists: nothing is sent, and no comparison is shown.
 import { parseGroups, type GroupsResponse } from "./comparison";
 import { normalizePseudonym, parseHistory, suggestPseudonym, type HistoryResponse } from "./history";
@@ -22,8 +22,9 @@ export async function postSession(data: SessionExport): Promise<string> {
   return id;
 }
 
+/** The groups for the backend's current test version, which must be `testVersion` (a page built before a new version would otherwise compare across versions). */
 export async function fetchGroups(testVersion: number, signal?: AbortSignal): Promise<GroupsResponse> {
-  const r = await fetch(`${API_URL}/groups?test_version=${encodeURIComponent(testVersion)}`, { ...PRIVATE, signal: signal ?? null });
+  const r = await fetch(`${API_URL}/groups`, { ...PRIVATE, signal: signal ?? null });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const stats = parseGroups(await r.json());
   if (!stats) throw new Error("The group statistics weren't in the expected format");

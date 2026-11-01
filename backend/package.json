@@ -1,7 +1,7 @@
 {
   "name": "visual-tool-backend",
   "private": true,
-  "description": "The backend for the form\u2013motion coherence test: stores contributed sessions and serves group statistics, histories and the public export.",
+  "description": "The backend for the form–motion coherence test: stores contributed sessions and serves group statistics, histories and the public export.",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -15,8 +15,7 @@
     "export": "node dist/jobs/export.js"
   },
   "dependencies": {
-    "@google-cloud/firestore": "^8.2.0",
-    "@google-cloud/storage": "^7.18.0"
+    "@google-cloud/firestore": "^8.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

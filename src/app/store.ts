@@ -4,7 +4,8 @@
 // Sessions are mutated in place while a task runs (trials are pushed as they happen), so after
 // changing one, call touch() to tell the pages to re-render.
 import { useSyncExternalStore } from "react";
-import { INFO_PAGES, type Calibration, type ContributionChoice, type Distance, type InfoPage, type Session, type Step, type View } from "./types";
+import type { Calibration, ContributionChoice, Distance, Session, Step, View } from "./types";
+import { linkedPage } from "./address";
 import { dpr } from "./protocol";
 
 export interface AppState {
@@ -41,9 +42,9 @@ function persist(s: AppState): void {
 
 let state: AppState = { view: "contribute", flash: "", contribution: null, calib: loadCalib(), distance: null, session: null, busy: false, returnTo: "contribute", historyPseudonym: "" };
 
-// Opened at #privacy, #references, #data or #history: start on that page.
-const linked = window.location.hash.slice(1) as InfoPage;
-if ((INFO_PAGES as readonly string[]).includes(linked)) state = { ...state, view: linked };
+// Opened at /privacy/, /references/, /data/ or /history/: start on that page.
+const linked = linkedPage();
+if (linked) state = { ...state, view: linked };
 const listeners = new Set<() => void>();
 
 export const getState = (): AppState => state;

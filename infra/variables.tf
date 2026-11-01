@@ -32,9 +32,15 @@ variable "log_retention_days" {
 }
 
 variable "region" {
-  description = "Region for Cloud Run, Firestore, Artifact Registry, Cloud Scheduler and the export bucket."
+  description = "Region for Cloud Run, Firestore and Artifact Registry."
   type        = string
   default     = "europe-west2"
+}
+
+variable "api_public" {
+  description = "Whether the API accepts requests from the internet. Off by default: set it to true, and apply, to open the site's backend."
+  type        = bool
+  default     = false
 }
 
 variable "billing_account" {

@@ -2,6 +2,7 @@
 // rebuild it field by field: it checks the things the groups and histories depend on, and that
 // the session could have come from a real run. Anything else passes through.
 import { SCHEMA_NAME, SCHEMA_VERSION, type SessionExportV1 } from "../../src/app/schema";
+import { TEST_VERSION } from "../../src/core/protocol";
 
 /** Bodies above this are refused before they're parsed. A real session is about 65 KB. */
 export const MAX_BODY_BYTES = 200_000;
@@ -47,7 +48,8 @@ export function validateSession(body: unknown): Validation {
   if (!isObj(body)) return bad("body must be a JSON object");
   if (body.schema !== SCHEMA_NAME) return bad(`schema must be "${SCHEMA_NAME}"`);
   if (body.schema_version !== SCHEMA_VERSION) return bad(`schema_version ${String(body.schema_version)} is not supported`);
-  if (!Number.isInteger(body.test_version) || (body.test_version as number) < 1) return bad("test_version must be a positive integer");
+  // Only the current test is accepted, so every stored session can join the one set of groups.
+  if (body.test_version !== TEST_VERSION) return bad(`test_version must be ${TEST_VERSION}, the current test`);
 
   if (!isDate(body.started_at)) return bad("started_at must be a date");
   if (body.finished_at !== null && !isDate(body.finished_at)) return bad("finished_at must be a date or null");

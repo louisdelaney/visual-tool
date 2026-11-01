@@ -1,5 +1,5 @@
 # Builds the backend container image (it compiles the code itself, from the repository root)
-# and deploys it to Google Cloud Run: the API service and the export job.
+# and deploys it to the Google Cloud Run API service. (The nightly export runs in export.yml.)
 #
 # It deploys only what Terraform created in infra/; it never creates infrastructure. It needs
 # these repository variables (Settings → Secrets and variables → Actions → Variables), which
@@ -7,7 +7,6 @@
 #   GCP_PROJECT      the Google Cloud project ID
 #   GCP_REGION       the region
 #   SERVICE_NAME     the Cloud Run API service
-#   EXPORT_JOB_NAME  the Cloud Run export job
 #   ARTIFACT_REPO    the Artifact Registry repository path to push the image to
 #   WIF_PROVIDER     the Workload Identity Federation provider, so no keys are stored in GitHub
 #   DEPLOYER_SA      the service account this workflow signs in as
@@ -58,5 +57,3 @@ jobs:
           docker push "$IMAGE"
       - name: Deploy the API
         run: gcloud run deploy "${{ vars.SERVICE_NAME }}" --image "$IMAGE" --region "$REGION" --project "${{ vars.GCP_PROJECT }}" --quiet
-      - name: Update the export job
-        run: gcloud run jobs update "${{ vars.EXPORT_JOB_NAME }}" --image "$IMAGE" --region "$REGION" --project "${{ vars.GCP_PROJECT }}" --quiet
