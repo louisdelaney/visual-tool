@@ -5,6 +5,7 @@ import { MIN_GROUP, parseGroups } from "../../src/app/comparison";
 import { parseHistory } from "../../src/app/history";
 import { TEST_VERSION } from "../../src/core/protocol";
 import { MemoryStore } from "../src/db-memory";
+import type { SummaryRow } from "../src/summary";
 import { createApp, type ServerOptions } from "../src/server";
 import { makeSession, withThresholds } from "./fixture";
 
@@ -177,6 +178,18 @@ describe("GET /history", () => {
     expect(parsed!.sessions[0]!.values.motion_threshold_pct).toBe(14.2);
     // Only what the page needs: no pseudonym or answers on the rows.
     expect(Object.keys((body as { sessions: object[] }).sessions[0]!)).not.toContain("pseudonym");
+  });
+
+  it("returns staircases, reading them from the stored session for rows kept without them", async () => {
+    const db = new MemoryStore();
+    const id = await db.storeSession(withThresholds(10, 20));
+    const fresh = parseHistory(await (await fetch(`${(await start(db)).base}/history?pseudonym=quiet%20heron`)).json())!.sessions[0]!;
+    expect(fresh.staircases?.motion.length).toBeGreaterThan(0);
+    // A row stored before staircases were kept.
+    const rows = (db as unknown as { summaries: Map<string, Partial<SummaryRow>> }).summaries;
+    delete rows.get(id)!.staircases;
+    const old = parseHistory(await (await fetch(`${(await start(db)).base}/history?pseudonym=quiet%20heron`)).json())!.sessions[0]!;
+    expect(old.staircases).toEqual(fresh.staircases);
   });
 
   it("returns at most 50 sessions", async () => {

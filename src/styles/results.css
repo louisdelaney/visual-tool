@@ -439,62 +439,11 @@
   color: var(--ink-2);
 }
 
-/* History: one measure across a person's sessions, over the controls' middle half. */
-.hist-motion {
-  --c: var(--series-motion);
-}
-
-.hist-form {
-  --c: var(--series-form);
-}
-
-.hist-diff {
-  --c: var(--series-diff);
-}
-
-.hist-chart {
-  display: block;
-  max-width: 100%;
-  height: auto;
-}
-
-.hist-chart .tick {
-  fill: var(--muted);
-  font: 11px var(--font-data);
-}
-
-.hist-grid {
-  stroke: var(--grid);
-  stroke-width: 1;
-}
-
-.hist-band {
-  fill: var(--c);
-  opacity: 0.16;
-}
-
-.hist-median {
-  stroke: var(--c);
-  stroke-width: 1;
-  stroke-dasharray: 4 4;
-}
-
-.hist-line {
-  fill: none;
-  stroke: var(--c);
-  stroke-width: 2;
-  stroke-linejoin: round;
-}
-
-.hist-dot {
-  fill: var(--c);
-  stroke: var(--surface);
-  stroke-width: 2;
-}
-
-td.wrap-cell {
-  white-space: normal;
-  min-width: 10em;
+/* User results: one entry per session. */
+.hist-time {
+  color: var(--muted);
+  font: 500 var(--t-sm) var(--font-data);
+  margin-left: 6px;
 }
 
 .pseudonym-note {

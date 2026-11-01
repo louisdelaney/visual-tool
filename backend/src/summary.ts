@@ -3,8 +3,8 @@
 // complete, no reported disorder, then psychedelic use "no" → control, "yes" → psychedelics.
 // Anyone else is in neither. People who reported a disorder are never grouped (AGENTS.md).
 import type { GroupKey, MeasureKey } from "../../src/app/comparison";
-import type { HistoryEntry } from "../../src/app/history";
-import { normalizePseudonym } from "../../src/app/history";
+import type { HistoryEntry, Staircases } from "../../src/app/history";
+import { normalizePseudonym, staircasePoints } from "../../src/app/history";
 import type { SessionExportV1 } from "../../src/app/schema";
 import type { ContributionAnswers } from "../../src/app/types";
 
@@ -26,6 +26,10 @@ export function measuresOf(s: SessionExportV1): Record<MeasureKey, number | null
     motion_minus_form: r?.motion_minus_form?.sensitivity ?? null,
   };
 }
+
+/** The points each staircase chart draws. */
+export const staircasesOf = (s: SessionExportV1): Staircases =>
+  ({ motion: staircasePoints(s.trials, "motion"), form: staircasePoints(s.trials, "form") });
 
 function answersOf(s: SessionExportV1) {
   return s.contribution && s.contribution.contribute ? s.contribution.answers : null;
@@ -52,6 +56,7 @@ export function summaryRow(s: SessionExportV1, submissionId: string): SummaryRow
     notes: a?.notes ?? null,
     found_via: a?.found_via ?? null,
     found_via_other: a?.found_via_other ?? null,
+    staircases: staircasesOf(s),
   };
 }
 
@@ -67,7 +72,10 @@ export function groupOf(s: SessionExportV1): GroupKey | null {
   return null;
 }
 
-/** Strips the ordering of a `HistoryEntry` from a stored row: what GET /history returns. */
-export function historyEntry(row: SummaryRow): HistoryEntry {
-  return { submission_id: row.submission_id, started_at: row.started_at, test_version: row.test_version, values: row.values, medications: row.medications, notes: row.notes };
+/**
+ * Strips a stored row down to a `HistoryEntry`: what GET /history returns. Rows stored before
+ * staircases were kept have none; the caller passes them in from the stored session.
+ */
+export function historyEntry(row: SummaryRow, staircases: Staircases | null = row.staircases ?? null): HistoryEntry {
+  return { submission_id: row.submission_id, started_at: row.started_at, test_version: row.test_version, values: row.values, medications: row.medications, notes: row.notes, staircases };
 }

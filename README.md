@@ -33,7 +33,7 @@ The Results page then shows the person's thresholds beside two groups, as people
 - **Control group**: answered **No** to having or suspecting a visual perceptual disorder, and **No** to having used psychedelic drugs.
 - **Used psychedelics**: answered **No** to the disorder question, and **Yes** to having used psychedelic drugs.
 
-It starts with sensitivity bars in the style of the clinic's "Glass Patterns" chart: the person's motion, form and motion − form sensitivity, then each group's medians with a line across the middle half. Below that, for each measure it shows each group's 10th–90th and 25th–75th percentile ranges and median, with the person's own value marked. It's information only: the page draws no conclusions from where someone's results fall. It appears for everyone, contributors or not: fetching the summary sends nothing about them. The User results page shows the same bars for the latest session, and draws the control group's middle half behind each over-time chart.
+It starts with sensitivity bars in the style of the clinic's "Glass Patterns" chart: the person's motion, form and motion − form sensitivity, then each group's medians with a line across the middle half. Below that, for each measure it shows each group's 10th–90th and 25th–75th percentile ranges and median, with the person's own value marked. It's information only: the page draws no conclusions from where someone's results fall. It appears for everyone, contributors or not: fetching the summary sends nothing about them. The User results page lists each of a person's sessions, newest first, with the same bars and that session's two staircases.
 
 Both use one backend, set with `VITE_API_URL` at build time (see `.env.example`). While it's unset, the Contribute step still runs but nothing is sent and no comparison is shown, except in `npm run dev`, which shows labelled sample data.
 
@@ -70,7 +70,7 @@ Four endpoints under `VITE_API_URL`. The page calls the first three from the bro
 
 The page validates the response and shows nothing from one that doesn't match (see `src/app/comparison.ts`).
 
-`GET /history?pseudonym=P`: every session sent with that pseudonym (at most 50, oldest first), for the "User results" page. Pseudonyms are matched in stored form: trimmed, lower case, inner spaces collapsed (the page sends them that way). There's no password: the dataset is public, and the pseudonym is optional.
+`GET /history?pseudonym=P`: every session sent with that pseudonym (at most 50, oldest first), for the "User results" page. Each has its three measures, medications, notes and the points of its two staircase charts (coherence, correct and reversal for each scored trial). Sessions stored before the points were kept in the summary row read them from the stored session. Pseudonyms are matched in stored form: trimmed, lower case, inner spaces collapsed (the page sends them that way). There's no password: the dataset is public, and the pseudonym is optional.
 
 ```json
 {

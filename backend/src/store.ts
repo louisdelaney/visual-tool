@@ -18,6 +18,8 @@ export interface Store {
   readGroups(testVersion: number): Promise<GroupsDoc | undefined>;
   /** Every row stored with this (already normalised) pseudonym, oldest first. */
   historyFor(pseudonym: string, limit?: number): Promise<SummaryRow[]>;
+  /** One stored session, or undefined if there's none with this id. */
+  readSession(id: string): Promise<SessionExportV1 | undefined>;
   /** Every stored session in arrival order, for the export job. */
   allSessions(): AsyncGenerator<{ id: string; stored: StoredSession; session: SessionExportV1 }>;
 }

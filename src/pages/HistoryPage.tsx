@@ -3,12 +3,15 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { TEST_VERSION } from "../core";
 import { API_URL, fetchGroups, fetchHistory } from "../app/api";
-import { GROUPS, SAMPLE_GROUPS, sensitivities, shownMeasures, type GroupsResponse } from "../app/comparison";
+import { GROUPS, SAMPLE_GROUPS, sensitivities, shownMeasures, type GroupKey, type GroupsResponse, type MeasureKey, type Quantiles } from "../app/comparison";
 import { normalizePseudonym, sampleHistory, type HistoryEntry, type HistoryResponse } from "../app/history";
+import type { TaskName } from "../app/types";
 import { fmt } from "../app/format";
 import { back } from "../app/flow";
-import { HistoryChart } from "../components/HistoryChart";
+import { StaircaseChart, StaircaseKey } from "../components/StaircaseChart";
 import { SensitivityBars } from "../components/SensitivityBars";
+
+const TASKS: readonly TaskName[] = ["motion", "form"];
 
 type Load =
   | { state: "idle" }
@@ -19,25 +22,33 @@ type Load =
 const usingSample = (): boolean => !API_URL && import.meta.env.DEV;
 
 const date = (iso: string): string => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const time = (iso: string): string => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
-function SessionTable({ sessions }: { sessions: HistoryEntry[] }) {
+type Shown = { group: GroupKey; n: number; measures: Record<MeasureKey, Quantiles> }[];
+
+/** One past session: its sensitivity bars beside the groups, its staircases, and what was noted with it. */
+function SessionEntry({ entry: e, groups }: { entry: HistoryEntry; groups: Shown }) {
+  const current = e.test_version === TEST_VERSION;
   return (
-    <div className="table-wrap">
-      <table id="history-table">
-        <thead><tr><th scope="col">Date</th><th scope="col">Motion</th><th scope="col">Form</th><th scope="col">Medications</th><th scope="col">Notes</th></tr></thead>
-        <tbody>
-          {[...sessions].reverse().map(s => (
-            <tr key={s.submission_id}>
-              <td>{date(s.started_at)}</td>
-              <td>{fmt.pct(s.values.motion_threshold_pct)}</td>
-              <td>{fmt.pct(s.values.form_threshold_pct)}</td>
-              <td className="wrap-cell">{s.medications?.join(", ") ?? ""}</td>
-              <td className="wrap-cell">{s.notes ?? ""}</td>
-            </tr>
+    <article className="panel hist-entry" aria-labelledby={`h-${e.submission_id}`}>
+      <h3 id={`h-${e.submission_id}`}>{date(e.started_at)} <span className="hist-time">{time(e.started_at)}</span></h3>
+      {!current && <p className="hint">This used an earlier version of the test, so it isn't shown beside the groups.</p>}
+      <dl className="meta">
+        <dt>Motion threshold</dt><dd>{fmt.pct(e.values.motion_threshold_pct)}</dd>
+        <dt>Form threshold</dt><dd>{fmt.pct(e.values.form_threshold_pct)}</dd>
+        {e.medications?.length ? <><dt>Medications</dt><dd>{e.medications.join(", ")}</dd></> : null}
+        {e.notes ? <><dt>Notes</dt><dd>{e.notes}</dd></> : null}
+      </dl>
+      <SensitivityBars own={sensitivities(e.values)} groups={current ? groups : []} />
+      {e.staircases ? (
+        <div className="charts">
+          {TASKS.map(t => (
+            <StaircaseChart key={t} task={t} points={e.staircases![t]} threshold={e.values[t === "motion" ? "motion_threshold_pct" : "form_threshold_pct"]}
+              subtitle="Coherence (%) on each scored trial, log scale" />
           ))}
-        </tbody>
-      </table>
-    </div>
+        </div>
+      ) : <p className="hint">No staircases were kept for this session.</p>}
+    </article>
   );
 }
 
@@ -61,7 +72,7 @@ export function HistoryPage({ initialPseudonym }: { initialPseudonym: string }) 
   // Open straight to a pseudonym passed from the Results page.
   useEffect(() => { if (initialPseudonym) void lookUp(initialPseudonym); }, [initialPseudonym]);
 
-  // The groups, for the latest session's bars and the control group's range behind the charts, once each is big enough.
+  // The groups each session is shown beside, once each is big enough.
   useEffect(() => {
     if (usingSample()) { setGroups(SAMPLE_GROUPS); return; }
     if (!API_URL) return;
@@ -71,8 +82,7 @@ export function HistoryPage({ initialPseudonym }: { initialPseudonym: string }) 
   }, []);
 
   const onSubmit = (e: FormEvent): void => { e.preventDefault(); void lookUp(pseudonym); };
-  const measures = groups ? shownMeasures(groups.groups.control) : null;
-  const shown = groups ? GROUPS.flatMap(g => { const m = shownMeasures(groups.groups[g]); return m ? [{ group: g, n: groups.groups[g].n, measures: m }] : []; }) : [];
+  const shown: Shown = groups ? GROUPS.flatMap(g => { const m = shownMeasures(groups.groups[g]); return m ? [{ group: g, n: groups.groups[g].n, measures: m }] : []; }) : [];
 
   return (
     <section className="view view-stack" data-view="history" aria-labelledby="history-h">
@@ -94,39 +104,22 @@ export function HistoryPage({ initialPseudonym }: { initialPseudonym: string }) 
         )}
       </div>
 
-      {load.state === "ready" && load.history.sessions.length > 0 && (() => {
-        const current = load.history.sessions.filter(s => s.test_version === TEST_VERSION);
-        const older = load.history.sessions.filter(s => s.test_version !== TEST_VERSION);
-        return (
+      {load.state === "ready" && load.history.sessions.length > 0 && (
+        <>
           <div className="panel" id="history-results">
             {load.sample && <p className="banner">Sample data for development. This isn't anyone's real history.</p>}
-            <h3>{load.history.pseudonym}: {load.history.sessions.length} {load.history.sessions.length === 1 ? "session" : "sessions"}</h3>
-            {current.length > 0 ? (
-              <>
-                <h4>Latest session</h4>
-                <p className="hint">Sensitivity is 1 ÷ threshold in percent: higher means less organised signal was needed. {shown.length > 0 ? "Each group's bars are its median, and the line across a bar covers the middle half of its results." : ""}</p>
-                <SensitivityBars own={sensitivities(current[current.length - 1]!.values)} groups={shown} ownSub={date(current[current.length - 1]!.started_at)} />
-                <h4>Over time</h4>
-                <p className="hint">Lower thresholds mean less organised signal was needed. {measures ? "The shaded band is the middle half of the control group (people who said they have no visual perceptual disorder and have never used psychedelic drugs), and the dashed line their median." : ""}</p>
-                <div className="charts">
-                  <HistoryChart measure="motion_threshold_pct" title="Motion threshold" series="motion" sessions={current} controls={measures?.motion_threshold_pct ?? null} />
-                  <HistoryChart measure="form_threshold_pct" title="Form threshold" series="form" sessions={current} controls={measures?.form_threshold_pct ?? null} />
-                  <HistoryChart measure="motion_minus_form" title="Motion minus form sensitivity" series="diff" sessions={current} controls={measures?.motion_minus_form ?? null} />
-                </div>
-                <SessionTable sessions={current} />
-              </>
-            ) : <p className="hint">None of these sessions used the current version of the test, so they aren't charted.</p>}
-            {older.length > 0 && (
-              <>
-                <h3>Earlier versions of the test</h3>
-                <p className="hint">These used a different version of the test, so they can't be compared with the sessions above.</p>
-                <SessionTable sessions={older} />
-              </>
-            )}
-            <p className="hint">Just for fun, and not medical advice. Results in a browser vary from day to day with screens, lighting, tiredness and attention, so look at the overall trend rather than any one session.</p>
+            <h3>{load.history.pseudonym}: {load.history.sessions.length} {load.history.sessions.length === 1 ? "session" : "sessions"}, newest first</h3>
+            <p className="hint">
+              Sensitivity is 1 ÷ threshold in percent: higher means less organised signal was needed.
+              {shown.length > 0 ? " Each group's bars are its median, and the line across a bar covers the middle half of its results." : ""}
+              {" "}The staircases show the coherence of each scored trial.
+            </p>
+            <StaircaseKey />
+            <p className="hint">Just for fun, and not medical advice. Results in a browser vary from day to day with screens, lighting, tiredness and attention.</p>
           </div>
-        );
-      })()}
+          {[...load.history.sessions].reverse().map(e => <SessionEntry key={e.submission_id} entry={e} groups={shown} />)}
+        </>
+      )}
 
       <div className="actions"><button type="button" className="btn secondary back" id="history-back" onClick={back}>Back</button></div>
     </section>

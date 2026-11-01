@@ -65,6 +65,11 @@ export class MemoryStore implements Store {
       .map(r => structuredClone(r));
   }
 
+  async readSession(id: string): Promise<SessionExportV1 | undefined> {
+    const stored = this.sessions.get(id);
+    return stored && (JSON.parse(gunzipSync(stored.body_gzip).toString("utf8")) as SessionExportV1);
+  }
+
   async *allSessions(): AsyncGenerator<{ id: string; stored: StoredSession; session: SessionExportV1 }> {
     const ordered = [...this.sessions.entries()].sort(([ia, a], [ib, b]) => a.received_at.localeCompare(b.received_at) || ia.localeCompare(ib));
     for (const [id, stored] of ordered) yield { id, stored, session: JSON.parse(gunzipSync(stored.body_gzip).toString("utf8")) as SessionExportV1 };

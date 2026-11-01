@@ -23,8 +23,8 @@ Rules:
 - **Information only.** Show the numbers (median, middle half, middle 80%) and the person's own value. Draw no conclusions from where a value falls: no verdicts, labels, colours or text that rank or classify the person.
 - A group isn't shown until it has at least 5 people (`MIN_GROUP` in `src/app/comparison.ts`). The backend enforces the same minimum.
 - Only groups from the same `test_version` are ever compared or pooled.
-- Both pages show sensitivity bars in the clinic's "Glass Patterns" style: the person's motion, form and motion − form bars, then each group's median bars with a line across the middle half. On the User results page they're for the person's latest session.
-- The User results page's over-time charts draw only the control group's middle half and median behind a person's history.
+- Both pages show sensitivity bars in the clinic's "Glass Patterns" style: the person's motion, form and motion − form bars, then each group's median bars with a line across the middle half.
+- The User results page is a list of the person's sessions, newest first: each with its sensitivity bars beside the groups and its two staircases. No charts across sessions.
 - No example, sample or simulated results in the production site. Development-only sample data must be clearly labelled and never ship in a build.
 
 ## Privacy

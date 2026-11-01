@@ -55,6 +55,12 @@ export class Db implements Store {
     return q.docs.map(d => d.data() as SummaryRow);
   }
 
+  async readSession(id: string): Promise<SessionExportV1 | undefined> {
+    const snap = await this.fs.collection("sessions").doc(id).get();
+    const stored = snap.data() as StoredSession | undefined;
+    return stored && (JSON.parse(gunzipSync(stored.body_gzip).toString("utf8")) as SessionExportV1);
+  }
+
   async *allSessions(pageSize = 200): AsyncGenerator<{ id: string; stored: StoredSession; session: SessionExportV1 }> {
     // The cursor is the last snapshot of the previous page: a snapshot positions the query by
     // every orderBy field, where a bare reference would be read as a value for the first one.

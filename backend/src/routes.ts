@@ -9,7 +9,7 @@ import type { Store } from "./store";
 import { HttpError, readBody } from "./http";
 import { groupsResponse } from "./stats";
 import { EXPORT_FILE, runExport } from "./jobs/export";
-import { historyEntry } from "./summary";
+import { historyEntry, staircasesOf } from "./summary";
 import { MAX_BODY_BYTES, validateSession } from "./validate";
 
 export interface Reply {
@@ -60,7 +60,13 @@ export class Routes {
     if (!p) throw new HttpError(400, "pseudonym is required");
     if (p.length > MAX_PSEUDONYM) throw new HttpError(400, "pseudonym is too long");
     const rows = await this.db.historyFor(p, MAX_HISTORY);
-    const body: HistoryResponse = { pseudonym: p, sessions: rows.map(historyEntry) };
+    // Rows stored before staircases were kept read them from the session; at most MAX_HISTORY reads.
+    const sessions = await Promise.all(rows.map(async row => {
+      if (row.staircases) return historyEntry(row);
+      const session = await this.db.readSession(row.submission_id);
+      return historyEntry(row, session ? staircasesOf(session) : null);
+    }));
+    const body: HistoryResponse = { pseudonym: p, sessions };
     return { status: 200, body };
   }
 

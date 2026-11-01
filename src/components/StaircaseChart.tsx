@@ -1,14 +1,16 @@
 // One task's staircase: coherence on each scored trial (log scale), reversals circled, and the
 // threshold line. Hovering snaps a crosshair and tooltip to the nearest trial.
 import { useEffect, useRef, useState, type PointerEvent } from "react";
-import type { TaskName, TaskResult, Trial } from "../app/types";
+import type { TaskName } from "../app/types";
+import type { StaircasePoint } from "../app/history";
 import { fmt } from "../app/format";
 import { useElementWidth } from "../hooks";
 
 interface StaircaseChartProps {
   task: TaskName;
-  trials: Trial[];
-  result: TaskResult | null;
+  points: StaircasePoint[];
+  /** The threshold line, or null where the run didn't reach one. */
+  threshold: number | null;
   subtitle: string;
 }
 
@@ -16,7 +18,7 @@ const H = 230;
 const M = { l: 40, r: 80, t: 14, b: 34 };
 const Y_TICKS = [1, 2, 5, 10, 20, 50, 100];
 
-export function StaircaseChart({ task, trials, result, subtitle }: StaircaseChartProps) {
+export function StaircaseChart({ task, points: tr, threshold, subtitle }: StaircaseChartProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const width = useElementWidth(hostRef, 320);
   const [hover, setHover] = useState<{ i: number; left: number; top: number } | null>(null);
@@ -30,15 +32,14 @@ export function StaircaseChart({ task, trials, result, subtitle }: StaircaseChar
     return () => window.removeEventListener("scroll", hide);
   }, [hover]);
 
-  const tr = trials.filter(t => t.phase === "test");
   const W = Math.max(280, Math.round(width));
   const iw = W - M.l - M.r, ih = H - M.t - M.b;
   const n = tr.length;
   const x = (i: number): number => M.l + (n <= 1 ? iw / 2 : (i / (n - 1)) * iw);
   const y = (v: number): number => M.t + (1 - Math.log10(Math.min(100, Math.max(1, v))) / 2) * ih;
-  const val = (t: Trial): number => t.effective_level_pct;
+  const val = (t: StaircasePoint): number => t.coherence_pct;
   const name = task === "motion" ? "Motion" : "Form";
-  const label = `${name} staircase: ${n} scored trials, threshold ${result && result.threshold_pct != null ? fmt.pct(result.threshold_pct) : "not reached"}`;
+  const label = `${name} staircase: ${n} scored trials, threshold ${threshold != null ? fmt.pct(threshold) : "not reached"}`;
   const step = n > 30 ? 10 : 5;
   const xTicks: number[] = [];
   for (let k = step; k <= n; k += step) xTicks.push(k);
@@ -83,11 +84,11 @@ export function StaircaseChart({ task, trials, result, subtitle }: StaircaseChar
           ))}
           <text className="axis-label" x={M.l} y={H - 4}>Trial</text>
           {hover && <line className="crosshair" x1={x(hover.i)} x2={x(hover.i)} y1={M.t} y2={H - M.b} />}
-          {result && result.threshold_pct != null && (
+          {threshold != null && (
             <g>
-              <line className="thr" x1={M.l} x2={W - M.r} y1={y(result.threshold_pct)} y2={y(result.threshold_pct)} />
-              <text className="thr-label" x={W - M.r + 8} y={y(result.threshold_pct)} dy="-0.25em">Threshold</text>
-              <text className="thr-value" x={W - M.r + 8} y={y(result.threshold_pct)} dy="1em">{fmt.pct(result.threshold_pct)}</text>
+              <line className="thr" x1={M.l} x2={W - M.r} y1={y(threshold)} y2={y(threshold)} />
+              <text className="thr-label" x={W - M.r + 8} y={y(threshold)} dy="-0.25em">Threshold</text>
+              <text className="thr-value" x={W - M.r + 8} y={y(threshold)} dy="1em">{fmt.pct(threshold)}</text>
             </g>
           )}
           {n > 0 && <polyline className="line" points={tr.map((t, i) => `${x(i).toFixed(1)},${y(val(t)).toFixed(1)}`).join(" ")} />}
@@ -103,5 +104,17 @@ export function StaircaseChart({ task, trials, result, subtitle }: StaircaseChar
         {hovered && hover && `Trial ${hover.i + 1} · ${fmt.pct(val(hovered))} · ${hovered.correct ? "correct" : "wrong"}${hovered.reversal ? " · reversal" : ""}`}
       </div>
     </figure>
+  );
+}
+
+/** What the marks on a staircase chart mean. */
+export function StaircaseKey() {
+  return (
+    <div className="chart-key" aria-hidden="true">
+      <span><svg width="14" height="14" viewBox="0 0 14 14"><circle className="k-ok" cx="7" cy="7" r="4" /></svg>Correct</span>
+      <span><svg width="14" height="14" viewBox="0 0 14 14"><circle className="k-miss" cx="7" cy="7" r="4" /></svg>Wrong</span>
+      <span><svg width="18" height="18" viewBox="0 0 18 18"><circle className="k-rev" cx="9" cy="9" r="7.5" /></svg>Reversal</span>
+      <span><svg width="20" height="10" viewBox="0 0 20 10"><line className="k-thr" x1="0" x2="20" y1="5" y2="5" /></svg>Threshold, mean of the last reversals</span>
+    </div>
   );
 }
