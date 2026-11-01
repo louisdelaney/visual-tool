@@ -12,7 +12,7 @@ import { createApp, type ServerOptions } from "../src/server";
 import { makeSession, withThresholds } from "./fixture";
 
 const ORIGIN = "https://site.example";
-const EXPORT_URL = "https://storage.example/sessions.json";
+const EXPORT_URL = "https://storage.example/visual-data.json";
 
 const servers: Server[] = [];
 const tempDirs: string[] = [];
@@ -87,7 +87,7 @@ describe("POST /sessions", () => {
     const body = new ReadableStream({ start(c) { for (const ch of chunks) c.enqueue(ch); c.close(); } });
     const res = await fetch(`${base}/sessions`, { method: "POST", headers: { "Content-Type": "application/json" }, body, duplex: "half" } as RequestInit);
     expect(res.status).toBe(413);
-    expect(await res.json()).toEqual({ error: "body too large" });
+    expect(await res.json()).toEqual({ error: "body too large", id: expect.any(String) });
     expect(db.size).toBe(0);
   });
 
@@ -103,7 +103,7 @@ describe("POST /sessions", () => {
     const { base } = await start(failingStore());
     const res = await post(base, makeSession());
     expect(res.status).toBe(500);
-    expect(await res.json()).toEqual({ error: "internal error" });
+    expect(await res.json()).toEqual({ error: "internal error", id: expect.any(String) });
   });
 });
 
@@ -232,11 +232,11 @@ describe("GET /export/*", () => {
 
   it("serves the file gzip-encoded as a download, which fetch unpacks", async () => {
     const { base } = await exported();
-    const res = await fetch(`${base}/export/sessions.json`);
+    const res = await fetch(`${base}/export/visual-data.json`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-encoding")).toBe("gzip");
     expect(res.headers.get("content-type")).toBe("application/json");
-    expect(res.headers.get("content-disposition")).toBe('attachment; filename="sessions.json"');
+    expect(res.headers.get("content-disposition")).toBe('attachment; filename="visual-data.json"');
     const file = (await res.json()) as { total_sessions: number; sessions: { seed: number }[] };
     expect(file.total_sessions).toBe(2);
     expect(file.sessions.map(s => s.seed)).toEqual([1, 2]);
@@ -253,7 +253,7 @@ describe("GET /export/*", () => {
 
   it("serves nothing under /export/ when no folder is set", async () => {
     const { base } = await start();
-    expect((await fetch(`${base}/export/sessions.json`)).status).toBe(404);
+    expect((await fetch(`${base}/export/visual-data.json`)).status).toBe(404);
   });
 });
 
@@ -333,5 +333,108 @@ describe("other requests", () => {
     const { base } = await start(new MemoryStore(), { getsPerMinute: 1 });
     expect((await fetch(`${base}/groups?test_version=1`)).status).toBe(200);
     expect((await fetch(`${base}/groups?test_version=1`)).status).toBe(429);
+  });
+});
+
+describe("request log", () => {
+  /** Captures what the server writes to stderr and returns the "request" lines as parsed. */
+  const capture = () => {
+    const out: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation(chunk => { out.push(String(chunk)); return true; });
+    return {
+      out,
+      lines: () => out.flatMap(text => text.split("\n").filter(Boolean)).map(l => JSON.parse(l) as Record<string, unknown>).filter(l => l.message === "request"),
+    };
+  };
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+  it("logs a fast success too, with only the method, route, status, time and a random id", async () => {
+    const log = capture();
+    const { base } = await start();
+    expect((await fetch(`${base}/healthz`, { headers: { "User-Agent": "SecretAgent/9", "X-Forwarded-For": "203.0.113.7" } })).status).toBe(200);
+    await vi.waitFor(() => expect(log.lines()).toHaveLength(1));
+    const [line] = log.lines();
+    expect(Object.keys(line!).sort()).toEqual(["id", "message", "method", "ms", "route", "severity", "status"]);
+    expect(line).toMatchObject({ severity: "INFO", message: "request", method: "GET", route: "/healthz", status: 200 });
+    expect(line!.id).toMatch(UUID);
+    expect(typeof line!.ms).toBe("number");
+    expect(log.out.join("")).not.toMatch(/SecretAgent|203\.0\.113\.7/);
+  });
+
+  it("logs an unknown path as unmatched, never the path, and returns the same id in the body", async () => {
+    const log = capture();
+    const { base } = await start();
+    const res = await fetch(`${base}/quiet-heron/secret-page?pseudonym=quiet%20heron`);
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error: string; id: string };
+    await vi.waitFor(() => expect(log.lines()).toHaveLength(1));
+    const [line] = log.lines();
+    expect(line).toMatchObject({ severity: "WARNING", message: "request", method: "GET", route: "unmatched", status: 404, id: body.id });
+    expect(body).toEqual({ error: "not found", id: expect.stringMatching(UUID) });
+    expect(log.out.join("")).not.toMatch(/quiet|heron|secret-page/);
+  });
+
+  it("writes none of the caller's address, headers or pseudonym", async () => {
+    const log = capture();
+    const { base } = await start();
+    const res = await fetch(`${base}/history?pseudonym=quiet%20heron&junk=1`, {
+      headers: { "X-Forwarded-For": "198.51.100.23, 10.0.0.1", "User-Agent": "SecretAgent/9", "Sec-CH-UA": '"SecretBrowser";v="1"', "Accept-Language": "xx-SECRET", "X-Cloud-Trace-Context": "abcdef0123456789/1" },
+    });
+    expect(res.status).toBe(200);
+    await vi.waitFor(() => expect(log.lines()).toHaveLength(1));
+    expect(log.lines()[0]).toMatchObject({ severity: "INFO", route: "/history", status: 200 });
+    const written = log.out.join("");
+    for (const secret of ["198.51.100.23", "10.0.0.1", "SecretAgent", "SecretBrowser", "xx-SECRET", "abcdef0123456789", "quiet", "heron", "junk", "127.0.0.1"]) expect(written).not.toContain(secret);
+  });
+
+  it("logs a bad body as a warning on /sessions, without the body, and returns the id", async () => {
+    const log = capture();
+    const { base } = await start();
+    const res = await post(base, '{"answers":{"pseudonym":"quiet heron"}', { headers: { "Content-Type": "application/json", "User-Agent": "SecretAgent/9" } });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { id: string };
+    await vi.waitFor(() => expect(log.lines()).toHaveLength(1));
+    expect(log.lines()[0]).toMatchObject({ severity: "WARNING", method: "POST", route: "/sessions", status: 400, id: body.id });
+    expect(log.out.join("")).not.toMatch(/quiet|heron|SecretAgent/);
+  });
+
+  it("logs a failure as an error with the same id in the body and in the error line", async () => {
+    const log = capture();
+    const { base } = await start(failingStore());
+    const res = await post(base, makeSession());
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as { error: string; id: string };
+    expect(body).toEqual({ error: "internal error", id: expect.stringMatching(UUID) });
+    await vi.waitFor(() => expect(log.lines()).toHaveLength(1));
+    expect(log.lines()[0]).toMatchObject({ severity: "ERROR", route: "/sessions", status: 500, id: body.id });
+    const failed = log.out.join("").split("\n").filter(Boolean).map(l => JSON.parse(l) as Record<string, unknown>).find(l => l.message === "request failed");
+    expect(failed).toMatchObject({ id: body.id });
+  });
+
+  it("gives every kind of error response an id, and each request its own", async () => {
+    capture();
+    const { base } = await start(new MemoryStore(), { postsPerMinute: 1, exportUrl: "" });
+    const responses = [
+      await fetch(`${base}/nope`),
+      await fetch(`${base}/groups?test_version=x`),
+      await fetch(`${base}/history`),
+      await fetch(`${base}/export`),
+      await fetch(`${base}/healthz`, { headers: { Origin: "https://evil.example" } }),
+      await post(base, "not json"),
+      await post(base, "not json"),
+    ];
+    expect(responses.map(r => r.status)).toEqual([404, 400, 400, 404, 403, 400, 429]);
+    const ids = await Promise.all(responses.map(async r => ((await r.json()) as { id: string }).id));
+    for (const id of ids) expect(id).toMatch(UUID);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("leaves successful bodies and the CORS headers alone", async () => {
+    capture();
+    const { base } = await start();
+    const res = await fetch(`${base}/healthz`, { headers: { Origin: ORIGIN } });
+    expect(await res.json()).toEqual({ ok: true });
+    expect(res.headers.get("access-control-allow-origin")).toBe(ORIGIN);
+    expect([...res.headers.keys()].some(k => k.includes("id"))).toBe(false);
   });
 });

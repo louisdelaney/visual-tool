@@ -16,7 +16,7 @@ export const SCHEMA_VERSION = 1;
 /** The contribution as exported: without its in-flight sending state. */
 export type ExportedContribution =
   | { contribute: false }
-  | Omit<Extract<SessionContribution, { contribute: true }>, "sending" | "failed">;
+  | Omit<Extract<SessionContribution, { contribute: true }>, "sending" | "failed" | "failure_id">;
 
 export interface SessionExportV1 {
   schema: typeof SCHEMA_NAME;

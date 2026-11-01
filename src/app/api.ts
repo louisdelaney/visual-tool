@@ -5,6 +5,7 @@
 // Empty until the backend exists: nothing is sent, and no comparison is shown.
 import { parseGroups, type GroupsResponse } from "./comparison";
 import { normalizePseudonym, parseHistory, suggestPseudonym, type HistoryResponse } from "./history";
+import { ApiError, parseErrorId } from "./failure";
 import type { SessionExport } from "./schema";
 
 /** Every request: no cookies or credentials, and no referrer saying which page it came from. */
@@ -15,7 +16,7 @@ export const API_URL: string = (import.meta.env.VITE_API_URL ?? "").replace(/\/+
 /** Sends a session. Resolves the id the backend stored it under, which its history and the export use. */
 export async function postSession(data: SessionExport): Promise<string> {
   const r = await fetch(`${API_URL}/sessions`, { ...PRIVATE, method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  if (!r.ok) throw new ApiError(`HTTP ${r.status}`, parseErrorId(await r.json().catch(() => null)));
   const id: unknown = (await r.json().catch(() => null))?.submission_id;
   if (typeof id !== "string" || !id) throw new Error("The backend didn't say what it stored the session as");
   return id;

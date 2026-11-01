@@ -165,6 +165,8 @@ export type SessionContribution =
       sending?: boolean;
       /** The last attempt failed. Not exported. */
       failed?: boolean;
+      /** The backend's reference for the failed attempt, to quote in a report. Not exported. */
+      failure_id?: string;
     };
 
 // ----- Session -----

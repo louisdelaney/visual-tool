@@ -11,7 +11,7 @@ The service behind the site's Contribute step, group comparison, User results pa
 - `db.ts`: the Firestore store: sessions (gzipped as sent), summaries, `groups/{test_version}`.
 - `routes.ts`: the endpoints. `server.ts`: CORS, limits, errors, the server.
 - `http.ts`, `ratelimit.ts`, `log.ts`: response and CORS helpers, the per-instance token bucket, error-only logging.
-- `jobs/export.ts`: the export job: one gzipped JSON file, `sessions.json`.
+- `jobs/export.ts`: the export job: one gzipped JSON file, `visual-data.json`.
 
 ## Two modes
 
@@ -28,7 +28,7 @@ npm run build      # dist/server.js and dist/jobs/export.js
 | `PORT` | Port to listen on. Cloud Run sets it; 8080 otherwise. |
 | `BACKEND` | `firestore` or `memory`. |
 | `ALLOWED_ORIGIN` | The site's origin, the only one browsers may call from. Several may be given, separated by commas, for example two local dev servers. |
-| `EXPORT_URL` | Where `GET /export` redirects (the public `sessions.json`). If it and `EXPORT_BUCKET` are both unset, `/export` redirects to the server's own `/export/sessions.json`. |
+| `EXPORT_URL` | Where `GET /export` redirects (the public `visual-data.json`). If it and `EXPORT_BUCKET` are both unset, `/export` redirects to the server's own `/export/visual-data.json`. |
 | `DATA_FILE` | Memory mode: file to keep sessions in between runs, for example `./data/sessions.json`. |
 | `EXPORT_DIR` | Where the export job writes when `EXPORT_BUCKET` is unset (default `./data/export`), with either store. The server serves it at `/export/*`. |
 | `GOOGLE_CLOUD_PROJECT` | Firestore mode: the project. |

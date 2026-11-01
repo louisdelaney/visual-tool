@@ -39,7 +39,7 @@ resource "google_cloud_run_v2_service" "api" {
 
       env {
         name  = "EXPORT_URL"
-        value = "https://storage.googleapis.com/${google_storage_bucket.export.name}/sessions.json"
+        value = "https://storage.googleapis.com/${google_storage_bucket.export.name}/visual-data.json"
       }
 
       env {

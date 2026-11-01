@@ -84,8 +84,8 @@ describe("runExport", () => {
     const { store, ids } = await storeWith([rows[2]!, rows[0]!, rows[1]!]);
     const result = await runExport(store, sink, now);
 
-    expect([...files.keys()]).toEqual(["sessions.json"]);
-    const file = files.get("sessions.json")!;
+    expect([...files.keys()]).toEqual(["visual-data.json"]);
+    const file = files.get("visual-data.json")!;
     expect(file.contentEncoding).toBe("gzip");
     expect(file.contentType).toBe("application/json");
 
@@ -106,13 +106,13 @@ describe("runExport", () => {
       { receivedAt: "2026-10-18T19:10:00.000Z", session: makeSession({ seed: 1 }) },
     ]);
     await runExport(store, sink, now);
-    expect(readExport(files.get("sessions.json")!.data).sessions.map(s => s.submission_id)).toEqual([stored[1], stored[0]]);
+    expect(readExport(files.get("visual-data.json")!.data).sessions.map(s => s.submission_id)).toEqual([stored[1], stored[0]]);
   });
 
   it("writes a file with no sessions when nothing is stored", async () => {
     const { sink, files } = memorySink();
     const result = await runExport(new MemoryStore(), sink, now);
-    expect([...files.keys()]).toEqual(["sessions.json"]);
+    expect([...files.keys()]).toEqual(["visual-data.json"]);
     expect(result).toMatchObject({ sessions: [], total_sessions: 0 });
   });
 });
@@ -133,8 +133,8 @@ describe("dirSink", () => {
     ]);
     const result = await runExport(store, dirSink(dir), new Date("2026-10-31T12:00:00.000Z"));
 
-    expect(readdirSync(dir)).toEqual(["sessions.json"]);
-    expect(readExport(readFileSync(join(dir, "sessions.json")))).toEqual(result);
+    expect(readdirSync(dir)).toEqual(["visual-data.json"]);
+    expect(readExport(readFileSync(join(dir, "visual-data.json")))).toEqual(result);
     expect(result.sessions.map(s => s.submission_id)).toEqual(ids);
   });
 
@@ -146,6 +146,6 @@ describe("dirSink", () => {
     await store.storeSession(makeSession({ seed: 9 }), new Date("2026-10-16T10:00:00.000Z"));
     const result = await runExport(store, dirSink(root), new Date("2026-10-31T12:00:00.000Z"));
     expect(result.total_sessions).toBe(2);
-    expect(readExport(readFileSync(join(root, "sessions.json"))).total_sessions).toBe(2);
+    expect(readExport(readFileSync(join(root, "visual-data.json"))).total_sessions).toBe(2);
   });
 });

@@ -110,6 +110,17 @@ silently falls back to the `[key: string]: unknown` stub.
 must be edited by hand or the design agent will code against a stale contract — and the build will
 still pass.
 
+## The conventions header carries content rules, not just styling
+
+`.design-sync/conventions.md` opens with a **Hard rules** section mirroring the AGENTS.md rulings on
+"Not medical advice", what the graphs may show, and the privacy promises. That file is inlined into
+the claude.ai/design agent's system prompt, so those constraints apply to everything it builds —
+without them an agent asked to "improve the contribute form" will cheerfully rewrite the disorder and
+psychedelics questions into something that reads like screening.
+
+**Keep it in step with AGENTS.md.** If a ruling there changes, update the header and re-sync, or the
+design agent keeps working to the old rules.
+
 ## Re-sync risks — what can silently go stale
 
 - **`ds-entry.tsx` vs `componentSrcMap` drift.** They are two independent lists of the same five
@@ -131,3 +142,5 @@ still pass.
   (`View` is in `src/app/types.ts`, `Chips` in `src/components/ChipInput.tsx`).
 - **Nothing was only partially verified.** All five components have authored previews; all 14 cells
   were captured and graded `good` from the review sheets, and the render check was full (not sampled).
+- **Conventions header vs AGENTS.md drift.** See the section above: the design agent's copy of the
+  content rules is a transcription, and nothing checks it against `AGENTS.md`.

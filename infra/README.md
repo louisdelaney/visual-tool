@@ -10,4 +10,4 @@ Terraform for the backend: Cloud Run API, Firestore, a nightly export job to a p
 6. Run `./set-github-vars.sh` (or `./set-github-vars.sh owner/name`) to copy the outputs into the repository's Actions variables the deploy workflow reads. It needs `jq` and `gh`, signed in with `gh auth login`.
 7. Push to `main`: only runs on `main` in `github_repository` can deploy. `WIF_PROVIDER` is set last, which is what switches the deploy workflow on.
 
-Request logs (which carry caller IPs) are excluded in `logging.tf`; keep that in place. `.tfvars` and state files are git-ignored; commit `.terraform.lock.hcl`.
+Request logs (which carry caller IPs) are excluded in `logging.tf`; keep that in place. The app's own error lines are kept for `log_retention_days` (default 7). `.tfvars` and state files are git-ignored; commit `.terraform.lock.hcl`.

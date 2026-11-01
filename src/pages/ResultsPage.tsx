@@ -136,6 +136,7 @@ export function ResultsPage({ session: s }: ResultsPageProps) {
   const d = R.motion_minus_form;
   const note = contributionNote(s);
   const failed = !!(s.contribution?.contribute && s.contribution.failed && !s.contribution.sending);
+  const failureId = failed && s.contribution?.contribute ? s.contribution.failure_id : undefined;
   const pseudonym = s.contribution?.contribute ? s.contribution.answers.pseudonym : null;
 
   return (
@@ -183,6 +184,7 @@ export function ResultsPage({ session: s }: ResultsPageProps) {
         </div>
         <p className="status" id="data-status" role="status" aria-live="polite">{dataStatus}</p>
         {note && <p className="hint" id="contrib-note">{note}</p>}
+        {failureId && <p className="hint" id="contrib-failure-id">Reference: {failureId}. You can quote it if you report a problem.</p>}
         {pseudonym && <p><button type="button" className="linkish" id="history-link" onClick={() => showHistory(pseudonym)}>See all results for {pseudonym}</button></p>}
         {failed && <div className="actions"><button type="button" className="btn secondary" id="contrib-retry" onClick={() => void sendContribution(s)}>Try sending again</button></div>}
         <details id="raw" open={rawOpen} onToggle={e => { const open = e.currentTarget.open; setRawOpen(open); if (open && !raw) setRaw(sessionJSON(s)); }}>
