@@ -81,8 +81,11 @@ h1 {
    stages done, dark for those to come. Words, not numbers, with the current step under its stage. */
 .stepper {
   list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
+  /* A hairline separates the description from the progress: the 2px margin adds to the masthead's
+     18px gap for 20px above, and the padding leaves 30px below. */
+  margin: 2px 0 0;
+  border-top: 1px solid var(--rule);
+  padding: 30px 0 0;
   display: grid;
   grid-template-columns: repeat(4,1fr);
   gap: 3px;
@@ -112,6 +115,12 @@ h1 {
 .stepper .now {
   font-weight: 400;
   color: var(--ink-2);
+}
+
+/* Progress belongs with the panel it describes, so the steps sit close to it: -28px cuts the 40px
+   .wrap gap to 12px. :has() scopes it to pages that show a stepper; info pages are untouched. */
+.wrap:has(.masthead .stepper) > .view-stack {
+  margin-top: -28px;
 }
 
 .flash {
