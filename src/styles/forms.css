@@ -90,3 +90,193 @@ textarea {
   resize: vertical;
   margin-top: 10px;
 }
+
+/* List answers: entries added one at a time, shown as removable chips above the box. */
+.chip-input {
+  display: grid;
+  gap: 8px;
+}
+
+.chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 2px 2px 12px;
+  border: 1px solid var(--axis);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 15px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.chip-remove {
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  border-radius: 999px;
+  min-width: 32px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.chip-remove:hover {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.chip-remove:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.chip-add {
+  min-width: 44px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* A required question left unanswered when Continue was pressed. An outline, not a border or
+   padding, so marking and clearing it never moves the answers under the pointer. */
+fieldset.invalid {
+  outline: 1px solid var(--error);
+  outline-offset: 8px;
+  border-radius: 4px;
+}
+
+.field-error {
+  margin: 0;
+  font-weight: 700;
+  font-size: var(--t-sm);
+  color: var(--error);
+}
+
+/* Step 1's two pages: more room than the other panels, titled groups, questions in the ink colour
+   above their answers, and follow-ups set in under the question that opened them. */
+.panel[data-view="contribute"],
+.panel[data-view="questions"] {
+  padding-block: 36px 40px;
+  padding-inline: clamp(16px,5vw,40px);
+  gap: 22px;
+}
+
+.contrib-form {
+  display: grid;
+  gap: 28px;
+}
+
+.contrib-form fieldset {
+  margin: 0;
+  gap: 8px;
+}
+
+.contrib-form legend {
+  font-size: var(--t-base);
+  color: var(--ink);
+  margin-bottom: 2px;
+  max-width: 60ch;
+}
+
+.contrib-form .opt {
+  font-size: var(--t-base);
+}
+
+.contrib-form .hint {
+  max-width: 58ch;
+}
+
+.contrib-form input[type="text"],
+.contrib-form input[type="number"],
+.contrib-form select,
+.contrib-form textarea.answer,
+.contrib-form .btn.secondary {
+  border-color: var(--field-border);
+}
+
+.contrib-form h3 {
+  margin: 0;
+}
+
+.q-section {
+  display: grid;
+  gap: 28px;
+  margin-top: 8px;
+  padding-top: 28px;
+  border-top: 1px solid var(--rule);
+}
+
+.contrib-form .follow-up {
+  gap: 22px;
+  margin: -6px 0 0 7px;
+  padding-left: 18px;
+  border-left: 1px solid var(--rule);
+}
+
+/* Page two, headed by the pseudonym the answers go under. */
+.as-pseudonym {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.as-pseudonym .pseudonym {
+  font: 600 32px/1.15 var(--font-data);
+  letter-spacing: -.01em;
+  overflow-wrap: anywhere;
+}
+
+/* A text input with a small icon button inside its right end, such as Copy. */
+.with-action {
+  position: relative;
+  display: inline-block;
+  width: min(100%,28em);
+}
+
+.with-action input[type="text"] {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.icon-btn {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.icon-btn:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--accent-wash);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

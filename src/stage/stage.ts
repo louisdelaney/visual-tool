@@ -105,11 +105,10 @@ export function setHud(text: string): void {
   byId("hud").textContent = text;
 }
 
-export function stageNote(text: string, prompt = false): void {
+export function stageNote(text: string): void {
   const n = byId("stage-note");
   n.textContent = text || "";
   n.hidden = !text;
-  n.classList.toggle("prompt", prompt);
 }
 
 /** Pixels per degree for the session's calibration, scaled down if the field doesn't fit. */

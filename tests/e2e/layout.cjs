@@ -24,11 +24,14 @@ fs.mkdirSync(OUT, { recursive: true });
       p.on("request", r => { const u = new URL(r.url()); if (u.protocol !== "blob:" && u.protocol !== "data:" && u.origin !== new URL(PAGE_URL).origin) failures.push(`${vw}px ${scheme}: request to ${u.origin}`); });
       p.on("console", m => { if (m.type() === "error") errors.push(`${vw}px ${scheme} console: ${m.text()}`); });
       await p.goto(PAGE_URL); await p.waitForTimeout(400);
-      // Step 1 with every follow-up question open, the longest the form gets.
-      for (const v of ['contribute"][value="yes', 'disorder"][value="yes', 'psychedelics"][value="yes', 'medication"][value="yes']) await p.check(`#contrib-form input[name="${v}"]`);
+      // Step 1's questions with every follow-up open, the longest the form gets.
+      await p.check('#contrib-form input[name="contribute"][value="yes"]');
+      await p.click("#contrib-go"); await p.waitForTimeout(150);
+      for (const v of ["disorder", "psychedelics", "medication"]) await p.check(`#questions-form input[name="${v}"][value="yes"]`);
       await p.check("#cq-other"); await p.waitForTimeout(150);
       const contribOverflow = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
       await p.screenshot({ path: path.join(OUT, `layout-contribute-${vw}-${scheme}.png`), fullPage: true });
+      await p.click("#questions-back"); await p.waitForTimeout(150);
       await p.check('#contrib-form input[name="contribute"][value="no"]');
       await p.click("#contrib-go"); await p.waitForTimeout(300);
       const setupOverflow = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);

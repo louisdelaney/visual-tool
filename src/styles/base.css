@@ -33,15 +33,24 @@ html.staging, html.staging body {
   margin: 0 auto;
   padding-left: max(16px,env(safe-area-inset-left,0px));
   padding-right: max(16px,env(safe-area-inset-right,0px));
-  padding-block: 32px 64px;
+  padding-block: 20px 72px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 40px;
 }
 
 .masthead {
   display: grid;
-  gap: 14px;
+  gap: 18px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .eyebrow {
@@ -68,79 +77,41 @@ h1 {
   max-width: 60ch;
 }
 
+/* Progress: four stages side by side, each under a solid bar: amber where you are, light for the
+   stages done, dark for those to come. Words, not numbers, with the current step under its stage. */
 .stepper {
   list-style: none;
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   padding: 0;
-  display: flex;
-  gap: 14px;
-  font-size: var(--t-sm);
-  color: var(--muted);
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 3px;
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--ink-2);
 }
 
 .stepper li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-  padding-bottom: 6px;
-  border-bottom: 2px solid transparent;
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  padding-top: 10px;
+  border-top: 6px solid var(--axis);
 }
 
-.stepper .n {
-  font: 500 12px/1 var(--font-data);
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: inline-grid;
-  place-items: center;
-  border: 1px solid var(--axis);
-  box-sizing: border-box;
+.stepper li.done {
+  border-top-color: var(--ink-2);
 }
 
 .stepper li[aria-current="step"] {
   color: var(--ink);
   font-weight: 700;
-  border-bottom-color: var(--accent);
+  border-top-color: var(--accent);
 }
 
-.stepper li[aria-current="step"] .n {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-ink);
-}
-
-.stepper li.done {
+.stepper .now {
+  font-weight: 400;
   color: var(--ink-2);
-}
-
-.stepper li.done .n {
-  background: var(--surface-2);
-}
-
-/* Keep the stepper on one line: when the column is narrower than its full width, only the
-   current step keeps its name on screen. Screen readers still get every name. */
-@media (max-width:840px){
-  .stepper {
-    gap: 8px;
-  }
-
-  .stepper li[aria-current="step"] {
-    min-width: 0;
-  }
-
-  .stepper li[aria-current="step"] .label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .stepper li:not([aria-current="step"]) .label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
 }
 
 .flash {
@@ -374,12 +345,20 @@ th {
   }
 }
 
-/* Links to the other pages, under the title. */
+/* Links to the other pages, in a quiet bar above the title. */
 .site-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 18px;
+  gap: 6px 22px;
   font-size: var(--t-sm);
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.site-nav a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .site-nav a {
@@ -402,9 +381,11 @@ th {
 }
 
 .key-points {
-  background: var(--accent-wash);
-  border-radius: 6px;
-  padding: 14px 16px 14px 34px !important;
+  margin: 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 8px;
+  max-width: 65ch;
 }
 
 .refs {
@@ -420,15 +401,25 @@ th {
   color: var(--accent);
 }
 
+/* A link styled as a button, like the Data page's download. */
+.prose a.btn {
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+
 /* "Just for fun": on the home page and at the top of the results. */
 .fun-notice {
   margin: 0;
-  background: var(--accent);
-  color: var(--accent-ink);
-  border-radius: 8px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
   padding: 14px 18px;
   font-size: var(--t-md);
   line-height: 1.4;
+  color: var(--ink);
+}
+
+.fun-notice strong {
+  color: var(--accent);
 }
 
 /* Back buttons sit at the right-hand end of their row of buttons. */

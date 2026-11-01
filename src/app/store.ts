@@ -41,7 +41,7 @@ function persist(s: AppState): void {
 
 let state: AppState = { view: "contribute", flash: "", contribution: null, calib: loadCalib(), distance: null, session: null, busy: false, returnTo: "contribute", historyPseudonym: "" };
 
-// Opened at #privacy, #references or #history: start on that page.
+// Opened at #privacy, #references, #data or #history: start on that page.
 const linked = window.location.hash.slice(1) as InfoPage;
 if ((INFO_PAGES as readonly string[]).includes(linked)) state = { ...state, view: linked };
 const listeners = new Set<() => void>();

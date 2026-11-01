@@ -7,7 +7,8 @@ export function Footer() {
       <p>
         Test version {TEST_VERSION} · Just for fun, not medical advice · All contributed data is public and anonymous ·{" "}
         <a href="#privacy" onClick={e => { e.preventDefault(); show("privacy"); }}>Privacy and risks</a> ·{" "}
-        <a href="#references" onClick={e => { e.preventDefault(); show("references"); }}>Method and references</a>
+        <a href="#references" onClick={e => { e.preventDefault(); show("references"); }}>Method and references</a> ·{" "}
+        <a href="#data" onClick={e => { e.preventDefault(); show("data"); }}>Data</a>
       </p>
     </footer>
   );

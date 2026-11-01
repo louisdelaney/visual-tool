@@ -3,14 +3,14 @@
 import type { Staircase } from "../core";
 
 export type TaskName = "motion" | "form";
-export type Step = "contribute" | "setup" | "screen" | "distance" | TaskName | "results";
+export type Step = "contribute" | "questions" | "setup" | "screen" | "distance" | TaskName | "results";
 
 /** Pages outside the steps, each with its own address (#history and so on) so they can be linked to. */
-export type InfoPage = "history" | "privacy" | "references";
+export type InfoPage = "history" | "privacy" | "references" | "data";
 
 export type View = Step | InfoPage;
 
-export const INFO_PAGES: readonly InfoPage[] = ["history", "privacy", "references"];
+export const INFO_PAGES: readonly InfoPage[] = ["history", "privacy", "references", "data"];
 
 /**
  * How a session was run. There's one version of the test and nothing is configurable, but every
@@ -137,10 +137,12 @@ export interface ContributionAnswers {
   psychedelics: PsychedelicUse | null;
   /** The person's estimate of how many times they've used psychedelics: a whole number, 1 or more. */
   psychedelic_uses: number | null;
+  /** Which psychedelics they've used, one entry each in their own words; only when psychedelics is "yes". */
+  psychedelics_used: string[] | null;
   /** Whether they take any medications, if they said. */
   takes_medication: YesNo | null;
-  /** Which ones, in their own words; only when takes_medication is "yes". */
-  medications: string | null;
+  /** Which ones, one name each in their own words; only when takes_medication is "yes". */
+  medications: string[] | null;
   notes: string | null;
   /** Where they found the test, if they said. */
   found_via: FoundVia | null;

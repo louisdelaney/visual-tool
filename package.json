@@ -8,8 +8,17 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "npm run build && node tests/e2e/layout.cjs && node tests/e2e/blindspot.cjs && node tests/e2e/full.cjs",
-    "test:all": "npm run typecheck && npm test && npm run test:e2e"
+    "test:backend": "npm --prefix backend test",
+    "test:e2e": "VITE_API_URL= npm run build && node tests/e2e/layout.cjs && node tests/e2e/blindspot.cjs && node tests/e2e/full.cjs && node tests/e2e/contribute.cjs",
+    "test:all": "npm run typecheck && npm test && npm run test:backend && npm run test:e2e",
+    "backend:up": "scripts/remote.sh docker compose up -d --build firestore backend backend-e2e",
+    "backend:debug": "scripts/remote.sh docker compose -f compose.yaml -f compose.debug.yaml up -d --build firestore backend",
+    "backend:down": "scripts/remote.sh docker compose down",
+    "backend:logs": "scripts/remote.sh docker compose logs -f backend",
+    "backend:export": "scripts/remote.sh docker compose run --rm export",
+    "check:firestore": "scripts/remote.sh docker compose run --rm backend-test",
+    "check:e2e": "scripts/remote.sh docker compose run --rm e2e",
+    "remote": "scripts/remote.sh"
   },
   "engines": {
     "node": ">=20.19"

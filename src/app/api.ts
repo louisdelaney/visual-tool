@@ -12,9 +12,13 @@ const PRIVATE: RequestInit = { credentials: "omit", referrerPolicy: "no-referrer
 
 export const API_URL: string = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
 
-export async function postSession(data: SessionExport): Promise<void> {
+/** Sends a session. Resolves the id the backend stored it under, which its history and the export use. */
+export async function postSession(data: SessionExport): Promise<string> {
   const r = await fetch(`${API_URL}/sessions`, { ...PRIVATE, method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const id: unknown = (await r.json().catch(() => null))?.submission_id;
+  if (typeof id !== "string" || !id) throw new Error("The backend didn't say what it stored the session as");
+  return id;
 }
 
 export async function fetchGroups(testVersion: number, signal?: AbortSignal): Promise<GroupsResponse> {

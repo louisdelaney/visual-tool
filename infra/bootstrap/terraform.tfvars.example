@@ -1,0 +1,8 @@
+project_id      = "my-visual-tool"
+billing_account = "ABCDEF-123456-7890AB"
+region          = "europe-west2"
+
+# Only to have Terraform create the project too (set org_id or folder_id, or neither
+# for a personal account):
+# create_project = true
+# org_id         = "123456789012"

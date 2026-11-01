@@ -1,0 +1,9 @@
+project_id        = "my-visual-tool"
+region            = "europe-west2"
+billing_account   = "ABCDEF-123456-7890AB"
+github_repository = "owner/visual-tool"
+pages_origin      = "https://owner.github.io"
+name_prefix       = "visual-tool"
+budget_amount     = 5
+budget_currency   = "USD" # must match the billing account's currency
+alert_email       = "you@example.com"

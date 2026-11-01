@@ -129,9 +129,3 @@
   font: 500 15px var(--font-data);
   color: var(--stage-dim);
 }
-
-.stage-note.prompt {
-  top: 38%;
-  font: 700 20px var(--font-ui);
-  color: var(--stage-ink);
-}

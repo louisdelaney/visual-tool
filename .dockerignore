@@ -1,0 +1,14 @@
+# Keeps the Docker build context small and free of local files. The context is the repository
+# root (see backend/Dockerfile and compose.yaml).
+node_modules
+**/node_modules
+dist
+**/dist
+data
+**/data
+tests/output
+.git
+infra
+.github
+.claude
+.env*

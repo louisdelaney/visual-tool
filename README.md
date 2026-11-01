@@ -15,7 +15,7 @@ npm run dev        # local dev server at http://localhost:5173, reloads on save
 
 Open it in a desktop browser (tested in Chrome). You need a laptop or desktop with a keyboard, a bank card to measure the screen, and about 10 minutes in a dim room. The page walks through:
 
-1. **Contribute**: choose whether to send your results anonymously when you finish. If you say yes, a few questions follow: an optional pseudonym to link tests over time, any visual perceptual disorder, psychedelic use, medications and notes. If you say no, nothing is sent.
+1. **Contribute**: choose whether to send your results anonymously when you finish. If you say yes, a few questions follow: an optional pseudonym to link tests over time, any visual perceptual disorder, psychedelic use (how often and which ones), medications and notes. If you say no, nothing is sent.
 2. **Set up**: examples of both tasks and what you need.
 3. **Screen size**: match an on-screen outline to an ID-1 card.
 4. **Viewing distance**: a blind-spot check that turns where a moving dot vanishes into a distance, so stimuli can be drawn in degrees of visual angle.
@@ -63,7 +63,7 @@ Four endpoints under `VITE_API_URL`. The page calls the first three from the bro
 ```
 
 - Both groups are stored sessions with `contribution.answers.perceptual_disorder` = `"no"`, the requested `test_version`, and both tasks `"complete"` in `results`.
-- `control` also has `psychedelics` = `"no"`; `psychedelics` has `psychedelics` = `"yes"`. Sessions answering `"prefer-not-to-say"` are in neither group.
+- `control` also has `psychedelics` = `"no"`; `psychedelics` has `psychedelics` = `"yes"`. Sessions answering `"prefer-not-to-say"`, or leaving the question unanswered (`null`), are in neither group.
 - The measures come from `results.motion.threshold_pct`, `results.form.threshold_pct` and `results.motion_minus_form.sensitivity`.
 - `n` is the number of people in the group. While it's under 30, return `"measures": null`: too few to mean much, and too few to keep individuals hidden. The page enforces the same minimum, per group.
 - Return only these numbers, never individual sessions or answers.
@@ -81,7 +81,7 @@ The page validates the response and shows nothing from one that doesn't match (s
       "started_at": "2026-10-18T19:30:00Z",
       "test_version": 1,
       "values": { "motion_threshold_pct": 10.2, "form_threshold_pct": 21.0, "motion_minus_form": 0.05043 },
-      "medications": "Lamotrigine 50 mg",
+      "medications": ["Lamotrigine"],
       "notes": null
     }
   ]
@@ -90,18 +90,20 @@ The page validates the response and shows nothing from one that doesn't match (s
 
 Return an empty `sessions` list for a pseudonym nobody has used; the page's "Generate one" button relies on that to avoid handing out a pseudonym that's taken.
 
-`GET /export`: the public download of every stored session, as a crude raw dump. It's for people who want the data, not for the page, which doesn't call it.
+`GET /export`: the public download of every stored session, as a crude raw dump. It's for people who want the data; the page links to it from the Data page but never fetches it. It redirects (302) to `sessions.json` in a public Cloud Storage bucket, rebuilt nightly by the export job:
 
 ```json
 {
-  "exported_at": "2026-10-31T12:00:00Z",
-  "sessions": [ { "schema": "visual-tool/session", "schema_version": 1, "…": "…" } ]
+  "exported_at": "2026-10-31T03:00:00Z",
+  "schema": "visual-tool/export",
+  "total_sessions": 412,
+  "sessions": [ … ]
 }
 ```
 
-- `sessions` holds every stored document exactly as `POST /sessions` stored it, from every test version and every answer, including people who reported a disorder. This is the "anyone can download" the Privacy and risks page promises.
-- Serve it with `Content-Disposition: attachment; filename="visual-tool-sessions.json"`.
-- Caching the file and rebuilding it now and then, rather than building it on every request, is fine. So is coarsening `started_at` and the trial `at` times (see below).
+- The file is gzip-encoded on the wire (browsers and `curl --compressed` unpack it) and served as a download. It holds every session in order of arrival, exactly as `POST /sessions` stored it, plus its `submission_id` and `received_at`, from every test version and every answer, including people who reported a disorder. This is the "anyone can download" the Privacy and risks page promises.
+- Times are coarsened: `started_at`, `finished_at` and `received_at` are rounded to the hour, and each trial's `at` is dropped (see below).
+- The data is up to a day old.
 
 ### Privacy rules the backend must keep
 
@@ -110,7 +112,7 @@ The Privacy and risks page promises these, so the backend has to keep them:
 - **No IP addresses or request headers stored**, with sessions or anywhere else. That includes `X-Forwarded-For`, and the `User-Agent`, `Sec-CH-UA` and `Accept-Language` headers browsers add to every request: the page sends a coarse browser description inside the session, and that's all that should be kept.
 - **No request logs kept.** Cloud Run writes request logs, with the caller's IP, by default: exclude them (a Cloud Logging exclusion on `run.googleapis.com/requests` for the service, in Terraform). Application logs record errors only, never request bodies, pseudonyms or headers.
 - **Nothing beyond the session is stored**: no cookies, no analytics, no extra fields.
-- **The public download** should be the stored sessions as they are; consider dropping or coarsening `started_at` times and the trial `at` times, which can help single someone out.
+- **The public download** is the stored sessions as they are, except that `started_at`, `finished_at` and `received_at` are rounded to the hour and the trial `at` times are dropped: exact times can help single someone out and aren't needed to analyse the results.
 
 If any of this changes, update `src/pages/PrivacyPage.tsx` to match.
 
@@ -139,6 +141,41 @@ The stage's markup lives in `index.html`, outside the React root. The pages hand
 `npm run build` writes the static site to `dist/`, with relative paths so it works under any folder. `.github/workflows/pages.yml` builds and publishes it. It runs only when started from the Actions tab until Pages is switched on: in the repository's Settings → Pages, set Source to GitHub Actions. The backend URL comes from the repository variable `API_URL`.
 
 The page contacts nothing but its own site and the backend. Fonts are bundled, the built page carries a Content Security Policy that makes the browser block any other server (added in `vite.config.ts`), and requests send no referrer or cookies. The layout test fails if the page requests anything from another origin. GitHub, as the host, still sees visitors' IP addresses in its own server logs, which the Privacy and risks page says.
+
+### The backend
+
+`backend/` is the service the API section describes: Node 22 and TypeScript, the four endpoints on `node:http`, a store, and a nightly job that writes the public export. It imports the session schema, group rules and pseudonym handling from `src/app/`, so it can't drift from the page. `backend/README.md` has the details; `CONTRIBUTING.md` has the contributor's view.
+
+```
+backend/
+  src/validate.ts     Checks a posted session: schema, plausible timings and trial counts, capped text.
+  src/summary.ts      The small row /history reads, and which comparison group a session joins.
+  src/stats.ts        Percentiles from the per-group value arrays; the /groups response.
+  src/store.ts        What a store does.  src/db.ts  Firestore.  src/db-memory.ts  In memory, optionally a JSON file.
+  src/config.ts       Which store and export sink the environment asks for.
+  src/routes.ts       The four endpoints.  src/server.ts  CORS, limits, errors, the server.
+  src/jobs/export.ts  The export job: one gzipped JSON file, sessions.json, to the bucket or EXPORT_DIR.
+  tests/              Vitest, on the memory store; the Firestore test runs only when FIRESTORE_EMULATOR_HOST is set.
+infra/                Terraform for everything on Google Cloud (see infra/README.md).
+```
+
+Each session is stored three ways so that nothing the page asks for grows with the dataset: `/groups` reads one document of flat value arrays, `/history` reads one person's rows, and only the export job reads the raw sessions. Rate limits are a token bucket per instance, not per caller: the backend never looks at who is asking.
+
+Two stores, chosen by `BACKEND`: `firestore` (the default when `GOOGLE_CLOUD_PROJECT` is set) and `memory`, which needs no Google account and keeps everything in `DATA_FILE` if one is set. Memory mode refuses to run on Cloud Run. The export goes to the bucket named by `EXPORT_BUCKET`, or without one to the folder `EXPORT_DIR`, which the server then serves itself at `/export/*`.
+
+```sh
+cd backend
+npm install
+npm test           # unit tests
+npm run dev        # memory mode on :8080, persisted to backend/data/sessions.json, for the site at :5173
+npm run export     # in memory mode, writes the export files to backend/data/export
+```
+
+With `VITE_API_URL=http://localhost:8080` in `.env.local`, `npm run dev` at the top level runs the whole thing locally. It has to be the dev server, not `vite preview`: a built page's Content Security Policy only allows the API origin that was set when it was built.
+
+Hosting: Cloud Run (0–2 instances, so the bill is bounded), Firestore in Native mode, a public bucket for the export, Cloud Scheduler for the nightly job, a Cloud Logging exclusion for request logs, and a $5 budget alert, all in `infra/`. Every resource is named from the `name_prefix` variable (`<prefix>-api`, `<prefix>-export` and so on), so a fork deploys its own copy into its own project; `infra/README.md` has the one-time setup, ending with `infra/set-github-vars.sh`, which copies the Terraform outputs into the repository variables that `.github/workflows/deploy-backend.yml` reads. That workflow builds the container from `backend/Dockerfile` on GitHub's runners and deploys it on every push to `main` that touches the backend, authenticating with Workload Identity Federation rather than a stored key, and only from this repository's `main`.
+
+The repository root has a `compose.yaml` that runs the backend against a Firestore emulator, and `scripts/remote.sh` runs the same commands on a build server; `CONTRIBUTING.md` explains both. Neither is needed to work on the project.
 
 ## Method
 

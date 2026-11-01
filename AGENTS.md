@@ -41,5 +41,5 @@ Don't add anything that breaks these promises. If a change touches what's collec
 
 - Everyone takes the same test, with no configurable timings, sizes or modes, so results are consistent across computers.
 - Any change to stimuli, timing or the staircase is a new test: bump `TEST_VERSION` in `src/core/protocol.ts`.
-- A change to the exported JSON shape bumps `schema_version` in `src/app/schema.ts`.
+- A change to the exported JSON shape bumps `schema_version` in `src/app/schema.ts`. Exception: until the site is first deployed, the schema is still being defined, so it stays at 1 and shape changes are made in place (still update the type, its test and the backend validation). Remove this exception at the first deploy.
 - Changes to `src/core/` or `src/stage/` need the end-to-end tests run (`npm run test:e2e`).

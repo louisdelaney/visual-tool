@@ -11,11 +11,14 @@ import { ResultsPage } from "./pages/ResultsPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { PrivacyPage } from "./pages/PrivacyPage";
 import { ReferencesPage } from "./pages/ReferencesPage";
+import { DataPage } from "./pages/DataPage";
 
 function CurrentPage() {
   const { view, calib, distance, session, historyPseudonym } = useAppState();
   switch (view) {
-    case "contribute": return <ContributePage />;
+    // One element for both pages of step 1, so its draft answers carry over between them.
+    case "contribute":
+    case "questions": return <ContributePage part={view} />;
     case "setup": return <SetupPage />;
     case "screen": return <ScreenPage calib={calib} />;
     case "distance": return <DistancePage calib={calib} distance={distance} />;
@@ -25,6 +28,7 @@ function CurrentPage() {
     case "history": return <HistoryPage key={historyPseudonym} initialPseudonym={historyPseudonym} />;
     case "privacy": return <PrivacyPage />;
     case "references": return <ReferencesPage />;
+    case "data": return <DataPage />;
   }
 }
 

@@ -1,0 +1,62 @@
+# Builds the backend container image (it compiles the code itself, from the repository root)
+# and deploys it to Google Cloud Run: the API service and the export job.
+#
+# It deploys only what Terraform created in infra/; it never creates infrastructure. It needs
+# these repository variables (Settings → Secrets and variables → Actions → Variables), which
+# infra/set-github-vars.sh sets from the Terraform outputs; no names are written in this file:
+#   GCP_PROJECT      the Google Cloud project ID
+#   GCP_REGION       the region
+#   SERVICE_NAME     the Cloud Run API service
+#   EXPORT_JOB_NAME  the Cloud Run export job
+#   ARTIFACT_REPO    the Artifact Registry repository path to push the image to
+#   WIF_PROVIDER     the Workload Identity Federation provider, so no keys are stored in GitHub
+#   DEPLOYER_SA      the service account this workflow signs in as
+# (The script also sets API_URL, which the site's own build uses.)
+# Until WIF_PROVIDER is set the job is skipped, so pushes made before the infrastructure
+# exists do not fail.
+#
+# The job writes no logs about requests; it only builds and deploys.
+name: Deploy backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - backend/**
+      - src/app/**
+      - src/core/**
+      - .github/workflows/deploy-backend.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: vars.WIF_PROVIDER != ''
+    runs-on: ubuntu-latest
+    env:
+      REGION: ${{ vars.GCP_REGION }}
+      IMAGE: ${{ vars.ARTIFACT_REPO }}/api:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Let Docker push to Artifact Registry
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+      - name: Build and push the image
+        run: |
+          docker build -f backend/Dockerfile -t "$IMAGE" .
+          docker push "$IMAGE"
+      - name: Deploy the API
+        run: gcloud run deploy "${{ vars.SERVICE_NAME }}" --image "$IMAGE" --region "$REGION" --project "${{ vars.GCP_PROJECT }}" --quiet
+      - name: Update the export job
+        run: gcloud run jobs update "${{ vars.EXPORT_JOB_NAME }}" --image "$IMAGE" --region "$REGION" --project "${{ vars.GCP_PROJECT }}" --quiet

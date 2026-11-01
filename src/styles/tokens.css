@@ -1,20 +1,23 @@
-/* Design tokens: colours, type and the black stage. Light by default; dark follows the system or data-theme. */
+/* Design tokens: colours, type and the black stage. Dark only, for everyone: bright white pages are
+   much more distressing than dark ones for people with visual perceptual disorders. */
 :root{
   /* Layout: one 780px protocol column. A masthead carries the six real stages as a stepper; each stage gets a single working panel. The tasks themselves run on a full-viewport black stage, as in the lab. */
-  --bg:#ECEFED;
-  --surface:#FBFCFB;
-  --surface-2:#F1F4F2;
-  --ink:#121715;
-  --ink-2:#47514D;
-  --muted:#6C7671;
-  --rule:#D4DAD6;
-  --grid:#E3E7E4;
-  --axis:#BCC5C0;
-  --accent:#8A5200;
-  --accent-ink:#FFFFFF;
-  --accent-wash:#F6E8D0;
-  --series-motion:#2A78D6;
-  --series-form:#EB6834;
+  --bg:#0C0F0E;
+  --surface:#151918;
+  --surface-2:#1B201E;
+  --ink:#E8EDEA;
+  --ink-2:#B3BCB7;
+  --muted:#88928D;
+  --rule:#2A312E;
+  --grid:#232926;
+  --axis:#3A423E;
+  --accent:#FFB547;
+  --accent-ink:#1B1203;
+  --accent-wash:#3A2B12;
+  --field-border:#6B7570;
+  --error:#FF8F7A;
+  --series-motion:#3987E5;
+  --series-form:#D95926;
   --warning:#FAB219;
   --stage:#000000;
   --stage-ink:#EDEDED;
@@ -31,42 +34,5 @@
   --t-md:19px;
   --t-lg:24px;
   --t-xl:44px;
-}
-
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#0C0F0E;
-    --surface:#151918;
-    --surface-2:#1B201E;
-    --ink:#E8EDEA;
-    --ink-2:#B3BCB7;
-    --muted:#88928D;
-    --rule:#2A312E;
-    --grid:#232926;
-    --axis:#3A423E;
-    --accent:#FFB547;
-    --accent-ink:#1B1203;
-    --accent-wash:#3A2B12;
-    --series-motion:#3987E5;
-    --series-form:#D95926;
-    color-scheme:dark;
-  }
-}
-
-:root[data-theme="dark"]{
-  --bg:#0C0F0E;
-  --surface:#151918;
-  --surface-2:#1B201E;
-  --ink:#E8EDEA;
-  --ink-2:#B3BCB7;
-  --muted:#88928D;
-  --rule:#2A312E;
-  --grid:#232926;
-  --axis:#3A423E;
-  --accent:#FFB547;
-  --accent-ink:#1B1203;
-  --accent-wash:#3A2B12;
-  --series-motion:#3987E5;
-  --series-form:#D95926;
   color-scheme:dark;
 }
