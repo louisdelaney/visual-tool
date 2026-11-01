@@ -95,8 +95,8 @@ async function storedSession(id, dataFile) {
     if (!REMOTE_API) local = await localBackend(tmp, dataFile);
     const API = REMOTE_API || local.url;
     log(REMOTE_API ? `contribute: backend ${API}, emulator ${FIRESTORE}, database ${DATABASE}` : `contribute: backend here, in memory, at ${API}`);
-    await waitFor(`${API}/groups?test_version=1`);
-    const before = await (await fetch(`${API}/groups?test_version=1`)).json();
+    await waitFor(`${API}/groups`);
+    const before = await (await fetch(`${API}/groups`)).json();
 
     // The site, built with this backend's address (the build's Content Security Policy allows only it).
     const dist = path.join(tmp, "dist");
@@ -211,7 +211,7 @@ async function storedSession(id, dataFile) {
     // The backend serves it back: the person's history, and one more in the used-psychedelics group.
     const history = await (await fetch(`${API}/history?pseudonym=${PSEUDONYM}`)).json();
     check(history.sessions?.length === 1 && history.sessions[0].submission_id === id, `history for ${PSEUDONYM} isn't this one session`);
-    const after = await (await fetch(`${API}/groups?test_version=1`)).json();
+    const after = await (await fetch(`${API}/groups`)).json();
     const complete = exported.results.motion?.status === "complete" && exported.results.form?.status === "complete";
     log(`contribute: group sizes: control ${before.groups.control.n} → ${after.groups.control.n}, used psychedelics ${before.groups.psychedelics.n} → ${after.groups.psychedelics.n} (both thresholds reached: ${complete})`);
     check(after.groups.control.n === before.groups.control.n, "the control group changed");

@@ -11,6 +11,9 @@ locals {
     "monitoring.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "storage.googleapis.com",
+    "pubsub.googleapis.com",
+    "workflows.googleapis.com",
+    "eventarc.googleapis.com",
   ]
 }
 

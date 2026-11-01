@@ -15,10 +15,8 @@ resource "google_monitoring_notification_channel" "budget_email" {
   depends_on = [google_project_service.apis]
 }
 
-# This only emails. When it fires, stop the spending by hand: remove the allUsers
-# invoker binding in run.tf (every request is then refused before it can start an
-# instance) or set ingress to INGRESS_TRAFFIC_INTERNAL_ONLY, and apply. Nothing
-# happens automatically.
+# Emails at 50%, 90% and 100%, and publishes every update to the shutoff topic, which
+# closes the API once the month's cost reaches the budget (shutoff.tf).
 resource "google_billing_budget" "monthly" {
   billing_account = var.billing_account
   display_name    = "${local.display_name} monthly budget"
@@ -48,6 +46,7 @@ resource "google_billing_budget" "monthly" {
 
   all_updates_rule {
     monitoring_notification_channels = [google_monitoring_notification_channel.budget_email.id]
+    pubsub_topic                     = google_pubsub_topic.shutoff.id
     disable_default_iam_recipients   = false
   }
 

@@ -3,6 +3,7 @@
 import type { IncomingMessage } from "node:http";
 import type { HistoryResponse } from "../../src/app/history";
 import { normalizePseudonym } from "../../src/app/history";
+import { TEST_VERSION } from "../../src/core/protocol";
 import type { Store } from "./store";
 import { HttpError, readBody } from "./http";
 import { groupsResponse } from "./stats";
@@ -18,10 +19,12 @@ export interface Reply {
 }
 
 const MAX_PSEUDONYM = 60;
+/** No pseudonym is expected to have more sessions than this; it bounds what one lookup reads. */
+const MAX_HISTORY = 50;
 const GROUPS_CACHE_MS = 60_000;
 
 export class Routes {
-  private groupsCache = new Map<number, { at: number; body: unknown }>();
+  private groupsCache: { at: number; body: unknown } | null = null;
 
   constructor(private readonly db: Store, private readonly exportUrl: string) {}
 
@@ -36,18 +39,17 @@ export class Routes {
     const v = validateSession(body);
     if (!v.ok) throw new HttpError(400, v.reason);
     const id = await this.db.storeSession(v.session);
-    this.groupsCache.delete(v.session.test_version);
+    this.groupsCache = null;
     return { status: 201, body: { submission_id: id } };
   }
 
-  async getGroups(url: URL): Promise<Reply> {
-    const tv = Number(url.searchParams.get("test_version"));
-    if (!Number.isInteger(tv) || tv < 1) throw new HttpError(400, "test_version must be a positive integer");
-    const cached = this.groupsCache.get(tv);
+  /** Always the current test version: there is no way to ask for another. */
+  async getGroups(): Promise<Reply> {
+    const cached = this.groupsCache;
     const now = Date.now();
     if (cached && now - cached.at < GROUPS_CACHE_MS) return { status: 200, body: cached.body, headers: { "Cache-Control": "public, max-age=300" } };
-    const body = groupsResponse(tv, await this.db.readGroups(tv));
-    this.groupsCache.set(tv, { at: now, body });
+    const body = groupsResponse(TEST_VERSION, await this.db.readGroups(TEST_VERSION));
+    this.groupsCache = { at: now, body };
     return { status: 200, body, headers: { "Cache-Control": "public, max-age=300" } };
   }
 
@@ -55,7 +57,7 @@ export class Routes {
     const p = normalizePseudonym(url.searchParams.get("pseudonym") ?? "");
     if (!p) throw new HttpError(400, "pseudonym is required");
     if (p.length > MAX_PSEUDONYM) throw new HttpError(400, "pseudonym is too long");
-    const rows = await this.db.historyFor(p);
+    const rows = await this.db.historyFor(p, MAX_HISTORY);
     const body: HistoryResponse = { pseudonym: p, sessions: rows.map(historyEntry) };
     return { status: 200, body };
   }

@@ -43,7 +43,7 @@ Four endpoints under `VITE_API_URL`. The page calls the first three from the bro
 
 `POST /sessions`: body is one session in the current schema (`schema_version` 1, the `SessionExportV1` type in `src/app/schema.ts`). Store it as one document. Reply with any 2xx status; anything else counts as a failure and the page offers a retry. Reject bodies over about 200 KB, a `schema` other than `"visual-tool/session"`, or a `schema_version` it doesn't know.
 
-`GET /groups?test_version=N`: summary statistics for each comparison group on that test version.
+`GET /groups`: summary statistics for each comparison group on the current test version (`TEST_VERSION`). There is no way to ask for another version, and `POST /sessions` only accepts the current one.
 
 ```json
 {
@@ -62,7 +62,7 @@ Four endpoints under `VITE_API_URL`. The page calls the first three from the bro
 }
 ```
 
-- Both groups are stored sessions with `contribution.answers.perceptual_disorder` = `"no"`, the requested `test_version`, and both tasks `"complete"` in `results`.
+- Both groups are stored sessions with `contribution.answers.perceptual_disorder` = `"no"`, the current `test_version`, and both tasks `"complete"` in `results`.
 - `control` also has `psychedelics` = `"no"`; `psychedelics` has `psychedelics` = `"yes"`. Sessions answering `"prefer-not-to-say"`, or leaving the question unanswered (`null`), are in neither group.
 - The measures come from `results.motion.threshold_pct`, `results.form.threshold_pct` and `results.motion_minus_form.sensitivity`.
 - `n` is the number of people in the group. While it's under 30, return `"measures": null`: too few to mean much, and too few to keep individuals hidden. The page enforces the same minimum, per group.
@@ -70,7 +70,7 @@ Four endpoints under `VITE_API_URL`. The page calls the first three from the bro
 
 The page validates the response and shows nothing from one that doesn't match (see `src/app/comparison.ts`).
 
-`GET /history?pseudonym=P`: every session sent with that pseudonym, for the "User results" page. Pseudonyms are matched in stored form: trimmed, lower case, inner spaces collapsed (the page sends them that way). There's no password: the dataset is public, and the pseudonym is optional.
+`GET /history?pseudonym=P`: every session sent with that pseudonym (at most 50, oldest first), for the "User results" page. Pseudonyms are matched in stored form: trimmed, lower case, inner spaces collapsed (the page sends them that way). There's no password: the dataset is public, and the pseudonym is optional.
 
 ```json
 {
@@ -159,7 +159,7 @@ backend/
 infra/                Terraform for everything on Google Cloud (see infra/README.md).
 ```
 
-Each session is stored three ways so that nothing the page asks for grows with the dataset: `/groups` reads one document of flat value arrays, `/history` reads one person's rows, and only the export job reads the raw sessions. Rate limits are a token bucket per instance, not per caller: the backend never looks at who is asking.
+Each session is stored three ways so that nothing the page asks for grows with the dataset: `/groups` reads one document of flat value arrays, `/history` reads one person's rows, and only the export job reads the raw sessions. Rate limits are a token bucket per instance, not per caller: the backend never looks at who is asking. Per instance and minute: 10 posts, 60 history lookups, and 600 other GETs. A history lookup returns at most 50 sessions.
 
 Two stores, chosen by `BACKEND`: `firestore` (the default when `GOOGLE_CLOUD_PROJECT` is set) and `memory`, which needs no Google account and keeps everything in `DATA_FILE` if one is set. Memory mode refuses to run on Cloud Run. The export goes to the folder `EXPORT_DIR`; without an `EXPORT_URL`, the server serves it itself at `/export/*`.
 
@@ -173,7 +173,7 @@ npm run export     # in memory mode, writes the export files to backend/data/exp
 
 With `VITE_API_URL=http://localhost:8080` in `.env.local`, `npm run dev` at the top level runs the whole thing locally. It has to be the dev server, not `vite preview`: a built page's Content Security Policy only allows the API origin that was set when it was built.
 
-Hosting: Cloud Run (0–2 instances, so the bill is bounded), Firestore in Native mode, a Cloud Logging exclusion for request logs, and a $5 budget alert, all in `infra/`. The nightly export runs in GitHub Actions (`.github/workflows/export.yml`), signed in as a read-only Firestore account, and is published as a release file, so its downloads cost nothing. GitHub turns scheduled workflows off after 60 days without a commit; re-enable it on the Actions tab if the export stops refreshing. Every resource is named from the `name_prefix` variable (`<prefix>-api`, `<prefix>-deployer` and so on), so a fork deploys its own copy into its own project; `infra/README.md` has the one-time setup, ending with `infra/set-github-vars.sh`, which copies the Terraform outputs into the repository variables that `.github/workflows/deploy-backend.yml` and `export.yml` read. That workflow builds the container from `backend/Dockerfile` on GitHub's runners and deploys it on every push to `main` that touches the backend, authenticating with Workload Identity Federation rather than a stored key, and only from this repository's `main`.
+Hosting: Cloud Run (0–2 instances, so the bill is bounded), Firestore in Native mode, a Cloud Logging exclusion for request logs, and a $5 budget that emails and, at 100%, closes the API automatically, all in `infra/`. The API stays closed to the internet until `api_public = true` is applied. The nightly export runs in GitHub Actions (`.github/workflows/export.yml`), signed in as a read-only Firestore account, and is published as a release file, so its downloads cost nothing. GitHub turns scheduled workflows off after 60 days without a commit; re-enable it on the Actions tab if the export stops refreshing. Every resource is named from the `name_prefix` variable (`<prefix>-api`, `<prefix>-deployer` and so on), so a fork deploys its own copy into its own project; `infra/README.md` has the one-time setup, ending with `infra/set-github-vars.sh`, which copies the Terraform outputs into the repository variables that `.github/workflows/deploy-backend.yml` and `export.yml` read. That workflow builds the container from `backend/Dockerfile` on GitHub's runners and deploys it on every push to `main` that touches the backend, authenticating with Workload Identity Federation rather than a stored key, and only from this repository's `main`.
 
 The repository root has a `compose.yaml` that runs the backend against a Firestore emulator, and `scripts/remote.sh` runs the same commands on a build server; `CONTRIBUTING.md` explains both. Neither is needed to work on the project.
 

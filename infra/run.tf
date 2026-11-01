@@ -5,9 +5,11 @@ locals {
 }
 
 resource "google_cloud_run_v2_service" "api" {
-  name                = local.service_name
-  location            = var.region
-  ingress             = "INGRESS_TRAFFIC_ALL"
+  name     = local.service_name
+  location = var.region
+  # Closed (internal only) unless api_public is true; see variables.tf. The budget shutoff in
+  # shutoff.tf closes it too, and the next apply with api_public = true reopens it.
+  ingress             = var.api_public ? "INGRESS_TRAFFIC_ALL" : "INGRESS_TRAFFIC_INTERNAL_ONLY"
   deletion_protection = false # stateless: CI rebuilds it, and the data lives in Firestore
 
   template {

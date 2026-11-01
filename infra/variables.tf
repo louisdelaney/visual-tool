@@ -37,6 +37,12 @@ variable "region" {
   default     = "europe-west2"
 }
 
+variable "api_public" {
+  description = "Whether the API accepts requests from the internet. Off by default: set it to true, and apply, to open the site's backend."
+  type        = bool
+  default     = false
+}
+
 variable "billing_account" {
   description = "Billing account ID (ABCDEF-123456-7890AB) the budget alert is attached to."
   type        = string

@@ -24,15 +24,17 @@ export interface ServerOptions {
   db: Store;
   /** A folder to serve read-only at /export/* (exports written without a bucket), or none. */
   exportDir?: string;
-  /** Per instance, per minute. */
+  /** Per instance, per minute. History has its own limit because each lookup reads up to 50 rows. */
   postsPerMinute?: number;
   getsPerMinute?: number;
+  historyPerMinute?: number;
 }
 
-export function createApp({ allowedOrigin, exportUrl, db, exportDir, postsPerMinute = 60, getsPerMinute = 600 }: ServerOptions) {
+export function createApp({ allowedOrigin, exportUrl, db, exportDir, postsPerMinute = 10, getsPerMinute = 600, historyPerMinute = 60 }: ServerOptions) {
   const routes = new Routes(db, exportUrl);
   const posts = new TokenBucket(postsPerMinute);
   const gets = new TokenBucket(getsPerMinute);
+  const histories = new TokenBucket(historyPerMinute);
   const files = exportDir ? resolve(exportDir) : null;
 
   /** The name of the route a path belongs to, or "unmatched". Never the path itself. */
@@ -49,9 +51,12 @@ export function createApp({ allowedOrigin, exportUrl, db, exportDir, postsPerMin
     }
     if (method === "GET" || method === "HEAD") {
       if (url.pathname === "/healthz") return { status: 200, body: { ok: true } };
+      if (url.pathname === "/history") {
+        if (!histories.take()) throw new HttpError(429, "too many requests");
+        return routes.getHistory(url);
+      }
       if (!gets.take()) throw new HttpError(429, "too many requests");
-      if (url.pathname === "/groups") return routes.getGroups(url);
-      if (url.pathname === "/history") return routes.getHistory(url);
+      if (url.pathname === "/groups") return routes.getGroups();
       if (url.pathname === "/export") return routes.getExport();
       if (files && url.pathname.startsWith("/export/")) return serveFile(files, url.pathname.slice("/export/".length));
     }
