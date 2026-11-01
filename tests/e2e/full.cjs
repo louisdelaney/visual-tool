@@ -138,7 +138,7 @@ const OLD_KEY = "form-motion-coherence/v1";
     await p.screenshot({ path: path.join(OUT, `full-results-360-${protocol}.png`), fullPage: true });
     await p.setViewportSize({ width: 1440, height: 900 }); await sleep(300);
 
-    await p.click("#copy-json"); await sleep(250);
+    await p.click("#raw > summary"); await sleep(250);
     const data = JSON.parse(await p.$eval("#raw-json", el => el.value));
     check(data.contribution && data.contribution.contribute === false && !data.contribution.answers, `[${protocol}] choosing No should record no answers`);
     const by = {};

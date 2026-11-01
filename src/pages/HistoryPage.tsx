@@ -3,11 +3,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { TEST_VERSION } from "../core";
 import { API_URL, fetchGroups, fetchHistory } from "../app/api";
-import { SAMPLE_GROUPS, shownMeasures, type GroupsResponse } from "../app/comparison";
+import { GROUPS, SAMPLE_GROUPS, sensitivities, shownMeasures, type GroupsResponse } from "../app/comparison";
 import { normalizePseudonym, sampleHistory, type HistoryEntry, type HistoryResponse } from "../app/history";
 import { fmt } from "../app/format";
 import { back } from "../app/flow";
 import { HistoryChart } from "../components/HistoryChart";
+import { SensitivityBars } from "../components/SensitivityBars";
 
 type Load =
   | { state: "idle" }
@@ -60,7 +61,7 @@ export function HistoryPage({ initialPseudonym }: { initialPseudonym: string }) 
   // Open straight to a pseudonym passed from the Results page.
   useEffect(() => { if (initialPseudonym) void lookUp(initialPseudonym); }, [initialPseudonym]);
 
-  // The control group's range, drawn behind the charts once the group is big enough.
+  // The groups, for the latest session's bars and the control group's range behind the charts, once each is big enough.
   useEffect(() => {
     if (usingSample()) { setGroups(SAMPLE_GROUPS); return; }
     if (!API_URL) return;
@@ -71,6 +72,7 @@ export function HistoryPage({ initialPseudonym }: { initialPseudonym: string }) 
 
   const onSubmit = (e: FormEvent): void => { e.preventDefault(); void lookUp(pseudonym); };
   const measures = groups ? shownMeasures(groups.groups.control) : null;
+  const shown = groups ? GROUPS.flatMap(g => { const m = shownMeasures(groups.groups[g]); return m ? [{ group: g, n: groups.groups[g].n, measures: m }] : []; }) : [];
 
   return (
     <section className="view view-stack" data-view="history" aria-labelledby="history-h">
@@ -101,6 +103,10 @@ export function HistoryPage({ initialPseudonym }: { initialPseudonym: string }) 
             <h3>{load.history.pseudonym}: {load.history.sessions.length} {load.history.sessions.length === 1 ? "session" : "sessions"}</h3>
             {current.length > 0 ? (
               <>
+                <h4>Latest session</h4>
+                <p className="hint">Sensitivity is 1 ÷ threshold in percent: higher means less organised signal was needed. {shown.length > 0 ? "Each group's bars are its median, and the line across a bar covers the middle half of its results." : ""}</p>
+                <SensitivityBars own={sensitivities(current[current.length - 1]!.values)} groups={shown} ownSub={date(current[current.length - 1]!.started_at)} />
+                <h4>Over time</h4>
                 <p className="hint">Lower thresholds mean less organised signal was needed. {measures ? "The shaded band is the middle half of the control group (people who said they have no visual perceptual disorder and have never used psychedelic drugs), and the dashed line their median." : ""}</p>
                 <div className="charts">
                   <HistoryChart measure="motion_threshold_pct" title="Motion threshold" series="motion" sessions={current} controls={measures?.motion_threshold_pct ?? null} />

@@ -1,7 +1,7 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { parseGroups } from "../../src/app/comparison";
+import { MIN_GROUP, parseGroups } from "../../src/app/comparison";
 import { parseHistory } from "../../src/app/history";
 import { TEST_VERSION } from "../../src/core/protocol";
 import { MemoryStore } from "../src/db-memory";
@@ -146,16 +146,16 @@ describe("GET /groups", () => {
     expect(spy).toHaveBeenCalledTimes(2);
   });
 
-  it("shows a posted session in the groups: hidden below 30, summarised at 30", async () => {
+  it(`shows a posted session in the groups: hidden below ${MIN_GROUP}, summarised at ${MIN_GROUP}`, async () => {
     const db = new MemoryStore();
-    await storeControls(db, 29);
+    await storeControls(db, MIN_GROUP - 1);
     const { base } = await start(db);
     const groups = async () => parseGroups(await (await fetch(`${base}/groups`)).json())!.groups;
 
-    expect((await groups()).control).toEqual({ n: 29, measures: null });
+    expect((await groups()).control).toEqual({ n: MIN_GROUP - 1, measures: null });
     expect((await post(base, withThresholds(40, 50))).status).toBe(201);
     const control = (await groups()).control;
-    expect(control.n).toBe(30);
+    expect(control.n).toBe(MIN_GROUP);
     expect(control.measures).not.toBeNull();
   });
 });

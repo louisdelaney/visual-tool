@@ -1,10 +1,8 @@
-// The session as JSON (what's saved, copied and sent) and its trials as CSV.
-import { CALIBRATION, Core, PROTOCOL } from "../core";
-import type { Session, SessionContribution, Trial } from "./types";
+// The session as JSON (what's saved and sent), and a short summary of what the results page shows.
+import { CALIBRATION, PROTOCOL } from "../core";
+import type { Session, SessionContribution, TaskName, TaskResult } from "./types";
 import { round } from "./format";
 import { SCHEMA_NAME, SCHEMA_VERSION, type ExportedContribution, type SessionExport } from "./schema";
-
-export const CSV_COLUMNS: readonly (keyof Trial)[] = ["protocol", "task", "phase", "trial", "level_pct", "effective_level_pct", "target", "response", "correct", "rt_ms", "reversal", "frames", "median_frame_ms", "dropped_frames", "display_ms", "flash1_ms", "flash2_ms", "spiral_deg", "scale", "px_per_deg", "seed", "at"];
 
 /** The contribution without its in-flight sending state. */
 function exportContribution(c: SessionContribution): ExportedContribution {
@@ -33,7 +31,37 @@ export function exportObject(s: Session): SessionExport {
 
 export const sessionJSON = (s: Session): string => JSON.stringify(exportObject(s), null, 2);
 
-export const trialsCSV = (s: Session): string => Core.toCSV(s.trials, CSV_COLUMNS);
+/** One task's result as the summary gives it. */
+const summaryResult = (r: TaskResult | null) =>
+  r && { status: r.status, threshold_pct: r.threshold_pct && round(r.threshold_pct, 2), sensitivity: r.sensitivity && round(r.sensitivity, 4) };
+
+/** The points a staircase chart draws: coherence on each scored trial. */
+const staircasePoints = (s: Session, task: TaskName) =>
+  s.trials.filter(t => t.task === task && t.phase === "test")
+    .map(t => ({ trial: t.trial, coherence_pct: round(t.effective_level_pct, 2), correct: t.correct, reversal: t.reversal }));
+
+/** A short, readable file of what the results page shows: pseudonym, answers, results and staircase points. */
+export function summaryJSON(s: Session): string {
+  const c = s.contribution?.contribute ? s.contribution : null;
+  const { pseudonym = null, ...answers } = c?.answers ?? {};
+  const R = s.results;
+  const d = R?.motion_minus_form;
+  return JSON.stringify({
+    about: "Your results from the Form–Motion Coherence Test. Just for fun, not medical advice.",
+    pseudonym,
+    started_at: s.startedAt,
+    test_version: s.testVersion,
+    answers: c ? answers : null,
+    results: {
+      motion: summaryResult(R?.motion ?? null),
+      form: summaryResult(R?.form ?? null),
+      motion_minus_form: d ? { sensitivity: round(d.sensitivity, 4), threshold_ratio: round(d.threshold_ratio, 3) } : null,
+    },
+    staircases: { motion: staircasePoints(s, "motion"), form: staircasePoints(s, "form") },
+  }, null, 2)
+    // One line per staircase point, so the file stays short enough to read.
+    .replace(/\{\n\s+"trial"[^}]*\}/g, p => p.replace(/\n\s*/g, " ").replace("{ ", "{").replace(/ \}$/, "}"));
+}
 
 export const fileBase = (s: Session): string =>
   `form-motion-coherence-${s.startedAt.slice(0, 16).replace(/[:T]/g, "-")}`;

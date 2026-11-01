@@ -178,7 +178,7 @@ async function storedSession(id, dataFile) {
     const id = /Reference: ([0-9a-f-]{36})/.exec(note)?.[1];
     await p.screenshot({ path: path.join(OUT, "contribute-results.png"), fullPage: true });
     await p.evaluate(() => document.fullscreenElement ? document.exitFullscreen() : null); await sleep(300);
-    await p.click("#copy-json"); await sleep(250);
+    await p.click("#raw > summary"); await sleep(250);
     const exported = JSON.parse(await p.$eval("#raw-json", el => el.value));
     const userAgent = await p.evaluate(() => navigator.userAgent);
 

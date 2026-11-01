@@ -52,9 +52,9 @@ describe("groupStats", () => {
     const g = groupStats(values(MIN_GROUP));
     expect(g.n).toBe(MIN_GROUP);
     expect(Object.keys(g.measures!).sort()).toEqual(["form_threshold_pct", "motion_minus_form", "motion_threshold_pct"]);
-    // Motion is 5, 5.5, ... 19.5: the median of 30 values is the mean of the 15th and 16th.
-    expect(g.measures!.motion_threshold_pct.p50).toBeCloseTo(12.25, 10);
-    expect(g.measures!.form_threshold_pct.p50).toBeCloseTo(24.5, 10);
+    // Motion is 5, 5.5, 6, ... and form 10, 11, 12, ...: evenly spaced, so the median is midway.
+    expect(g.measures!.motion_threshold_pct.p50).toBeCloseTo(5 + (MIN_GROUP - 1) * 0.25, 10);
+    expect(g.measures!.form_threshold_pct.p50).toBeCloseTo(10 + (MIN_GROUP - 1) * 0.5, 10);
   });
 });
 
@@ -67,13 +67,13 @@ describe("groupsResponse", () => {
   });
 
   it("passes the page's own parseGroups, with one group shown and one too small", () => {
-    const r = groupsResponse(2, { control: values(45), psychedelics: values(12) });
+    const r = groupsResponse(2, { control: values(45), psychedelics: values(MIN_GROUP - 1) });
     const parsed = parseGroups(JSON.parse(JSON.stringify(r)));
     expect(parsed).not.toBeNull();
     expect(parsed!.test_version).toBe(2);
     expect(parsed!.groups.control.n).toBe(45);
     expect(parsed!.groups.control.measures).not.toBeNull();
-    expect(parsed!.groups.psychedelics).toEqual({ n: 12, measures: null });
+    expect(parsed!.groups.psychedelics).toEqual({ n: MIN_GROUP - 1, measures: null });
   });
 
   it("passes parseGroups for an empty response", () => expect(parseGroups(groupsResponse(1, undefined))).not.toBeNull());

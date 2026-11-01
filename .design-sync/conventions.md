@@ -26,7 +26,7 @@ seems to require breaking one, say so rather than quietly complying.
 - **Information only**: the median, middle half and middle 80%, plus the person's value. Draw no
   conclusion from where their value falls — no verdicts, rankings, classifications, or colour that
   implies one.
-- A group is hidden until it has at least 30 people. Design the under-30 state as a plain absence,
+- A group is hidden until it has at least 5 people. Design the under-5 state as a plain absence,
   not a warning or an error.
 
 **Invented data.** Realistic placeholder numbers are fine inside a design, but they must read as

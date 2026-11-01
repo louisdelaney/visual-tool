@@ -5,10 +5,11 @@
 // It only shows the numbers: it draws no conclusions from where a value falls.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { API_URL, fetchGroups } from "../app/api";
-import { GROUP_INFO, GROUPS, MEASURES, MIN_GROUP, ownValues, SAMPLE_GROUPS, shownMeasures, type GroupKey, type GroupsResponse, type MeasureKey, type Quantiles } from "../app/comparison";
+import { GROUP_INFO, GROUPS, MEASURES, MIN_GROUP, ownValues, SAMPLE_GROUPS, sensitivities, shownMeasures, type GroupKey, type GroupsResponse, type MeasureKey, type Quantiles } from "../app/comparison";
 import type { Session } from "../app/types";
 import { fmt } from "../app/format";
 import { useElementWidth } from "../hooks";
+import { SensitivityBars } from "./SensitivityBars";
 
 interface MeasureInfo {
   title: string;
@@ -133,7 +134,7 @@ export function GroupComparison({ session }: { session: Session }) {
   const results = session.results;
   if (!results) return null;
 
-  const shown = load.state === "ready" ? GROUPS.flatMap(g => { const m = shownMeasures(load.stats.groups[g]); return m ? [{ group: g, measures: m }] : []; }) : [];
+  const shown = load.state === "ready" ? GROUPS.flatMap(g => { const m = shownMeasures(load.stats.groups[g]); return m ? [{ group: g, n: load.stats.groups[g].n, measures: m }] : []; }) : [];
   const waiting = load.state === "ready" ? GROUPS.filter(g => !shownMeasures(load.stats.groups[g])) : [];
   const own = ownValues(results);
 
@@ -158,10 +159,14 @@ export function GroupComparison({ session }: { session: Session }) {
               <li key={g}><strong>{GROUP_INFO[g].name}:</strong> {GROUP_INFO[g].who}. {load.stats.groups[g].n} {load.stats.groups[g].n === 1 ? "person" : "people"} so far.</li>
             ))}
           </ul>
+          <p>
+            Sensitivity is 1 ÷ threshold in percent: higher means less organised signal was needed. {shown.length > 0 ? "Each group's bars are its median, and the line across a bar covers the middle half of its results." : ""}
+          </p>
+          <SensitivityBars own={sensitivities(own)} groups={shown} />
           {shown.length > 0 && (
             <>
               <p>
-                For each group, the lighter bar covers the middle 80% of results, the darker bar the middle half, and the line is the median. The dot is yours. This is information only: nothing is concluded from where your results fall.
+                The same results as thresholds. For each group, the lighter bar covers the middle 80% of results, the darker bar the middle half, and the line is the median. The dot is yours. This is information only: nothing is concluded from where your results fall.
               </p>
               <div className="cmp-rows">
                 {MEASURES.map(m => <MeasureRow key={m} measure={m} lanes={shown.map(s => ({ group: s.group, q: s.measures[m] }))} value={own[m]} />)}

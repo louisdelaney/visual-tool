@@ -7,7 +7,7 @@ import { fmt } from "../app/format";
 import { getState, setState } from "../app/store";
 import { show, showHistory } from "../app/flow";
 import { sendContribution } from "../app/contribution";
-import { downloadFile, fileBase, sessionJSON, trialsCSV } from "../app/export";
+import { downloadFile, fileBase, sessionJSON, summaryJSON } from "../app/export";
 import { StaircaseChart } from "../components/StaircaseChart";
 import { GroupComparison } from "../components/GroupComparison";
 import { FunNotice } from "../components/FunNotice";
@@ -101,31 +101,15 @@ interface ResultsPageProps {
 
 export function ResultsPage({ session: s }: ResultsPageProps) {
   const [dataStatus, setDataStatus] = useState("");
-  const [rawOpen, setRawOpen] = useState(false);
   const [raw, setRaw] = useState("");
   if (!s || !s.results) return null;
   const R = s.results;
   const tasks = TASK_ORDER.filter(t => s.tasks[t]);
 
-  const save = (ext: "csv" | "json"): void => {
-    const filename = `${fileBase(s)}.${ext}`;
-    if (ext === "csv") downloadFile(filename, trialsCSV(s), "text/csv");
-    else downloadFile(filename, sessionJSON(s), "application/json");
+  const save = (kind: "summary" | "full"): void => {
+    const filename = `${fileBase(s)}${kind === "summary" ? "-summary" : ""}.json`;
+    downloadFile(filename, kind === "summary" ? summaryJSON(s) : sessionJSON(s), "application/json");
     setDataStatus(`Saved ${filename}.`);
-  };
-
-  const copy = (): void => {
-    const text = sessionJSON(s);
-    setRaw(text);
-    const fallback = (): void => {
-      setRawOpen(true);
-      setDataStatus("Copying isn't allowed here. The data is selected below: press Ctrl+C, or ⌘C on a Mac.");
-      setTimeout(() => { const ta = document.getElementById("raw-json") as HTMLTextAreaElement | null; ta?.focus(); ta?.select(); }, 0);
-    };
-    try {
-      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => setDataStatus("Copied the session data as JSON."), fallback);
-      else fallback();
-    } catch { fallback(); }
   };
 
   const again = (): void => {
@@ -144,6 +128,13 @@ export function ResultsPage({ session: s }: ResultsPageProps) {
       <FunNotice />
       <div className="panel">
         <h2 id="results-h">Results</h2>
+        {pseudonym && (
+          <p className="pseudonym-note" id="pseudonym-note">
+            Your pseudonym is <strong>{pseudonym}</strong>. Use it to find these results again later{s.contribution?.contribute && s.contribution.sent_at
+              ? <>: <button type="button" className="linkish" id="history-link" onClick={() => showHistory(pseudonym)}>see all results for {pseudonym}</button>.</>
+              : " on the User results page, once they've been sent."}
+          </p>
+        )}
         <div className="tiles" id="tiles">
           <Tile task="motion" result={R.motion} />
           <Tile task="form" result={R.form} />
@@ -177,18 +168,20 @@ export function ResultsPage({ session: s }: ResultsPageProps) {
         </dl>
         <hr className="section-rule" />
         <h3>Your data</h3>
+        <p className="hint">The summary has your pseudonym, your answers, your results and the points on the staircase charts.</p>
         <div className="actions">
-          <button type="button" className="btn" id="save-csv" onClick={() => save("csv")}>Save trials (CSV)</button>
-          <button type="button" className="btn" id="save-json" onClick={() => save("json")}>Save session (JSON)</button>
-          <button type="button" className="btn secondary" id="copy-json" onClick={copy}>Copy session data</button>
+          <button type="button" className="btn" id="save-summary" onClick={() => save("summary")}>Save summary</button>
         </div>
         <p className="status" id="data-status" role="status" aria-live="polite">{dataStatus}</p>
         {note && <p className="hint" id="contrib-note">{note}</p>}
         {failureId && <p className="hint" id="contrib-failure-id">Reference: {failureId}. You can quote it if you report a problem.</p>}
-        {pseudonym && <p><button type="button" className="linkish" id="history-link" onClick={() => showHistory(pseudonym)}>See all results for {pseudonym}</button></p>}
         {failed && <div className="actions"><button type="button" className="btn secondary" id="contrib-retry" onClick={() => void sendContribution(s)}>Try sending again</button></div>}
-        <details id="raw" open={rawOpen} onToggle={e => { const open = e.currentTarget.open; setRawOpen(open); if (open && !raw) setRaw(sessionJSON(s)); }}>
+        <details id="raw" onToggle={e => { if (e.currentTarget.open) setRaw(sessionJSON(s)); }}>
           <summary>Show the raw data</summary>
+          <p className="hint">Everything recorded, exactly as {s.contribution?.contribute ? "it's" : "it would be"} sent to the database.</p>
+          <div className="actions">
+            <button type="button" className="btn secondary" id="save-json" onClick={() => save("full")}>Save full data (JSON)</button>
+          </div>
           <textarea id="raw-json" readOnly rows={10} aria-label="Session data as JSON" value={raw} />
         </details>
         <details>

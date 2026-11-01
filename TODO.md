@@ -2,7 +2,6 @@
 
 Agreed work that isn't done yet.
 
-Try impecabble style
 Users should be able to download the json results or a pdf with the graph and descrition, if user has multiple results it should show it over time
 
 ## Contributions through pull requests

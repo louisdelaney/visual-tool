@@ -14,7 +14,7 @@ describe("summaryRow", () => {
     expect(summaryRow(makeSession({ answers: { pseudonym: null } }), "id").pseudonym).toBeNull();
   });
 
-  it("copies the id, start, version, answers, measures, medications and notes", () => {
+  it("copies the id, start, version, every answer and the measures", () => {
     const s = makeSession({ answers: { medications: ["Lamotrigine"], notes: "Tired today.", psychedelics: "yes" } });
     expect(summaryRow(s, "abc")).toEqual({
       submission_id: "abc",
@@ -22,10 +22,18 @@ describe("summaryRow", () => {
       started_at: s.started_at,
       test_version: 1,
       disorder: "no",
+      condition: null,
+      other_condition: null,
+      diagnosed: null,
       psychedelics: "yes",
+      psychedelic_uses: null,
+      psychedelics_used: null,
+      takes_medication: "no",
       values: { motion_threshold_pct: 10.2, form_threshold_pct: 21.0, motion_minus_form: 0.05 },
       medications: ["Lamotrigine"],
       notes: "Tired today.",
+      found_via: "forum",
+      found_via_other: null,
     });
   });
 });

@@ -5,7 +5,7 @@
 import type { Results } from "./types";
 
 /** A group isn't shown below this many people: too few to mean much, and too few to keep individuals hidden. */
-export const MIN_GROUP = 30;
+export const MIN_GROUP = 5;
 
 export interface Quantiles {
   p10: number;
@@ -96,6 +96,39 @@ export function ownValues(r: Results): Record<MeasureKey, number | null> {
     form_threshold_pct: r.form?.threshold_pct ?? null,
     motion_minus_form: r.motion_minus_form?.sensitivity ?? null,
   };
+}
+
+/** Motion, form and motion-minus-form sensitivity: the clinic's scale, 1 ÷ threshold in percent. */
+export interface Sensitivities {
+  motion: number | null;
+  form: number | null;
+  diff: number | null;
+}
+
+/** A person's sensitivities from their threshold values. */
+export const sensitivities = (v: Record<MeasureKey, number | null>): Sensitivities => ({
+  motion: v.motion_threshold_pct ? 1 / v.motion_threshold_pct : null,
+  form: v.form_threshold_pct ? 1 / v.form_threshold_pct : null,
+  diff: v.motion_minus_form,
+});
+
+/** One group's median and middle half on the sensitivity scale. */
+export interface SensitivityRange {
+  p25: number;
+  p50: number;
+  p75: number;
+}
+
+/**
+ * A group's sensitivities from its threshold percentiles. 1 ÷ threshold reverses the order, so the
+ * 75th percentile threshold gives the 25th percentile sensitivity. The median is exact; the quartiles
+ * can differ very slightly from percentiles of the sensitivities themselves, where they fall between
+ * two people.
+ */
+export function groupSensitivities(m: Record<MeasureKey, Quantiles>): Record<keyof Sensitivities, SensitivityRange> {
+  const inv = (q: Quantiles): SensitivityRange => ({ p25: 1 / q.p75, p50: 1 / q.p50, p75: 1 / q.p25 });
+  const d = m.motion_minus_form;
+  return { motion: inv(m.motion_threshold_pct), form: inv(m.form_threshold_pct), diff: { p25: d.p25, p50: d.p50, p75: d.p75 } };
 }
 
 /** Made-up numbers for developing the charts before the backend exists. Never shown in a production build. */
