@@ -110,7 +110,7 @@ Return an empty `sessions` list for a pseudonym nobody has used; the page's "Gen
 The Privacy and risks page promises these, so the backend has to keep them:
 
 - **No IP addresses or request headers stored**, with sessions or anywhere else. That includes `X-Forwarded-For`, and the `User-Agent`, `Sec-CH-UA` and `Accept-Language` headers browsers add to every request: the page sends a coarse browser description inside the session, and that's all that should be kept.
-- **No request logs kept.** Cloud Run writes request logs, with the caller's IP, by default: exclude them (a Cloud Logging exclusion on `run.googleapis.com/requests` for the service, in Terraform). Application logs record errors only, never request bodies, pseudonyms or headers.
+- **No platform request logs kept.** Cloud Run writes request logs, with the caller's IP, user agent and referrer, by default: exclude them (a Cloud Logging exclusion on `run.googleapis.com/requests` for the service, in Terraform). The app's own logs are kept for 7 days (`log_retention_days`) and hold only errors and one anonymous line per response: the method, the name of the matched route (or `unmatched`), the status, the duration and a random id that failed requests also return in the error body so a person can quote it. Never an IP, a header, a path or query string, a request body or a pseudonym.
 - **Nothing beyond the session is stored**: no cookies, no analytics, no extra fields.
 - **The public download** is the stored sessions as they are, except that `started_at`, `finished_at` and `received_at` are rounded to the hour and the trial `at` times are dropped: exact times can help single someone out and aren't needed to analyse the results.
 

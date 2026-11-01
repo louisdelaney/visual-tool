@@ -11,7 +11,7 @@ export function PrivacyPage() {
           <li><strong>Just for fun.</strong> This is a casual online test for curiosity only, and it isn't medical advice.</li>
           <li><strong>All contributed data is public.</strong> Anyone can <a href="#data" onClick={e => { e.preventDefault(); show("data"); }}>download</a> every result and answer people choose to contribute. The download is refreshed once a day; in it, times are rounded to the hour.</li>
           <li><strong>It's anonymous.</strong> There are no accounts, and no name, email or IP address is stored with your results.</li>
-          <li><strong>Nothing extra is logged.</strong> Only what's listed below is sent, and only if you choose to contribute.</li>
+          <li><strong>Nothing that identifies you is logged.</strong> Only what's listed below is sent, and only if you choose to contribute. The backend keeps a short anonymous note of each request for a week, with nothing about you in it (see "What the backend logs").</li>
         </ul>
 
         <h3>If you contribute</h3>
@@ -27,10 +27,14 @@ export function PrivacyPage() {
         <p>A pseudonym is completely optional. Leave it blank and your results can't be looked up or linked to each other: that's the most private choice.</p>
         <p>If you give one, it's the only key to your results. There's no password, so anyone who enters it sees every result and answer sent with it. Use the "Generate one" button for a random pair of words, and don't use your name, a username you use elsewhere, or anything else that points to you.</p>
 
+        <h3>What the backend logs</h3>
+        <p>To fix faults, the backend keeps a short record of each request for 7 days. It says which part of the service was called (for example "sending results"), whether it worked, how long it took, and a random reference number made for that one request. If something goes wrong it also keeps a short error message.</p>
+        <p>It doesn't contain your IP address, browser, pseudonym or anything you entered, and the reference number isn't tied to you. If sending your results fails, this page shows that reference number, and you can quote it if you report a problem.</p>
+
         <h3>What isn't collected</h3>
         <ul>
           <li>No name, email address or account.</li>
-          <li>No IP address stored with your results, and no request logs kept by the backend.</li>
+          <li>No IP address, browser details or other request details stored or logged by the backend, with your results or anywhere else.</li>
           <li>No cookies, analytics, adverts or tracking of any kind.</li>
           <li>No third-party content: the fonts and everything else are served from this site, and the page is locked so your browser won't contact any other server.</li>
         </ul>
@@ -39,7 +43,7 @@ export function PrivacyPage() {
         <p>Every website has to know your IP address to send you a page. These services see it, and this project can't stop that:</p>
         <ul>
           <li><strong>GitHub</strong>, which hosts this page on GitHub Pages, sees your IP address when you load it and may keep it in its own server logs, under GitHub's privacy statement.</li>
-          <li><strong>Google Cloud</strong>, which runs the backend, receives your IP address when results are sent or looked up. The backend is set up not to store it or keep request logs, but Google's network still handles the connection.</li>
+          <li><strong>Google Cloud</strong>, which runs the backend, receives your IP address when results are sent or looked up. The backend is set up not to store it, and to drop the per-request logs Google would otherwise keep, which include it. Google's network still handles the connection.</li>
           <li><strong>Your internet provider</strong>, and your employer or school if you're on their network, can see that you visited this site, but not what you answered.</li>
         </ul>
 
