@@ -151,7 +151,7 @@ describe("GET /groups", () => {
     expect(parsed!.groups.control.n).toBe(30);
     expect(parsed!.groups.control.measures).not.toBeNull();
     expect(parsed!.groups.psychedelics).toEqual({ n: 0, measures: null });
-    expect(spy).toHaveBeenCalledWith(1);
+    expect(spy).toHaveBeenCalledWith(TEST_VERSION);
   });
 
   it("always answers for the current test version, whatever the query asks for", async () => {

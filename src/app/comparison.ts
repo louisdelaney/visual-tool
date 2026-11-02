@@ -2,6 +2,7 @@
 // suspect a visual perceptual disorder: the control group, who have never used psychedelic drugs,
 // and those who have. The backend sends only summary numbers (a count and percentiles), never
 // anyone's individual results.
+import { TEST_VERSION } from "../core/protocol";
 import type { Results } from "./types";
 
 /** A group isn't shown below this many people: too few to mean much, and too few to keep individuals hidden. */
@@ -133,7 +134,7 @@ export function groupSensitivities(m: Record<MeasureKey, Quantiles>): Record<key
 
 /** Made-up numbers for developing the charts before the backend exists. Never shown in a production build. */
 export const SAMPLE_GROUPS: GroupsResponse = {
-  test_version: 1,
+  test_version: TEST_VERSION,
   groups: {
     control: {
       n: 64,

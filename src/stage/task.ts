@@ -9,13 +9,13 @@ import { runTrial } from "./trial";
 
 function answerPhrase(t: Trial): string {
   if (t.target === "up" || t.target === "down") return `The dots were drifting ${t.target}.`;
-  return `The spiral was in the ${t.target === "1" ? "first" : "second"} flash.`;
+  return `The starburst was in the ${t.target === "1" ? "first" : "second"} flash.`;
 }
 
 /** What to look for, repeated after practice. */
 const RECAP: Record<TaskName, string> = {
   motion: "Some of the dots drift together, up or down, while the rest jump about. Keep your eyes on the red spot and say which way the drifting dots go.",
-  form: "In one of the two flashes some dots line up into a spiral; the other is random. Keep your eyes on the grey spot and say which flash had the spiral.",
+  form: "In one of the two flashes some dots line up into a starburst, pointing out from the centre; the other is random. Keep your eyes on the grey spot and say which flash had the starburst.",
 };
 
 /**
@@ -27,7 +27,7 @@ export async function runTask(s: Session, task: TaskName): Promise<TaskRecord | 
   const S = PROTOCOL.staircase;
   const how = task === "motion"
       ? "Answer with <kbd>↑</kbd> or <kbd>↓</kbd>, or click the top or bottom half of the screen."
-      : "Each trial is two quick flashes. Then press <kbd>1</kbd> or <kbd>2</kbd> (or <kbd>←</kbd> or <kbd>→</kbd>) for the flash that had the spiral.";
+      : "Each trial is two quick flashes. Then press <kbd>1</kbd> or <kbd>2</kbd> (or <kbd>←</kbd> or <kbd>→</kbd>) for the flash that had the starburst.";
   const choice = await stageMessage(`<h2>${TASK_LABEL[task]}: practice</h2><p>${S.practiceTrials} easy examples first, with feedback. ${how}</p>`, { go: "Start practice", alt: "Back", altVerb: "go back" });
   if (choice !== "go") return null;
   const sc = new Staircase({ start: S.start, factor: S.factor, down: S.down, min: S.min, max: S.max, maxTrials: S.maxTrials, ...PROTOCOL.run });

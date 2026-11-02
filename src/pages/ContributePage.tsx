@@ -327,7 +327,7 @@ export function ContributePage({ part }: { part: "contribute" | "questions" }) {
     <section className="view panel" data-view="contribute" aria-labelledby="contribute-h">
       <FunNotice />
       <h2>What the test measures</h2>
-      <p>Your visual system handles movement and shape partly along separate routes, so the test has one task for each. In the motion task, some dots drift together, up or down. In the form task, some line up into a spiral. Each task finds the smallest share of organised dots you can still pick out. The smaller that share, the higher your sensitivity for that task.</p>
+      <p>Your visual system handles movement and shape partly along separate routes, so the test has one task for each. In the motion task, some dots drift together, up or down. In the form task, some line up into a starburst. Each task finds the smallest share of organised dots you can still pick out. The smaller that share, the higher your sensitivity for that task.</p>
       <p>Your results then compare the two. Motion minus form shows which one you picked out more easily, and by how much. People vary, and the dataset is here to show how much.</p>
       <p><strong>There are no good or bad results, and no wrong answers.</strong> Every result is just a number about how you saw the dots that day.</p>
       <p>The test works best when you're as you usually are: taking any medication you take regularly, and not under the influence of alcohol or other intoxicants.</p>

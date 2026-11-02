@@ -19,7 +19,7 @@ Test-takers sit at a laptop or desktop with a keyboard, in a dim room, for about
 
 ## Product Purpose
 
-A browser test of global motion and global form perception. It measures how much organised signal a person needs to see coherent motion (random-dot kinematograms) and coherent form (spiral Glass patterns), and reports each as a sensitivity plus the motion − form difference. It's modelled on a test used in a UK specialist clinic, rebuilt from published tasks because the original isn't public.
+A browser test of global motion and global form perception. It measures how much organised signal a person needs to see coherent motion (random-dot kinematograms) and coherent form (radial Glass patterns), and reports each as a sensitivity plus the motion − form difference. It's modelled on a test used in a UK specialist clinic, rebuilt from published tasks because the original isn't public.
 
 Success is all three of:
 
@@ -58,7 +58,7 @@ Terminology in use: coherence threshold, sensitivity, motion task, form task, co
 
 ## Evidence on Hand
 
-- Published sources for the method: Li et al. 2020, Pavan et al. 2013, Roccato et al. 2024, Seu & Ferrera 2001 (README, Method and references page).
+- Published sources for the method: Alcalá-Quintana & García-Pérez 2007, Li et al. 2020, Pavan et al. 2013, Roccato et al. 2024, Seu & Ferrera 2001 (README, Method and references page).
 - Real group data comes only from the backend. Development-only sample data is labelled and never ships. Never fabricate group results, participant counts, testimonials or endorsements, and never imply the clinic endorses this rebuild.
 
 ## Product Principles

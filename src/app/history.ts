@@ -2,6 +2,7 @@
 // is the only key, so anyone who enters a pseudonym sees what was sent with it. That's by design:
 // anonymity depends on people not putting anything identifying in the pseudonym or text answers.
 import type { MeasureKey } from "./comparison";
+import { TEST_VERSION } from "../core/protocol";
 import type { TaskName, Trial } from "./types";
 import { ADJECTIVES, NOUNS } from "./words";
 
@@ -135,7 +136,7 @@ export function sampleHistory(pseudonym: string): HistoryResponse {
   return {
     pseudonym,
     sessions: rows.map(([at, m, f, medications, notes], i) => ({
-      submission_id: `sample-${i + 1}`, started_at: at, test_version: 1,
+      submission_id: `sample-${i + 1}`, started_at: at, test_version: TEST_VERSION,
       values: { motion_threshold_pct: m, form_threshold_pct: f, motion_minus_form: Math.round((1 / m - 1 / f) * 1e5) / 1e5 },
       medications, notes,
       staircases: { motion: sampleStaircase(m, 7 + i * 31), form: sampleStaircase(f, 11 + i * 17) },

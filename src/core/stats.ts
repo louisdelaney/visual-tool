@@ -14,6 +14,11 @@ export function mean(values: readonly number[]): number | null {
   return values.length ? values.reduce((s, v) => s + v, 0) / values.length : null;
 }
 
+/** The mean on a log scale, for levels that step by a factor. Null if empty or a value isn't positive. */
+export function geometricMean(values: readonly number[]): number | null {
+  return values.length && values.every(v => v > 0) ? Math.exp(values.reduce((s, v) => s + Math.log(v), 0) / values.length) : null;
+}
+
 // 1 / threshold in %, the scale the clinic's own report uses: a 10% threshold is 0.1.
 export function sensitivity(thresholdPct: number): number | null {
   return thresholdPct > 0 ? 1 / thresholdPct : null;
