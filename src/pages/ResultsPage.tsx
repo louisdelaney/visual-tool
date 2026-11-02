@@ -12,6 +12,8 @@ import { StaircaseChart, StaircaseKey } from "../components/StaircaseChart";
 import { staircasePoints } from "../app/history";
 import { GroupComparison } from "../components/GroupComparison";
 import { FunNotice } from "../components/FunNotice";
+import { ResultsExplained } from "../components/ResultsExplained";
+import { API_URL } from "../app/api";
 
 function Tile({ task, result }: { task: TaskName; result: TaskResult | null }) {
   const name = task === "motion" ? "Motion" : "Form";
@@ -27,17 +29,17 @@ function Tile({ task, result }: { task: TaskName; result: TaskResult | null }) {
   );
 }
 
+/** This run in words: what the person's own two numbers say about each other, and nothing more. */
 function interpretation(R: Results): string {
   const m = R.motion?.threshold_pct, f = R.form?.threshold_pct;
   let text = "";
   if (m != null && f != null) {
-    const rel = Math.abs(m - f) / ((m + f) / 2) < 0.1 ? "about the same as" : m < f ? "lower than" : "higher than";
-    text += `Your motion threshold was ${rel} your form threshold (${fmt.pct(m)} against ${fmt.pct(f)}). A lower threshold means fewer organised elements were needed to find the target. `;
+    if (Math.abs(m - f) / ((m + f) / 2) < 0.1) text += `In this run you needed about the same share of organised dots to see the motion (${fmt.pct(m)}) and the starburst (${fmt.pct(f)}).`;
+    else if (m < f) text += `In this run you needed fewer organised dots to see the motion (${fmt.pct(m)}) than the starburst (${fmt.pct(f)}), so your motion − form is above zero.`;
+    else text += `In this run you needed fewer organised dots to see the starburst (${fmt.pct(f)}) than the motion (${fmt.pct(m)}), so your motion − form is below zero.`;
   } else {
-    text += "At least one task ended before a threshold could be estimated. ";
+    text += "At least one task ended before a threshold could be estimated, so there's no motion − form value.";
   }
-  text += "Both thresholds are the coherence that gives about 79% correct. ";
-  text += "Sensitivity is 1 ÷ threshold in percent, so a 10% threshold is a sensitivity of 0.1.";
   const missed = [R.motion, R.form].reduce((a, r) => a + (r ? r.catch_total - r.catch_correct : 0), 0);
   if (missed > 0) text += ` ${missed === 1 ? "One" : missed} of the easy check trials ${missed === 1 ? "was" : "were"} answered wrongly. That can mean lapses of attention or a display problem, so treat these thresholds with caution.`;
   return text;
@@ -174,6 +176,8 @@ export function ResultsPage({ session: s }: ResultsPageProps) {
           </div>
         </div>
         <p className="interp" id="interpretation">{interpretation(R)}</p>
+        <hr className="section-rule" />
+        <ResultsExplained groups={!!API_URL || import.meta.env.DEV} thresholdCharts />
       </div>
       <GroupComparison session={s} />
       <div className="panel">
