@@ -2,23 +2,24 @@
 //   sessions/{id}   the body as sent, gzipped: read only by the export job
 //   summaries/{id}  every answer and the three measures; GET /history reads it
 //   groups/{tv}     flat arrays of the three measures per comparison group, for GET /groups
+// and removed together, values included, when the sender removes the session with its token.
 import { randomUUID } from "node:crypto";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { Firestore, type QueryDocumentSnapshot, type Transaction } from "@google-cloud/firestore";
 import type { SessionExportV1 } from "../../src/app/schema";
 import { logError } from "./log";
-import { emptyGroupValues, type GroupsDoc } from "./stats";
-import { MAX_GROUP_VALUES, type Store, type StoredSession } from "./store";
-import { groupOf, measuresOf, summaryRow, type SummaryRow } from "./summary";
+import { emptyGroupValues, removeValues, type GroupsDoc } from "./stats";
+import { MAX_GROUP_VALUES, sameHash, type Store, type StoredSession } from "./store";
+import { groupOf, groupValuesOf, measuresOf, summaryRow, type SummaryRow } from "./summary";
 
 export type { StoredSession } from "./store";
 
 export class Db implements Store {
   constructor(private readonly fs: Firestore = new Firestore({ ignoreUndefinedProperties: true, ...(process.env.FIRESTORE_DATABASE ? { databaseId: process.env.FIRESTORE_DATABASE } : {}) })) {}
 
-  async storeSession(s: SessionExportV1, now: Date = new Date()): Promise<string> {
+  async storeSession(s: SessionExportV1, now: Date = new Date(), deleteHash?: string): Promise<string> {
     const id = randomUUID();
-    const stored: StoredSession = { received_at: now.toISOString(), schema_version: s.schema_version, test_version: s.test_version, body_gzip: gzipSync(JSON.stringify(s)) };
+    const stored: StoredSession = { received_at: now.toISOString(), schema_version: s.schema_version, test_version: s.test_version, body_gzip: gzipSync(JSON.stringify(s)), delete_hash: deleteHash };
     const row = summaryRow(s, id);
     const group = groupOf(s);
     const groupRef = this.fs.collection("groups").doc(String(s.test_version));
@@ -43,6 +44,25 @@ export class Db implements Store {
       t.set(this.fs.collection("summaries").doc(id), row);
     });
     return id;
+  }
+
+  async deleteSession(id: string, deleteHash: string): Promise<boolean> {
+    const sessionRef = this.fs.collection("sessions").doc(id);
+    return this.fs.runTransaction(async (t: Transaction) => {
+      // Every read before any write, as Firestore transactions require.
+      const stored = (await t.get(sessionRef)).data() as StoredSession | undefined;
+      if (!stored || !sameHash(stored.delete_hash, deleteHash)) return false;
+      const s = JSON.parse(gunzipSync(stored.body_gzip).toString("utf8")) as SessionExportV1;
+      const group = groupOf(s);
+      if (group) {
+        const groupRef = this.fs.collection("groups").doc(String(s.test_version));
+        const values = ((await t.get(groupRef)).data() as GroupsDoc | undefined)?.[group];
+        if (values && removeValues(values, groupValuesOf(s))) t.set(groupRef, { [group]: values }, { merge: true });
+      }
+      t.delete(sessionRef);
+      t.delete(this.fs.collection("summaries").doc(id));
+      return true;
+    });
   }
 
   async readGroups(testVersion: number): Promise<GroupsDoc | undefined> {

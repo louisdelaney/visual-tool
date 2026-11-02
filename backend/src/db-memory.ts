@@ -7,9 +7,9 @@ import { dirname } from "node:path";
 import { gunzipSync, gzipSync } from "node:zlib";
 import type { SessionExportV1 } from "../../src/app/schema";
 import { logError, logInfo } from "./log";
-import { emptyGroupValues, type GroupsDoc } from "./stats";
-import { MAX_GROUP_VALUES, type Store, type StoredSession } from "./store";
-import { groupOf, measuresOf, summaryRow, type SummaryRow } from "./summary";
+import { emptyGroupValues, removeValues, type GroupsDoc } from "./stats";
+import { MAX_GROUP_VALUES, sameHash, type Store, type StoredSession } from "./store";
+import { groupOf, groupValuesOf, measuresOf, summaryRow, type SummaryRow } from "./summary";
 
 interface Snapshot {
   sessions: Record<string, Omit<StoredSession, "body_gzip"> & { body_gzip: string }>;
@@ -27,7 +27,7 @@ export class MemoryStore implements Store {
     if (file) this.load(file);
   }
 
-  async storeSession(s: SessionExportV1, now: Date = new Date()): Promise<string> {
+  async storeSession(s: SessionExportV1, now: Date = new Date(), deleteHash?: string): Promise<string> {
     const id = randomUUID();
     const group = groupOf(s);
     // The same order as the Firestore transaction: the group check first, so a full group
@@ -46,10 +46,23 @@ export class MemoryStore implements Store {
       values.diff.push(m.motion_minus_form!);
       this.groups.set(key, { ...doc, [group]: values });
     }
-    this.sessions.set(id, { received_at: now.toISOString(), schema_version: s.schema_version, test_version: s.test_version, body_gzip: gzipSync(JSON.stringify(s)) });
+    this.sessions.set(id, { received_at: now.toISOString(), schema_version: s.schema_version, test_version: s.test_version, body_gzip: gzipSync(JSON.stringify(s)), ...(deleteHash ? { delete_hash: deleteHash } : {}) });
     this.summaries.set(id, summaryRow(s, id));
     this.save();
     return id;
+  }
+
+  async deleteSession(id: string, deleteHash: string): Promise<boolean> {
+    const stored = this.sessions.get(id);
+    if (!stored || !sameHash(stored.delete_hash, deleteHash)) return false;
+    const s = JSON.parse(gunzipSync(stored.body_gzip).toString("utf8")) as SessionExportV1;
+    const group = groupOf(s);
+    const values = group && this.groups.get(String(s.test_version))?.[group];
+    if (values) removeValues(values, groupValuesOf(s));
+    this.sessions.delete(id);
+    this.summaries.delete(id);
+    this.save();
+    return true;
   }
 
   async readGroups(testVersion: number): Promise<GroupsDoc | undefined> {

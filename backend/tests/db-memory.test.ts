@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryStore } from "../src/db-memory";
-import { MAX_GROUP_VALUES } from "../src/store";
+import { hashDeleteToken, MAX_GROUP_VALUES } from "../src/store";
 import { makeSession, withThresholds } from "./fixture";
 
 const dirs: string[] = [];
@@ -30,6 +30,39 @@ describe("storeSession", () => {
     const b = await store.storeSession(makeSession());
     expect(a).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     expect(b).not.toBe(a);
+    expect(store.size).toBe(2);
+  });
+});
+
+describe("deleteSession", () => {
+  const hash = hashDeleteToken("the token");
+
+  it("removes the session, its history row and its group values, leaving the rest", async () => {
+    const store = new MemoryStore();
+    await store.storeSession(withThresholds(10, 20, { answers: { pseudonym: "blue fox" } }));
+    const id = await store.storeSession(withThresholds(12, 24, { answers: { pseudonym: "blue fox" } }), at(1), hash);
+    expect(await store.deleteSession(id, hash)).toBe(true);
+    expect(store.size).toBe(1);
+    expect(await store.readSession(id)).toBeUndefined();
+    expect((await store.historyFor("blue fox")).map(r => r.submission_id)).not.toContain(id);
+    expect((await store.readGroups(1))?.control?.motion).toEqual([10]);
+  });
+
+  it("removes only one of two sessions with the same values", async () => {
+    const store = new MemoryStore();
+    await store.storeSession(withThresholds(10, 20));
+    const id = await store.storeSession(withThresholds(10, 20), at(1), hash);
+    await store.deleteSession(id, hash);
+    expect((await store.readGroups(1))?.control?.motion).toEqual([10]);
+  });
+
+  it("refuses a wrong token, an unknown id, and a session stored without a token", async () => {
+    const store = new MemoryStore();
+    const id = await store.storeSession(makeSession(), at(0), hash);
+    const old = await store.storeSession(makeSession());
+    expect(await store.deleteSession(id, hashDeleteToken("another"))).toBe(false);
+    expect(await store.deleteSession("no-such-id", hash)).toBe(false);
+    expect(await store.deleteSession(old, hash)).toBe(false);
     expect(store.size).toBe(2);
   });
 });

@@ -4,7 +4,7 @@
 import { useState, type FormEvent } from "react";
 import { freshPseudonym } from "../app/api";
 import { normalizePseudonym } from "../app/history";
-import type { Condition, ContributionAnswers, ContributionChoice, FoundVia, PsychedelicUse, YesNo } from "../app/types";
+import type { Condition, ContributionAnswers, ContributionChoice, FoundVia, YesNo } from "../app/types";
 import { getState, setState } from "../app/store";
 import { show, showHistory } from "../app/flow";
 import { FunNotice } from "../components/FunNotice";
@@ -17,7 +17,7 @@ interface Draft {
   condition: Condition | "";
   otherCondition: string;
   diagnosed: YesNo | "";
-  psychedelics: PsychedelicUse | "";
+  psychedelics: YesNo | "";
   /** As typed; checked to be a whole number on Continue. */
   uses: string;
   psychedelicsUsed: Chips;
@@ -42,7 +42,8 @@ function fromChoice(c: ContributionChoice | null): Draft {
     condition: a.condition ?? "",
     otherCondition: a.other_condition ?? "",
     diagnosed: a.diagnosed ?? "",
-    psychedelics: a.psychedelics ?? "",
+    // "prefer-not-to-say" is no longer offered: leaving the question blank says the same.
+    psychedelics: a.psychedelics === "yes" || a.psychedelics === "no" ? a.psychedelics : "",
     uses: a.psychedelic_uses == null ? "" : String(a.psychedelic_uses),
     psychedelicsUsed: { items: a.psychedelics_used ?? [], typing: "" },
     takesMedication: a.takes_medication ?? "",
@@ -256,7 +257,6 @@ export function ContributePage({ part }: { part: "contribute" | "questions" }) {
           <legend>Have you ever used psychedelic drugs? (optional)</legend>
           <Radio name="psychedelics" value="yes" id="cq-psychedelics-yes" checked={d.psychedelics === "yes"} onPick={v => set("psychedelics", v)}>Yes</Radio>
           <Radio name="psychedelics" value="no" checked={d.psychedelics === "no"} onPick={v => set("psychedelics", v)}>No</Radio>
-          <Radio name="psychedelics" value="prefer-not-to-say" checked={d.psychedelics === "prefer-not-to-say"} onPick={v => set("psychedelics", v)}>Prefer not to say</Radio>
           {d.psychedelics && <ClearAnswer onClear={() => set("psychedelics", "")} focusId="cq-psychedelics-yes" />}
         </fieldset>
         {d.psychedelics === "yes" && (
@@ -326,6 +326,11 @@ export function ContributePage({ part }: { part: "contribute" | "questions" }) {
   return (
     <section className="view panel" data-view="contribute" aria-labelledby="contribute-h">
       <FunNotice />
+      <h2>What the test measures</h2>
+      <p>Your visual system handles movement and shape partly along separate routes, so the test has one task for each. In the motion task, some dots drift together, up or down. In the form task, some line up into a spiral. Each task finds the smallest share of organised dots you can still pick out. The smaller that share, the higher your sensitivity for that task.</p>
+      <p>Your results then compare the two. Motion minus form shows which one you picked out more easily, and by how much. People vary, and the dataset is here to show how much.</p>
+      <p><strong>There are no good or bad results, and no wrong answers.</strong> Every result is just a number about how you saw the dots that day.</p>
+      <p>The test works best when you're as you usually are: taking any medication you take regularly, and not under the influence of alcohol or other intoxicants.</p>
       <h2 id="contribute-h">Contribute your results</h2>
       <p>You can add your results to a public research dataset. If you say yes, they're sent with your answers below when you finish the test. Either way, you'll see your results at the end and can save them as a file.</p>
       <ul className="key-points">

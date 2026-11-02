@@ -1,5 +1,6 @@
 // The backend API. One base URL, set at build time from VITE_API_URL:
 //   POST {VITE_API_URL}/sessions                    a contributed session's JSON (schema in schema.ts)
+//   DELETE {VITE_API_URL}/sessions                  removes one, with the token its POST returned
 //   GET  {VITE_API_URL}/groups                       summary statistics for each comparison group, current test only
 //   GET  {VITE_API_URL}/history?pseudonym=P          every session sent with that pseudonym (at most 50)
 // Empty until the backend exists: nothing is sent, and no comparison is shown.
@@ -13,13 +14,24 @@ const PRIVATE: RequestInit = { credentials: "omit", referrerPolicy: "no-referrer
 
 export const API_URL: string = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
 
-/** Sends a session. Resolves the id the backend stored it under, which its history and the export use. */
-export async function postSession(data: SessionExport): Promise<string> {
+/**
+ * Sends a session. Resolves the id the backend stored it under, which its history and the export
+ * use, and the token that removes it. A backend from before removal sends no token; the session is
+ * still stored, so that isn't a failure (retrying would store it twice).
+ */
+export async function postSession(data: SessionExport): Promise<{ id: string; deleteToken: string | null }> {
   const r = await fetch(`${API_URL}/sessions`, { ...PRIVATE, method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
   if (!r.ok) throw new ApiError(`HTTP ${r.status}`, parseErrorId(await r.json().catch(() => null)));
-  const id: unknown = (await r.json().catch(() => null))?.submission_id;
+  const body = (await r.json().catch(() => null)) as { submission_id?: unknown; delete_token?: unknown } | null;
+  const id = body?.submission_id, deleteToken = body?.delete_token;
   if (typeof id !== "string" || !id) throw new Error("The backend didn't say what it stored the session as");
-  return id;
+  return { id, deleteToken: typeof deleteToken === "string" && deleteToken ? deleteToken : null };
+}
+
+/** Removes a sent session from the database. Only its sender has the token. */
+export async function deleteSession(id: string, deleteToken: string): Promise<void> {
+  const r = await fetch(`${API_URL}/sessions`, { ...PRIVATE, method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ submission_id: id, delete_token: deleteToken }) });
+  if (!r.ok) throw new ApiError(`HTTP ${r.status}`, parseErrorId(await r.json().catch(() => null)));
 }
 
 /** The groups for the backend's current test version, which must be `testVersion` (a page built before a new version would otherwise compare across versions). */

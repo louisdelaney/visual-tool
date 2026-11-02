@@ -12,6 +12,12 @@ function answerPhrase(t: Trial): string {
   return `The spiral was in the ${t.target === "1" ? "first" : "second"} flash.`;
 }
 
+/** What to look for, repeated after practice. */
+const RECAP: Record<TaskName, string> = {
+  motion: "Some of the dots drift together, up or down, while the rest jump about. Keep your eyes on the red spot and say which way the drifting dots go.",
+  form: "In one of the two flashes some dots line up into a spiral; the other is random. Keep your eyes on the grey spot and say which flash had the spiral.",
+};
+
 /**
  * Runs practice and the staircase for one task on the open stage. Resolves the task's record
  * (endedEarly if the participant ended it from the pause box), or null if they went back from
@@ -38,12 +44,16 @@ export async function runTask(s: Session, task: TaskName): Promise<TaskRecord | 
       if ((await waitForPauseDecision()) === "end") return null;
     }
   };
-  for (let i = 0; i < S.practiceTrials; i++) {
-    const r = await attempt(100, "practice");
-    if (!r) { rec.endedEarly = true; return rec; }
-    await feedback(r.correct, answerPhrase(r));
+  // Practice can be repeated as often as the participant likes; every round is kept as "practice" trials.
+  for (;;) {
+    for (let i = 0; i < S.practiceTrials; i++) {
+      const r = await attempt(100, "practice");
+      if (!r) { rec.endedEarly = true; return rec; }
+      await feedback(r.correct, answerPhrase(r));
+    }
+    const next = await stageMessage(`<h2>Practice done</h2><p>${RECAP[task]} ${how}</p><p>Now the test. It gets harder until it's hard to tell. That's expected: answer every time, and guess when you're unsure. An easy one appears every few trials. During the test, press <kbd>Esc</kbd> to pause.</p><p>Not sure what to do yet? Practise again first.</p>`, { go: "Start the test", alt: "Practise again", altVerb: "practise again" });
+    if (next === "go") break;
   }
-  await stageMessage("<h2>Practice done</h2><p>Now the test. It gets harder until it's hard to tell. That's expected: answer every time, and guess when you're unsure. An easy one appears every few trials.</p><p>Press <kbd>Esc</kbd> to pause.</p>", { go: "Start the test" });
   let sinceCatch = 0;
   while (!sc.done) {
     const isCatch = sinceCatch === S.catchEvery;

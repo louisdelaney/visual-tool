@@ -15,6 +15,16 @@ export type GroupsDoc = Partial<Record<GroupKey, GroupValues>>;
 
 export const emptyGroupValues = (): GroupValues => ({ motion: [], form: [], diff: [] });
 
+/** Takes one session's values out of a group: the first index where all three match. False if none does. */
+export function removeValues(g: GroupValues, m: { motion: number; form: number; diff: number }): boolean {
+  const i = g.motion.findIndex((v, j) => v === m.motion && g.form[j] === m.form && g.diff[j] === m.diff);
+  if (i < 0) return false;
+  g.motion.splice(i, 1);
+  g.form.splice(i, 1);
+  g.diff.splice(i, 1);
+  return true;
+}
+
 const FIELD: Record<MeasureKey, keyof GroupValues> = { motion_threshold_pct: "motion", form_threshold_pct: "form", motion_minus_form: "diff" };
 
 /** Linear interpolation between order statistics (R's type 7, the usual default). Values needn't be sorted. */

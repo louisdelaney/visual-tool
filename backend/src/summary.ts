@@ -72,6 +72,12 @@ export function groupOf(s: SessionExportV1): GroupKey | null {
   return null;
 }
 
+/** The values a grouped session added to its group's arrays. Only call it when groupOf(s) isn't null. */
+export function groupValuesOf(s: SessionExportV1): { motion: number; form: number; diff: number } {
+  const m = measuresOf(s);
+  return { motion: m.motion_threshold_pct!, form: m.form_threshold_pct!, diff: m.motion_minus_form! };
+}
+
 /**
  * Strips a stored row down to a `HistoryEntry`: what GET /history returns. Rows stored before
  * staircases were kept have none; the caller passes them in from the stored session.

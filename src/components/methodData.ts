@@ -26,7 +26,7 @@ export const PROTOCOL_TABLE: ProtocolGroup[] = [
       { parameter: "Coherence", value: "Share of dots or dot pairs carrying the signal; no lifetime correction", source: "Pavan 2013; Roccato 2024" },
       { parameter: "Staircase", value: "Start at 100%; ×0.84 after each correct answer until the first error, then ×0.84 after three in a row correct and ÷0.84 after an error, which targets 79% correct", source: "Rule chosen here; the 79% target matches Roccato 2024" },
       { parameter: "Stop and threshold", value: "Stop at 10 reversals; threshold is the mean of the last 8", source: "Chosen here" },
-      { parameter: "Easy trials and practice", value: "A 100% trial after every eighth, not scored; 4 practice trials with feedback", source: "Chosen here" },
+      { parameter: "Easy trials and practice", value: "A 100% trial after every eighth, not scored; 4 practice trials with feedback, which can be repeated", source: "Chosen here" },
       { parameter: "Sensitivity", value: "1 ÷ threshold in percent", source: "Chosen here" },
     ],
   },

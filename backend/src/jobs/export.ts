@@ -54,8 +54,8 @@ export function dirSink(dir: string): ExportSink {
 
 /**
  * Writes every session to the one file, replacing last night's. Rewriting it all each night is
- * simplest and, at a few MB a month gzipped, cheap enough; sessions are only ever added, so
- * nothing already published disappears.
+ * simplest and, at a few MB a month gzipped, cheap enough. A session its sender removed
+ * is gone from the next file; copies already downloaded can't be recalled.
  */
 export async function runExport(db: Store, sink: ExportSink, now: Date = new Date()): Promise<ExportFile> {
   const rows: { receivedAt: string; session: ExportedSession }[] = [];
