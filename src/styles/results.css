@@ -457,3 +457,27 @@
   color: var(--ink-2);
   margin: 0 0 12px;
 }
+
+/* What the numbers mean: on the Results and User results pages. */
+.explain {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.explain-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px 28px;
+}
+
+.explain-grid section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.explain-grid p {
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+}

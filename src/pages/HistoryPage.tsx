@@ -11,6 +11,7 @@ import { fmt } from "../app/format";
 import { back } from "../app/flow";
 import { StaircaseChart, StaircaseKey } from "../components/StaircaseChart";
 import { SensitivityBars } from "../components/SensitivityBars";
+import { ResultsExplained } from "../components/ResultsExplained";
 
 const TASKS: readonly TaskName[] = ["motion", "form"];
 
@@ -117,13 +118,10 @@ export function HistoryPage({ initialPseudonym }: { initialPseudonym: string }) 
           <div className="panel" id="history-results">
             {load.sample && <p className="banner">Sample data for development. This isn't anyone's real history.</p>}
             <h3>{load.history.pseudonym}: {load.history.sessions.length} {load.history.sessions.length === 1 ? "session" : "sessions"}, newest first</h3>
-            <p className="hint">
-              Sensitivity is 1 ÷ threshold in percent: higher means less organised signal was needed.
-              {shown.full.length + shown.quick.length > 0 ? " Each group's bars are its median, and the line across a bar covers the middle half of its results." : ""}
-              {" "}The staircases show the coherence of each scored trial.
-            </p>
+            <p className="hint">Just for fun, and not medical advice.</p>
+            <ResultsExplained groups={shown.full.length + shown.quick.length > 0} />
+            <p className="hint">The staircases show the share of organised dots on each scored trial.</p>
             <StaircaseKey />
-            <p className="hint">Just for fun, and not medical advice. Results in a browser vary from day to day with screens, lighting, tiredness and attention.</p>
           </div>
           {[...load.history.sessions].reverse().map(e => <SessionEntry key={e.submission_id} entry={e} groups={shown} />)}
         </>
