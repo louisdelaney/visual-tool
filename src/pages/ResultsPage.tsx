@@ -7,7 +7,7 @@ import { fmt } from "../app/format";
 import { getState, setState } from "../app/store";
 import { show, showHistory } from "../app/flow";
 import { removeContribution, sendContribution } from "../app/contribution";
-import { downloadFile, fileBase, sessionJSON, summaryJSON } from "../app/export";
+import { downloadFile, fileBase, sessionJSON, summaryJSON, trialsCSV } from "../app/export";
 import { StaircaseChart, StaircaseKey } from "../components/StaircaseChart";
 import { staircasePoints } from "../app/history";
 import { GroupComparison } from "../components/GroupComparison";
@@ -135,9 +135,10 @@ export function ResultsPage({ session: s }: ResultsPageProps) {
   const R = s.results;
   const tasks = TASK_ORDER.filter(t => s.tasks[t]);
 
-  const save = (kind: "summary" | "full"): void => {
-    const filename = `${fileBase(s)}${kind === "summary" ? "-summary" : ""}.json`;
-    downloadFile(filename, kind === "summary" ? summaryJSON(s) : sessionJSON(s), "application/json");
+  const save = (kind: "summary" | "full" | "trials"): void => {
+    const filename = `${fileBase(s)}${kind === "summary" ? "-summary.json" : kind === "trials" ? "-trials.csv" : ".json"}`;
+    if (kind === "trials") downloadFile(filename, trialsCSV(s), "text/csv");
+    else downloadFile(filename, kind === "summary" ? summaryJSON(s) : sessionJSON(s), "application/json");
     setDataStatus(`Saved ${filename}.`);
   };
 
@@ -211,6 +212,9 @@ export function ResultsPage({ session: s }: ResultsPageProps) {
         </details>
         <details>
           <summary>Trial table</summary>
+          <div className="actions">
+            <button type="button" className="btn secondary" id="save-csv" onClick={() => save("trials")}>Save trials (CSV)</button>
+          </div>
           <div className="table-wrap">
             <table id="trial-table">
               <thead><tr>{TRIAL_COLUMNS.map(([h]) => <th key={h} scope="col">{h}</th>)}</tr></thead>

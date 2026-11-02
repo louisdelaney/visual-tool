@@ -22,7 +22,7 @@ Open it in a desktop browser (tested in Chrome). You need a laptop or desktop wi
 5. **Motion task**, then **form task**: adaptive staircases that find each threshold.
 6. **Results**: thresholds, sensitivities, staircase charts and the session data. If you chose to contribute, the results are sent here.
 
-On the results page, **Save summary** downloads a short JSON file of what the page shows (pseudonym, answers, thresholds and sensitivities, and the staircase points). **Show the raw data** shows the whole session as JSON, exactly as it's sent to the backend, and **Save full data (JSON)** downloads it.
+On the results page, **Save summary** downloads a short JSON file of what the page shows (pseudonym, answers, thresholds and sensitivities, and the staircase points). **Show the raw data** shows the whole session as JSON, exactly as it's sent to the backend, and **Save full data (JSON)** downloads it. Under **Trial table**, **Save trials (CSV)** downloads every trial as a CSV file, one row per trial with the columns in `CSV_COLUMNS` (`src/app/export.ts`). All three files are made in the browser: nothing is sent to save them.
 
 ### Sending results and the group comparison
 

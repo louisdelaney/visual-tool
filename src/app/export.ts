@@ -1,6 +1,6 @@
-// The session as JSON (what's saved and sent), and a short summary of what the results page shows.
-import { CALIBRATION, PROTOCOL } from "../core";
-import type { Session, SessionContribution, TaskName, TaskResult } from "./types";
+// The session as JSON (what's saved and sent), its trials as CSV, and a short summary of what the results page shows.
+import { CALIBRATION, Core, PROTOCOL } from "../core";
+import type { Session, SessionContribution, TaskName, TaskResult, Trial } from "./types";
 import { round } from "./format";
 import { SCHEMA_NAME, SCHEMA_VERSION, type ExportedContribution, type SessionExport } from "./schema";
 
@@ -30,6 +30,10 @@ export function exportObject(s: Session): SessionExport {
 }
 
 export const sessionJSON = (s: Session): string => JSON.stringify(exportObject(s), null, 2);
+
+export const CSV_COLUMNS: readonly (keyof Trial)[] = ["protocol", "task", "phase", "trial", "level_pct", "effective_level_pct", "target", "response", "correct", "rt_ms", "reversal", "frames", "median_frame_ms", "dropped_frames", "display_ms", "flash1_ms", "flash2_ms", "spiral_deg", "scale", "px_per_deg", "seed", "at"];
+
+export const trialsCSV = (s: Session): string => Core.toCSV(s.trials, CSV_COLUMNS);
 
 /** One task's result as the summary gives it. */
 const summaryResult = (r: TaskResult | null) =>
