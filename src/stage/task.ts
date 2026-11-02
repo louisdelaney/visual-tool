@@ -12,10 +12,10 @@ function answerPhrase(t: Trial): string {
   return `The starburst was in the ${t.target === "1" ? "first" : "second"} flash.`;
 }
 
-/** What to look for, repeated after practice. */
+/** What to look for, shown before and after practice. */
 const RECAP: Record<TaskName, string> = {
-  motion: "Some of the dots drift together, up or down, while the rest jump about. Keep your eyes on the red spot and say which way the drifting dots go.",
-  form: "In one of the two flashes some dots line up into a starburst, pointing out from the centre; the other is random. Keep your eyes on the grey spot and say which flash had the starburst.",
+  motion: "Keep your eyes on the red spot. A square of dots appears for a moment: some drift together, up or down, while the rest jump about. Which way did the drifting dots go?",
+  form: "Keep your eyes on the grey spot. You'll see two quick flashes of dots. In one, some dots line up into a starburst, pointing out from the centre; the other is random. Which flash had the starburst?",
 };
 
 /**
@@ -26,9 +26,10 @@ const RECAP: Record<TaskName, string> = {
 export async function runTask(s: Session, task: TaskName): Promise<TaskRecord | null> {
   const P = PROTOCOLS[s.testType], S = P.staircase;
   const how = task === "motion"
-      ? "Answer with <kbd>↑</kbd> or <kbd>↓</kbd>, or click the top or bottom half of the screen."
-      : "Each trial is two quick flashes. Then press <kbd>1</kbd> or <kbd>2</kbd> (or <kbd>←</kbd> or <kbd>→</kbd>) for the flash that had the starburst.";
-  const choice = await stageMessage(`<h2>${TASK_LABEL[task]}: practice</h2><p>${S.practiceTrials} easy examples first, with feedback. ${how}</p>`, { go: "Start practice", alt: "Back", altVerb: "go back" });
+      ? "When the dots disappear, press <kbd>↑</kbd> for up or <kbd>↓</kbd> for down, or click the top or bottom half of the screen."
+      : "After the second flash, press <kbd>1</kbd> or <kbd>←</kbd> for the first flash, <kbd>2</kbd> or <kbd>→</kbd> for the second, or click the left or right half of the screen.";
+  const guess = task === "motion" ? "up or down" : "1 or 2";
+  const choice = await stageMessage(`<h2>${TASK_LABEL[task]}: practice</h2><p>${S.practiceTrials} easy examples first, with feedback.</p><p>${RECAP[task]}</p><p>${how} If you can't tell, guess ${guess} anyway.</p>`, { go: "Start practice", alt: "Back", altVerb: "go back" });
   if (choice !== "go") return null;
   const sc = new Staircase({ start: S.start, factor: S.factor, down: S.down, min: S.min, max: S.max, maxTrials: S.maxTrials, ...P.run });
   const rec: TaskRecord = { task, staircase: sc, trials: [], endedEarly: false };
