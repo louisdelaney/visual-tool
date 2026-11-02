@@ -5,7 +5,11 @@ import { gzipSync } from "node:zlib";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryStore } from "../src/db-memory";
 import { hashDeleteToken, MAX_GROUP_VALUES } from "../src/store";
+import { TEST_VERSION } from "../../src/core/protocol";
 import { makeSession, withThresholds } from "./fixture";
+
+// The fixture runs the current test; another version is any other number.
+const V = TEST_VERSION;
 
 const dirs: string[] = [];
 const tempDir = () => {
@@ -45,7 +49,7 @@ describe("deleteSession", () => {
     expect(store.size).toBe(1);
     expect(await store.readSession(id)).toBeUndefined();
     expect((await store.historyFor("blue fox")).map(r => r.submission_id)).not.toContain(id);
-    expect((await store.readGroups(1))?.control?.motion).toEqual([10]);
+    expect((await store.readGroups(V))?.control?.motion).toEqual([10]);
   });
 
   it("removes only one of two sessions with the same values", async () => {
@@ -53,7 +57,7 @@ describe("deleteSession", () => {
     await store.storeSession(withThresholds(10, 20));
     const id = await store.storeSession(withThresholds(10, 20), at(1), hash);
     await store.deleteSession(id, hash);
-    expect((await store.readGroups(1))?.control?.motion).toEqual([10]);
+    expect((await store.readGroups(V))?.control?.motion).toEqual([10]);
   });
 
   it("refuses a wrong token, an unknown id, and a session stored without a token", async () => {
@@ -69,7 +73,7 @@ describe("deleteSession", () => {
 
 describe("readGroups", () => {
   it("has nothing for a test version nobody ran", async () => {
-    expect(await new MemoryStore().readGroups(1)).toBeUndefined();
+    expect(await new MemoryStore().readGroups(V)).toBeUndefined();
   });
 
   it("puts control, psychedelics and neither in the right place", async () => {
@@ -79,16 +83,16 @@ describe("readGroups", () => {
     await store.storeSession(withThresholds(9, 18, { answers: { psychedelics: "yes" } }));
     await store.storeSession(makeSession({ answers: { psychedelics: "prefer-not-to-say" } }));
     await store.storeSession(makeSession({ answers: { perceptual_disorder: "yes" } }));
-    await store.storeSession(withThresholds(8, 16, { test_version: 2 }));
+    await store.storeSession(withThresholds(8, 16, { test_version: V + 1 }));
 
-    const doc = await store.readGroups(1);
+    const doc = await store.readGroups(V);
     expect(doc?.control?.motion).toEqual([10, 12]);
     expect(doc?.control?.form).toEqual([20, 24]);
     expect(doc?.control?.diff).toHaveLength(2);
     expect(doc?.psychedelics?.motion).toEqual([9]);
     expect(doc?.psychedelics?.diff).toHaveLength(1);
     expect(Object.keys(doc!).sort()).toEqual(["control", "psychedelics"]);
-    expect((await store.readGroups(2))?.control?.motion).toEqual([8]);
+    expect((await store.readGroups(V + 1))?.control?.motion).toEqual([8]);
   });
 
   it("counts two sessions with the same threshold twice", async () => {
@@ -96,14 +100,14 @@ describe("readGroups", () => {
     const twin = withThresholds(7.7, 15.5);
     await store.storeSession(twin);
     await store.storeSession(twin);
-    expect((await store.readGroups(1))?.control?.motion).toEqual([7.7, 7.7]);
+    expect((await store.readGroups(V))?.control?.motion).toEqual([7.7, 7.7]);
   });
 
   it("returns a copy, so a caller can't change what's stored", async () => {
     const store = new MemoryStore();
     await store.storeSession(withThresholds(10, 20));
-    (await store.readGroups(1))!.control!.motion.push(99);
-    expect((await store.readGroups(1))?.control?.motion).toEqual([10]);
+    (await store.readGroups(V))!.control!.motion.push(99);
+    expect((await store.readGroups(V))?.control?.motion).toEqual([10]);
   });
 });
 
@@ -141,7 +145,7 @@ describe("allSessions", () => {
     expect(seen.map(s => s.id)).toEqual([ids[1], ids[2], ids[0]]);
     expect(seen.map(s => s.session)).toEqual([sessions[1], sessions[2], sessions[0]]);
     expect(seen.map(s => s.stored.received_at)).toEqual([at(1), at(3), at(5)].map(d => d.toISOString()));
-    expect(seen[0]!.stored).toMatchObject({ schema_version: 1, test_version: 1 });
+    expect(seen[0]!.stored).toMatchObject({ schema_version: 1, test_version: V });
   });
 });
 
@@ -154,7 +158,7 @@ describe("persistence", () => {
 
     const second = new MemoryStore(file);
     expect(second.size).toBe(2);
-    expect(await second.readGroups(1)).toEqual(await first.readGroups(1));
+    expect(await second.readGroups(V)).toEqual(await first.readGroups(V));
     expect(await second.historyFor("quiet heron")).toEqual(await first.historyFor("quiet heron"));
     expect((await second.historyFor("quiet heron")).map(r => r.submission_id)).toEqual([b, a]);
 
@@ -169,7 +173,7 @@ describe("persistence", () => {
     const second = new MemoryStore(file);
     await second.storeSession(withThresholds(11, 22));
     expect(new MemoryStore(file).size).toBe(2);
-    expect((await new MemoryStore(file).readGroups(1))?.control?.motion).toEqual([10, 11]);
+    expect((await new MemoryStore(file).readGroups(V))?.control?.motion).toEqual([10, 11]);
   });
 
   it("starts empty when the file doesn't exist, and creates it on the first store", async () => {
@@ -200,9 +204,9 @@ describe("a full group", () => {
     const values = Array.from({ length: MAX_GROUP_VALUES }, () => 10);
     const body = gzipSync(JSON.stringify(makeSession()));
     const snapshot = {
-      sessions: { existing: { received_at: at(0).toISOString(), schema_version: 1, test_version: 1, body_gzip: body.toString("base64") } },
+      sessions: { existing: { received_at: at(0).toISOString(), schema_version: 1, test_version: V, body_gzip: body.toString("base64") } },
       summaries: {},
-      groups: { "1": { control: { motion: values, form: values, diff: values } } },
+      groups: { [String(V)]: { control: { motion: values, form: values, diff: values } } },
     };
     writeFileSync(file, JSON.stringify(snapshot));
     return file;
@@ -212,13 +216,13 @@ describe("a full group", () => {
     const store = new MemoryStore(fullFile());
     await expect(store.storeSession(withThresholds(10, 20))).rejects.toThrow("group is full");
     expect(store.size).toBe(1);
-    expect((await store.readGroups(1))?.control?.motion).toHaveLength(MAX_GROUP_VALUES);
+    expect((await store.readGroups(V))?.control?.motion).toHaveLength(MAX_GROUP_VALUES);
   });
 
   it("still takes sessions for the other group, another version, or no group", async () => {
     const store = new MemoryStore(fullFile());
     await store.storeSession(withThresholds(10, 20, { answers: { psychedelics: "yes" } }));
-    await store.storeSession(withThresholds(10, 20, { test_version: 2 }));
+    await store.storeSession(withThresholds(10, 20, { test_version: V + 1 }));
     await store.storeSession(makeSession({ answers: { perceptual_disorder: "yes" } }));
     expect(store.size).toBe(4);
   });

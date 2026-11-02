@@ -62,7 +62,7 @@ export class UpDownMotion {
   }
 }
 
-// ----- Form: spiral Glass patterns -----
+// ----- Form: Glass patterns -----
 
 export interface GlassFrame {
   /** Dot coordinates in degrees, y down: [x1, y1, x2, y2, ...], two dots per dipole. */

@@ -8,14 +8,14 @@ import { exportObject } from "../../src/app/export";
 import { SCHEMA_VERSION } from "../../src/app/schema";
 import type { Session } from "../../src/app/types";
 
-test("test version 1: the parameters participants see are unchanged", () => {
-  assert.equal(TEST_VERSION, 1, "TEST_VERSION changed: update the expected parameters below to match");
+test("test version 2: the parameters participants see are unchanged", () => {
+  assert.equal(TEST_VERSION, 2, "TEST_VERSION changed: update the expected parameters below to match");
   assert.deepEqual(JSON.parse(JSON.stringify(PROTOCOL)), {
     field: { w: 11, h: 11 },
     motion: { apertureDeg: 8, dots: 250, dotDeg: 0.03, speed: 20.1, lifetimeMs: 83.3, fixationDeg: 0.4, fixationMs: 1000, briefMs: 200 },
-    form: { radiusDeg: 5.35, dipoles: 2146, dotDeg: 0.04, separationDeg: 0.25, spiralDeg: 45, uniqueFrames: 12, intervalMs: 200, gapMs: 500, fixationMs: 1000, fixationDeg: 0.3 },
+    form: { radiusDeg: 5.35, dipoles: 2146, dotDeg: 0.04, separationDeg: 0.25, spiralDeg: 0, uniqueFrames: 12, intervalMs: 200, gapMs: 500, fixationMs: 1000, fixationDeg: 0.3 },
     staircase: { start: 100, factor: 0.84, down: 3, min: 1, max: 100, catchEvery: 8, practiceTrials: 4, maxTrials: 150 },
-    run: { stopReversals: 10, meanOfLast: 8 },
+    run: { stopReversals: 16, meanOfLast: 12 },
   }, "A test parameter changed. That makes a different test: bump TEST_VERSION in src/core/protocol.ts.");
   assert.deepEqual(JSON.parse(JSON.stringify(CALIBRATION)), {
     cardMm: { w: 85.6, h: 53.98 }, blindSpotDeg: 13.5, blindSpotReps: 5, blindSpotSquareCm: 3, ipdCm: 6.3,

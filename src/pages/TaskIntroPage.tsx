@@ -26,11 +26,11 @@ const INTROS: Record<TaskName, Intro> = {
   },
   form: {
     copy: <>
-      <p>Each trial shows two quick flashes of flickering dots, one after the other. In one flash, some of the dots line up into a spiral; the other flash is random. Say which flash had the spiral.</p>
+      <p>Each trial shows two quick flashes of flickering dots, one after the other. In one flash, some of the dots line up into a starburst, pointing out from the centre; the other flash is random. Say which flash had the starburst.</p>
       <p>Keep your eyes on the grey spot in the middle. If you can't tell, guess: the test adapts to you.</p>
     </>,
     keys: [[["1", "←"], "first flash"], [["2", "→"], "second flash"]],
-    caption: "Example at 100% coherence: the spiral, flickering as it will in the test.",
+    caption: "Example at 100% coherence: the starburst, flickering as it will in the test.",
   },
 };
 

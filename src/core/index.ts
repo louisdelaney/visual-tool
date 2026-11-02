@@ -9,7 +9,7 @@ import { mixSeed, mulberry32, shuffle } from "./random";
 import { Staircase } from "./staircase";
 import { glassFrame, UpDownMotion } from "./stimuli";
 import { angularExtentDeg, distanceFromBlindSpot, distanceFromBlindSpotGeometry, fitScale, pxPerDeg } from "./geometry";
-import { mean, median, sensitivity, simulateRun, weibull2afc } from "./stats";
+import { geometricMean, mean, median, sensitivity, simulateRun, weibull2afc } from "./stats";
 import { toCSV } from "./csv";
 
 export * from "./protocol";
@@ -27,7 +27,7 @@ export const Core = {
   UpDownMotion, glassFrame,
   weibull2afc, simulateRun,
   pxPerDeg, distanceFromBlindSpot, distanceFromBlindSpotGeometry, angularExtentDeg, fitScale,
-  median, mean, sensitivity,
+  median, mean, geometricMean, sensitivity,
   toCSV,
 };
 

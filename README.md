@@ -49,7 +49,7 @@ Five endpoints under `VITE_API_URL`. The page calls the first four from the brow
 
 ```json
 {
-  "test_version": 1,
+  "test_version": 2,
   "groups": {
     "control": {
       "n": 64,
@@ -81,7 +81,7 @@ The page validates the response and shows nothing from one that doesn't match (s
     {
       "submission_id": "3eed1f03-…",
       "started_at": "2026-10-18T19:30:00Z",
-      "test_version": 1,
+      "test_version": 2,
       "values": { "motion_threshold_pct": 10.2, "form_threshold_pct": 21.0, "motion_minus_form": 0.05043 },
       "medications": ["Lamotrigine"],
       "notes": null
@@ -185,12 +185,12 @@ Everyone takes the same test: there are no settings, so results are comparable a
 
 | | Motion | Form |
 | --- | --- | --- |
-| Stimulus | 250 dots in an 8° square. Signal dots drift up or down at 20.1°/s; noise dots are replotted every frame; every dot lives 83.3 ms | Dynamic spiral Glass pattern: 2146 dot pairs in a 10.7° disc, 12 new patterns per flash |
+| Stimulus | 250 dots in an 8° square. Signal dots drift up or down at 20.1°/s; noise dots are replotted every frame; every dot lives 83.3 ms | Dynamic radial Glass pattern (a starburst): 2146 dot pairs in a 10.7° disc, 12 new patterns per flash |
 | Timing | 1 s fixation, then a 200 ms flash, the same for everyone | 1 s fixation, then two 200 ms flashes 0.5 s apart |
-| Judgement | Up or down | Which flash held the spiral |
-| Source | Pavan et al. 2013 | Roccato et al. 2024; 45° spiral angle chosen here |
+| Judgement | Up or down | Which flash held the starburst |
+| Source | Pavan et al. 2013 | Roccato et al. 2024, their radial condition |
 
-Both tasks start at 100% coherence and step down ×0.84 after each correct answer until the first error. After that, three correct in a row step down and an error steps up (3-down/1-up, about 79% correct). A run stops at 10 reversals, and the threshold is the mean of the last 8. An easy 100% trial after every eighth checks attention. Sensitivity is 1 ÷ threshold in percent, the scale the clinic reported.
+Both tasks start at 100% coherence and step down ×0.84 after each correct answer until the first error. After that, three correct in a row step down and an error steps up (3-down/1-up, about 79% correct, the rule and target Roccato et al. used). A run stops at 16 reversals, and the threshold is the geometric mean of the last 12, as in Pavan et al. That's typically 80–100 trials per task, within the 70–120 that Alcalá-Quintana & García-Pérez (2007) recommend for this kind of staircase; like them, it averages on a log scale because the steps multiply. An easy 100% trial after every eighth checks attention. Sensitivity is 1 ÷ threshold in percent, the scale the clinic reported.
 
 Screen size and viewing distance follow the virtual chinrest of Li et al. (2020), with the distance solved for off-axis viewing.
 
@@ -222,6 +222,7 @@ The end-to-end tests serve `dist/` locally, drive the real page with a simulated
 
 ## References
 
+- Alcalá-Quintana R, García-Pérez MA (2007). A comparison of fixed-step-size and Bayesian staircases for sensory threshold estimation. *Spatial Vision* 20:197–218. https://doi.org/10.1163/156856807780421174
 - Li Q, Joo SJ, Yeatman JD, Reinecke K (2020). Controlling for participants' viewing distance in large-scale, psychophysical online experiments using a virtual chinrest. *Scientific Reports*. https://doi.org/10.1038/s41598-019-57204-1
 - Pavan A, Skujevskis M, Baggio G (2013). Motion words selectively modulate direction discrimination sensitivity for threshold motion. *Frontiers in Human Neuroscience* 7:134. https://doi.org/10.3389/fnhum.2013.00134
 - Roccato M, Campana G, Vicovaro M, Donato R, Pavan A (2024). Perception of complex Glass patterns through spatial summation across unique frames. *Vision Research* 216:108364. https://doi.org/10.1016/j.visres.2024.108364

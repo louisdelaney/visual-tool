@@ -22,7 +22,7 @@ export function SetupPage() {
         </figure>
         <figure>
           <StimulusPreview kind="form" seed={202} playing={playing} id="pv-form" label="Example of the form task" />
-          <figcaption><strong>Form.</strong> Two quick flashes of flickering dots. In one, some line up into a spiral. You say which flash.</figcaption>
+          <figcaption><strong>Form.</strong> Two quick flashes of flickering dots. In one, some line up into a starburst. You say which flash.</figcaption>
         </figure>
       </div>
       <p className="caption">Both examples are at 100% coherence. In the test, the share of organised dots falls until it's hard to tell.</p>

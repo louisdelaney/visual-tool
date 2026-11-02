@@ -71,7 +71,7 @@ const OLD_KEY = "form-motion-coherence/v1";
     ];
 
     async function catchFlash(file) {
-      // poll the canvas until spiral dots are on screen, then screenshot
+      // poll the canvas until the form dots are on screen, then screenshot
       for (let i = 0; i < 400; i++) {
         const lit = await p.evaluate(() => {
           const c = document.querySelector("#stage-canvas"), k = c.getContext("2d"), w = c.width, h = c.height;
@@ -156,12 +156,12 @@ const OLD_KEY = "form-motion-coherence/v1";
       const fl = data.trials.flatMap(t => [t.flash1_ms, t.flash2_ms]).filter(Number.isFinite);
       const md = data.trials.filter(t => t.task === "motion" && t.display_ms != null).map(t => t.display_ms).sort((a, b) => a - b);
       const motion = data.trials.filter(t => t.task === "motion");
-      log("  spiral flash ms: n", fl.length, "min", Math.min(...fl), "max", Math.max(...fl));
+      log("  form flash ms: n", fl.length, "min", Math.min(...fl), "max", Math.max(...fl));
       log("  motion display ms: n", md.length, "min", md[0], "median", md[md.length >> 1], "max", md[md.length - 1], "| median rt", motion.map(t => t.rt_ms).sort((a, b) => a - b)[motion.length >> 1]);
       log("  export settings:", JSON.stringify(data.settings), "| test_version:", data.test_version, "| schema_version:", data.schema_version);
-      check(data.schema === "visual-tool/session" && data.schema_version === 1 && data.test_version === 1, `[clinic] export versions wrong: ${data.schema} ${data.schema_version} ${data.test_version}`);
+      check(data.schema === "visual-tool/session" && data.schema_version === 1 && data.test_version === 2, `[clinic] export versions wrong: ${data.schema} ${data.schema_version} ${data.test_version}`);
       // 200 ms targets, allowing one late frame from a busy headless machine
-      check(fl.length > 0 && Math.min(...fl) >= 195 && Math.max(...fl) <= 240, `[clinic] spiral flashes ran ${Math.min(...fl)}-${Math.max(...fl)} ms`);
+      check(fl.length > 0 && Math.min(...fl) >= 195 && Math.max(...fl) <= 240, `[clinic] form flashes ran ${Math.min(...fl)}-${Math.max(...fl)} ms`);
       check(md.length === motion.length && md[0] >= 195 && md[md.length - 1] <= 240, `[clinic] motion displays ran ${md[0]}-${md[md.length - 1]} ms`);
       check(data.settings.motionDisplay === "brief" && data.settings.order === "motion-first", `[clinic] an old saved setting leaked into the session: ${JSON.stringify(data.settings)}`);
       check(!(await p.evaluate(() => !!document.querySelector('input[name="motionDisplay"]'))), "[clinic] setup still offers a motion display option");

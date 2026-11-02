@@ -68,7 +68,7 @@ function sessionRows(s: Session, R: Results): [string, string][] {
     const tt = s.trials.filter(t => t.task === task && t.frames != null && t.dropped_frames != null);
     if (!tt.length) return null;
     const fr = tt.reduce((a, t) => a + (t.frames ?? 0), 0), dr = tt.reduce((a, t) => a + (t.dropped_frames ?? 0), 0);
-    return `${task === "form" ? "spiral flashes" : "motion"} ${fmt.int(dr)} of ${fmt.int(fr)} (${fmt.fixed(100 * dr / Math.max(1, fr), 1)}%)`;
+    return `${task === "form" ? "form flashes" : "motion"} ${fmt.int(dr)} of ${fmt.int(fr)} (${fmt.fixed(100 * dr / Math.max(1, fr), 1)}%)`;
   }).filter((v): v is string => v != null);
   if (dropped.length) rows.push(["Dropped frames", dropped.join(", ")]);
   const catchText = (["motion", "form"] as const).flatMap(t => { const r = R[t]; return r && r.catch_total ? [`${t} ${r.catch_correct} of ${r.catch_total}`] : []; }).join(", ");

@@ -20,7 +20,7 @@ describe("summaryRow", () => {
       submission_id: "abc",
       pseudonym: "quiet heron",
       started_at: s.started_at,
-      test_version: 1,
+      test_version: s.test_version,
       disorder: "no",
       condition: null,
       other_condition: null,

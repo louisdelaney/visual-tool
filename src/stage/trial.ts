@@ -38,7 +38,7 @@ let trialRaf = 0;
 
 const RESPONSE_HUD = {
   updown: "Up: ↑  ·  Down: ↓  ·  Pause: Esc",
-  spiral: "First flash: 1 or ←  ·  Second flash: 2 or →  ·  Pause: Esc",
+  glass: "First flash: 1 or ←  ·  Second flash: 2 or →  ·  Pause: Esc",
 };
 
 type Answered = { response: Answer; t1: number } | Aborted;
@@ -143,14 +143,15 @@ function flashFrames(frames: GlassFrame[], durMs: number, frameMs: number, log: 
   });
 }
 
-// Form: 1 s fixation, flash, 0.5 s gap, flash; one flash holds the spiral, the other
-// the same number of randomly oriented dipoles. Which flash had the spiral?
-async function presentSpiral({ s, rng, first, coherence }: PresentArgs): Promise<PresentResult> {
+// Form: 1 s fixation, flash, 0.5 s gap, flash; one flash holds the Glass pattern, the other
+// the same number of randomly oriented dipoles. Which flash had the pattern?
+async function presentGlass({ s, rng, first, coherence }: PresentArgs): Promise<PresentResult> {
   const stage = getStage();
   const F = PROTOCOL.form, g = stageGeom();
   const frameMs = s.frameMs ?? 1000 / 60;
   const fixDiam = F.fixationDeg * g.ppd;
   const n = F.uniqueFrames;
+  // A spiral's turn; the test's radial pattern (spiralDeg 0) looks the same either way.
   const handed = rng() < 0.5 ? 1 : -1;
   const make = (c: number): GlassFrame[] => Array.from({ length: n }, () => Core.glassFrame({ rng, coherence: c, ...F, handed }));
   const signal = make(coherence), noise = make(0);
@@ -170,7 +171,7 @@ async function presentSpiral({ s, rng, first, coherence }: PresentArgs): Promise
   stage.redraw = () => drawGlass(stage.ctx, null, stageGeom());
   stage.redraw();
   const t0 = performance.now();
-  setHud(RESPONSE_HUD.spiral);
+  setHud(RESPONSE_HUD.glass);
   const res = await awaitAnswer({ "1": "1", ArrowLeft: "1", "2": "2", ArrowRight: "2" }, e => (e.clientX < stage.w / 2 ? "1" : "2"));
   if ("aborted" in res) return res;
   return {
@@ -192,7 +193,7 @@ export async function runTrial(s: Session, task: TaskName, level: number, phase:
   const args: PresentArgs = { s, rng, first, coherence: level / 100 };
   let out: PresentResult;
   try {
-    out = task === "motion" ? await presentUpDown(args) : await presentSpiral(args);
+    out = task === "motion" ? await presentUpDown(args) : await presentGlass(args);
   } finally {
     cancelAnimationFrame(trialRaf);
     input.key = null;

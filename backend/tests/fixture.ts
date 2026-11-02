@@ -1,5 +1,5 @@
 // A complete, realistic session as the page would send it, for the tests to start from.
-import { CALIBRATION, PROTOCOL } from "../../src/core/protocol";
+import { CALIBRATION, PROTOCOL, TEST_VERSION } from "../../src/core/protocol";
 import type { SessionExportV1 } from "../../src/app/schema";
 import type { ContributionAnswers, Results, TaskResult, Trial } from "../../src/app/types";
 
@@ -43,11 +43,11 @@ const task = (threshold: number): TaskResult => ({
   threshold_pct: threshold,
   threshold_nominal_pct: threshold,
   sensitivity: Math.round((1 / threshold) * 1e5) / 1e5,
-  reversals_pct: [14.1, 9.7, 11.8, 9.9, 10.6, 10.0, 10.5, 9.6, 10.4, 10.1],
-  staircase_trials: 60,
-  catch_correct: 7,
-  catch_total: 7,
-  all_trials: 64,
+  reversals_pct: [14.1, 9.7, 11.8, 9.9, 10.6, 10.0, 10.5, 9.6, 10.4, 10.1, 11.2, 9.8, 10.7, 9.5, 10.3, 9.9],
+  staircase_trials: 85,
+  catch_correct: 10,
+  catch_total: 10,
+  all_trials: 99,
 });
 
 /** Overrides: any top-level field, with `answers` and `results` merged into the defaults. */
@@ -63,7 +63,7 @@ export function makeSession(overrides: SessionOverrides = {}): SessionExportV1 {
   const base: SessionExportV1 = {
     schema: "visual-tool/session",
     schema_version: 1,
-    test_version: 1,
+    test_version: TEST_VERSION,
     page: "https://example.org/visual-tool/",
     started_at: STARTED,
     finished_at: FINISHED,

@@ -33,7 +33,7 @@ test("staircase: 1-down until first error, then 2-down/1-up with x0.84 steps", (
   assert.deepEqual(sc.reversals.map(v => +v.level.toFixed(2)), [70.56, 84, 70.56]);
 });
 
-test("staircase: clamps at 100 and stops at 6 reversals; threshold = mean of last 4", () => {
+test("staircase: clamps at 100 and stops at 6 reversals; threshold = geometric mean of last 4", () => {
   const sc = new C.Staircase({ stopReversals: 6, meanOfLast: 4 });
   sc.record(false); // error at 100 -> stays 100 (clamped), first step is up, no reversal yet
   assert.equal(sc.level, 100);
@@ -43,7 +43,8 @@ test("staircase: clamps at 100 and stops at 6 reversals; threshold = mean of las
   assert.equal(sc.reversals.length, 6);
   assert.ok(sc.done);
   const last4 = sc.reversals.slice(-4).map(r => r.level);
-  near(sc.threshold!, last4.reduce((a, b) => a + b, 0) / 4, 1e-12, "threshold");
+  near(sc.threshold!, Math.exp(last4.reduce((a, b) => a + Math.log(b), 0) / 4), 1e-9, "threshold");
+  near(C.geometricMean(last4)!, sc.threshold!, 1e-9, "geometricMean agrees");
 });
 
 test("staircase: maxTrials guard", () => {
@@ -70,12 +71,15 @@ test("simulated observers: a 2-down staircase converges near the 70.7% point (lo
   // Short runs from 100% carry a known upward bias; it must stay between the 70.7% and 80% points.
   const pcAt = C.weibull2afc(logMean, alpha, beta, lapse);
   assert.ok(pcAt > 0.707 && pcAt < 0.80, `published run converges between 70.7% and 80% correct (got ${pcAt.toFixed(3)})`);
-  // Long run with the same x0.84 steps must land on the 70.7% point: this is the implementation check.
+  // Long run with the same x0.84 steps must land near the 70.7% point: this is the implementation check.
+  // Equal up and down steps settle a little off the nominal point (García-Pérez 1998); averaged on a
+  // log scale, a 2-down run sits slightly below it, so it's checked in percent correct.
   const long: number[] = [];
   for (let i = 0; i < 1500; i++) long.push(C.simulateRun({ alpha, beta, lapse, rng, run: { stopReversals: 80, meanOfLast: 70 }, staircase: { ...TWO_DOWN, maxTrials: 100000 } }).staircase.threshold!);
   const longMean = Math.exp(long.reduce((a, v) => a + Math.log(v), 0) / long.length);
-  console.log(`   long 80-reversal run: geo-mean ${longMean.toFixed(2)}%`);
-  assert.ok(Math.abs(Math.log(longMean / target)) < 0.03, "long run within 3% of the 70.7% point");
+  const pcLong = C.weibull2afc(longMean, alpha, beta, lapse);
+  console.log(`   long 80-reversal run: geo-mean ${longMean.toFixed(2)}% (${(100 * pcLong).toFixed(1)}% correct)`);
+  assert.ok(Math.abs(pcLong - 0.7071) < 0.025, `long run within 2.5 points of 70.7% correct (got ${(100 * pcLong).toFixed(1)}%)`);
   // run-to-run spread with only 4 reversals is large; report it
   const sd = Math.sqrt(thr.reduce((a, v) => a + (Math.log(v) - Math.log(logMean)) ** 2, 0) / runs);
   console.log(`   log-SD of single-run thresholds ${sd.toFixed(3)} (≈ ×${Math.exp(sd).toFixed(2)})`);
@@ -160,10 +164,12 @@ test("up/down motion: signal dots move vertically at 20.1 deg/s, noise replotted
   }
 });
 
-test("spiral Glass frame: counts, separation, inside the disc, signal at 45 deg to the radius", () => {
+test("Glass frame: counts, separation, inside the disc, signal at spiralDeg to the radius (radial in the test)", () => {
   const F = P.form;
-  for (const handed of [1, -1] as const) {
-    const f = C.glassFrame({ rng: C.mulberry32(11), coherence: 0.3, handed, ...F });
+  assert.equal(F.spiralDeg, 0, "the test's pattern is radial");
+  // The protocol's radial pattern, and a 45° spiral to check that handedness sets the turn.
+  for (const [spiralDeg, handed] of [[0, 1], [45, 1], [45, -1]] as const) {
+    const f = C.glassFrame({ rng: C.mulberry32(11), coherence: 0.3, ...F, spiralDeg, handed });
     assert.equal(f.pts.length, 2146 * 4); assert.equal(f.nSignal, Math.round(0.3 * 2146));
     for (let i = 0; i < 2146; i++) {
       const x1 = f.pts[i * 4]!, y1 = f.pts[i * 4 + 1]!, x2 = f.pts[i * 4 + 2]!, y2 = f.pts[i * 4 + 3]!;
@@ -174,7 +180,7 @@ test("spiral Glass frame: counts, separation, inside the disc, signal at 45 deg 
         const rel = Math.atan2(y2 - y1, x2 - x1) - Math.atan2(cy, cx);
         // angle between dipole axis and radius, as an axis (mod 180), signed by handedness
         let a = ((rel * 180 / Math.PI) % 180 + 180) % 180; if (a > 90) a -= 180;
-        near(a, handed * 45, 1e-3, "spiral angle");
+        near(a, handed * spiralDeg, 1e-3, "angle to the radius");
       }
     }
   }

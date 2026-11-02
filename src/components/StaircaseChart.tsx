@@ -114,7 +114,7 @@ export function StaircaseKey() {
       <span><svg width="14" height="14" viewBox="0 0 14 14"><circle className="k-ok" cx="7" cy="7" r="4" /></svg>Correct</span>
       <span><svg width="14" height="14" viewBox="0 0 14 14"><circle className="k-miss" cx="7" cy="7" r="4" /></svg>Wrong</span>
       <span><svg width="18" height="18" viewBox="0 0 18 18"><circle className="k-rev" cx="9" cy="9" r="7.5" /></svg>Reversal</span>
-      <span><svg width="20" height="10" viewBox="0 0 20 10"><line className="k-thr" x1="0" x2="20" y1="5" y2="5" /></svg>Threshold, mean of the last reversals</span>
+      <span><svg width="20" height="10" viewBox="0 0 20 10"><line className="k-thr" x1="0" x2="20" y1="5" y2="5" /></svg>Threshold, averaged from the last reversals</span>
     </div>
   );
 }

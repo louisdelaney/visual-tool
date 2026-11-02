@@ -52,10 +52,11 @@ export class Staircase {
     return this.reversals.length >= this.opts.stopReversals || this.history.length >= this.opts.maxTrials;
   }
 
-  /** Mean level of the last meanOfLast reversals, or null before the first. */
+  /** Geometric mean level of the last meanOfLast reversals, or null before the first. The steps
+   * are multiplicative, so the levels are averaged on a log scale. */
   get threshold(): number | null {
     const r = this.reversals.slice(-this.opts.meanOfLast);
-    return r.length ? r.reduce((s, v) => s + v.level, 0) / r.length : null;
+    return r.length ? Math.exp(r.reduce((s, v) => s + Math.log(v.level), 0) / r.length) : null;
   }
 
   record(correct: boolean): RecordResult {

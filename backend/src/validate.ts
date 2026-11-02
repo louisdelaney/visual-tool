@@ -2,7 +2,7 @@
 // rebuild it field by field: it checks the things the groups and histories depend on, and that
 // the session could have come from a real run. Anything else passes through.
 import { SCHEMA_NAME, SCHEMA_VERSION, type SessionExportV1 } from "../../src/app/schema";
-import { TEST_VERSION } from "../../src/core/protocol";
+import { PROTOCOL, TEST_VERSION } from "../../src/core/protocol";
 
 /** Bodies above this are refused before they're parsed. A real session is about 65 KB. */
 export const MAX_BODY_BYTES = 200_000;
@@ -20,8 +20,8 @@ const MAX_RUN_MS = 90 * 60_000;
 
 /** Two tasks, each at most 4 practice + 150 staircase + catch trials. */
 const MAX_TRIALS = 400;
-/** A complete task has stopped at 10 reversals, so it has at least this many scored trials. */
-const MIN_COMPLETE_TRIALS = 10;
+/** A complete task has reached the run's last reversal, so it has at least this many scored trials. */
+const MIN_COMPLETE_TRIALS = PROTOCOL.run.stopReversals;
 
 export type Validation = { ok: true; session: SessionExportV1 } | { ok: false; reason: string };
 

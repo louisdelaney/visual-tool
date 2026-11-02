@@ -6,7 +6,11 @@ import { Firestore } from "@google-cloud/firestore";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { SessionExportV1 } from "../../src/app/schema";
 import { Db } from "../src/db";
+import { TEST_VERSION } from "../../src/core/protocol";
 import { makeSession, withThresholds } from "./fixture";
+
+// The fixture runs the current test; another version is any other number.
+const V = TEST_VERSION;
 
 describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("Db on the Firestore emulator", () => {
   let fs: Firestore;
@@ -37,7 +41,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("Db on the Firestore emula
   });
 
   it("keeps the values of each group in arrays", async () => {
-    const doc = await db.readGroups(1);
+    const doc = await db.readGroups(V);
     expect(doc?.control?.motion).toEqual([10.2, 12.4]);
     expect(doc?.control?.form).toEqual([21.0, 25.5]);
     expect(doc?.control?.diff).toHaveLength(2);
@@ -51,15 +55,15 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("Db on the Firestore emula
   });
 
   it("counts two people with the same threshold twice", async () => {
-    const twin = withThresholds(7.7, 15.5, { test_version: 2, answers: { pseudonym: null } });
+    const twin = withThresholds(7.7, 15.5, { test_version: V + 1, answers: { pseudonym: null } });
     await db.storeSession(twin);
     await db.storeSession(twin);
-    expect((await db.readGroups(2))?.control?.motion).toEqual([7.7, 7.7]);
+    expect((await db.readGroups(V + 1))?.control?.motion).toEqual([7.7, 7.7]);
   });
 
   it("keeps a session out of the groups if it isn't in one", async () => {
-    await db.storeSession(makeSession({ test_version: 3, answers: { psychedelics: "prefer-not-to-say", pseudonym: null } }));
-    expect(await db.readGroups(3)).toBeUndefined();
+    await db.storeSession(makeSession({ test_version: V + 2, answers: { psychedelics: "prefer-not-to-say", pseudonym: null } }));
+    expect(await db.readGroups(V + 2)).toBeUndefined();
   });
 
   it("returns a pseudonym's history oldest first, matching how it was stored", async () => {

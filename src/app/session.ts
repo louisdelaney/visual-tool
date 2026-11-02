@@ -49,7 +49,7 @@ export function finalizeSession(s: Session): void {
     let nominal: number | null = null, status: TaskResult["status"];
     if (revs.length >= run.stopReversals) { status = "complete"; nominal = sc.threshold; }
     else if (revs.length >= run.meanOfLast) { status = "incomplete"; nominal = sc.threshold; }
-    else if (revs.length >= 2) { status = "incomplete"; nominal = Core.mean(revs); }
+    else if (revs.length >= 2) { status = "incomplete"; nominal = Core.geometricMean(revs); }
     else status = "not reached";
     const thr = nominal;
     const catches = rec.trials.filter(t => t.phase === "catch");
