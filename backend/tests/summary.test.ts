@@ -21,6 +21,7 @@ describe("summaryRow", () => {
       pseudonym: "quiet heron",
       started_at: s.started_at,
       test_version: s.test_version,
+      test_type: "full",
       disorder: "no",
       condition: null,
       other_condition: null,
@@ -69,7 +70,7 @@ describe("historyEntry", () => {
   it("drops the pseudonym, disorder and psychedelics answers", () => {
     const row = summaryRow(makeSession({ answers: { notes: "hello" } }), "abc");
     const entry = historyEntry(row);
-    expect(Object.keys(entry).sort()).toEqual(["medications", "notes", "staircases", "started_at", "submission_id", "test_version", "values"]);
+    expect(Object.keys(entry).sort()).toEqual(["medications", "notes", "staircases", "started_at", "submission_id", "test_type", "test_version", "values"]);
     expect(entry).not.toHaveProperty("pseudonym");
     expect(entry).not.toHaveProperty("disorder");
     expect(entry).not.toHaveProperty("psychedelics");

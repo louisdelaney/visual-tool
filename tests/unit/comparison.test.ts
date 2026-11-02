@@ -7,17 +7,24 @@ import type { Results } from "../../src/app/types";
 
 const q = { p10: 5, p25: 8, p50: 10, p75: 13, p90: 18 };
 const measures = { motion_threshold_pct: q, form_threshold_pct: q, motion_minus_form: { p10: -0.01, p25: 0.02, p50: 0.04, p75: 0.07, p90: 0.1 } };
-const valid = { test_version: 1, groups: { control: { n: 40, measures }, psychedelics: { n: 12, measures: null } } };
+const valid = { test_version: 1, test_type: "full", groups: { control: { n: 40, measures }, psychedelics: { n: 12, measures: null } } };
 
 test("groups: a well-formed response parses", () => {
   assert.deepEqual(parseGroups(valid), valid);
   assert.deepEqual(parseGroups(SAMPLE_GROUPS), SAMPLE_GROUPS);
 });
 
+test("groups: the test type is kept, and a backend from before the quick test sends the full test's", () => {
+  assert.equal(parseGroups({ ...valid, test_type: "quick" })!.test_type, "quick");
+  const { test_type: _, ...old } = valid;
+  assert.equal(parseGroups(old)!.test_type, "full");
+});
+
 test("groups: malformed responses are rejected", () => {
   for (const bad of [
     null, "nope", 42, {},
     { ...valid, test_version: "1" },
+    { ...valid, test_type: "short" },
     { test_version: 1, groups: { control: valid.groups.control } },
     { ...valid, groups: { ...valid.groups, control: { n: -1, measures } } },
     { ...valid, groups: { ...valid.groups, control: { n: 40, measures: { ...measures, form_threshold_pct: undefined } } } },

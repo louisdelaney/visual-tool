@@ -42,12 +42,19 @@ test("history: malformed responses are rejected", () => {
     null, [], { pseudonym: "x" }, { sessions: [] },
     { pseudonym: "x", sessions: [{ ...ok, started_at: "not a date" }] },
     { pseudonym: "x", sessions: [{ ...ok, test_version: "1" }] },
+    { pseudonym: "x", sessions: [{ ...ok, test_type: "short" }] },
     { pseudonym: "x", sessions: [{ ...ok, values: { ...ok.values, motion_threshold_pct: "10" } }] },
     { pseudonym: "x", sessions: [{ ...ok, notes: 3 }] },
     { pseudonym: "x", sessions: [{ ...ok, staircases: { motion: [] } }] },
     { pseudonym: "x", sessions: [{ ...ok, staircases: { motion: [{ coherence_pct: "20", correct: true, reversal: false }], form: [] } }] },
     { pseudonym: "x", sessions: [{ ...ok, staircases: { motion: Array(301).fill({ coherence_pct: 20, correct: true, reversal: false }), form: [] } }] },
   ]) assert.equal(parseHistory(bad), null, JSON.stringify(bad));
+});
+
+test("history: entries from a backend before the quick test are the full test", () => {
+  const { test_type: _, ...old } = sampleHistory("x").sessions[0]!;
+  assert.equal(parseHistory({ pseudonym: "x", sessions: [old] })!.sessions[0]!.test_type, "full");
+  assert.ok(sampleHistory("x").sessions.some(s => s.test_type === "quick"), "the sample shows a quick session");
 });
 
 test("history: staircases are optional, so an older backend's entries still parse", () => {

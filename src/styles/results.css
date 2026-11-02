@@ -439,6 +439,12 @@
   color: var(--ink-2);
 }
 
+/* The quick test's label beside a heading. */
+.type-pill {
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
 /* User results: one entry per session. */
 .hist-time {
   color: var(--muted);

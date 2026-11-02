@@ -8,15 +8,15 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
-import type { SessionExportV1 } from "../../../src/app/schema";
+import type { AnySessionExport } from "../../../src/app/schema";
 import { exportDir, openStore } from "../config";
 import { logError, logInfo } from "../log";
 import type { Store } from "../store";
 
-export interface ExportedSession extends Omit<SessionExportV1, "trials"> {
+export interface ExportedSession extends Omit<AnySessionExport, "trials"> {
   submission_id: string;
   received_at: string;
-  trials: Omit<SessionExportV1["trials"][number], "at">[];
+  trials: Omit<AnySessionExport["trials"][number], "at">[];
 }
 
 /** The whole download. Written gzip-encoded; browsers and `curl --compressed` unpack it. */
@@ -37,7 +37,7 @@ export const toHour = (iso: string): string => {
   return d.toISOString();
 };
 
-export function coarsen(id: string, receivedAt: string, s: SessionExportV1): ExportedSession {
+export function coarsen(id: string, receivedAt: string, s: AnySessionExport): ExportedSession {
   const trials = s.trials.map(({ at: _at, ...rest }) => rest);
   return { ...s, submission_id: id, received_at: toHour(receivedAt), started_at: toHour(s.started_at), finished_at: s.finished_at && toHour(s.finished_at), trials };
 }

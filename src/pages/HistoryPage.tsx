@@ -1,11 +1,12 @@
 // Past results for a pseudonym, to see change over time. Everything here is public: anyone who
 // enters the same pseudonym sees the same page.
 import { useEffect, useState, type FormEvent } from "react";
-import { TEST_VERSION } from "../core";
+import { TEST_TYPES, TEST_VERSION, type TestType } from "../core";
 import { API_URL, fetchGroups, fetchHistory } from "../app/api";
 import { GROUPS, SAMPLE_GROUPS, sensitivities, shownMeasures, type GroupKey, type GroupsResponse, type MeasureKey, type Quantiles } from "../app/comparison";
 import { normalizePseudonym, sampleHistory, type HistoryEntry, type HistoryResponse } from "../app/history";
 import type { TaskName } from "../app/types";
+import { TEST_TYPE_LABEL } from "../app/protocol";
 import { fmt } from "../app/format";
 import { back } from "../app/flow";
 import { StaircaseChart, StaircaseKey } from "../components/StaircaseChart";
@@ -26,12 +27,14 @@ const time = (iso: string): string => new Date(iso).toLocaleTimeString("en-GB", 
 
 type Shown = { group: GroupKey; n: number; measures: Record<MeasureKey, Quantiles> }[];
 
-/** One past session: its sensitivity bars beside the groups, its staircases, and what was noted with it. */
-function SessionEntry({ entry: e, groups }: { entry: HistoryEntry; groups: Shown }) {
+/** One past session: its sensitivity bars beside its test type's groups, its staircases, and what was noted with it. */
+function SessionEntry({ entry: e, groups }: { entry: HistoryEntry; groups: Record<TestType, Shown> }) {
   const current = e.test_version === TEST_VERSION;
+  const quick = e.test_type === "quick";
   return (
     <article className="panel hist-entry" aria-labelledby={`h-${e.submission_id}`}>
-      <h3 id={`h-${e.submission_id}`}>{date(e.started_at)} <span className="hist-time">{time(e.started_at)}</span></h3>
+      <h3 id={`h-${e.submission_id}`}>{date(e.started_at)} <span className="hist-time">{time(e.started_at)}</span>{quick && <> <span className="pill type-pill">{TEST_TYPE_LABEL.quick}</span></>}</h3>
+      {quick && <p className="hint">A quick test: a shorter run, so its results are less precise than a full test's. It's shown only beside other quick-test results.</p>}
       {!current && <p className="hint">This used an earlier version of the test, so it isn't shown beside the groups.</p>}
       <dl className="meta">
         <dt>Motion threshold</dt><dd>{fmt.pct(e.values.motion_threshold_pct)}</dd>
@@ -39,7 +42,7 @@ function SessionEntry({ entry: e, groups }: { entry: HistoryEntry; groups: Shown
         {e.medications?.length ? <><dt>Medications</dt><dd>{e.medications.join(", ")}</dd></> : null}
         {e.notes ? <><dt>Notes</dt><dd>{e.notes}</dd></> : null}
       </dl>
-      <SensitivityBars own={sensitivities(e.values)} groups={current ? groups : []} />
+      <SensitivityBars own={sensitivities(e.values)} groups={current ? groups[e.test_type] : []} />
       {e.staircases ? (
         <div className="charts">
           {TASKS.map(t => (
@@ -55,7 +58,7 @@ function SessionEntry({ entry: e, groups }: { entry: HistoryEntry; groups: Shown
 export function HistoryPage({ initialPseudonym }: { initialPseudonym: string }) {
   const [pseudonym, setPseudonym] = useState(initialPseudonym);
   const [load, setLoad] = useState<Load>({ state: "idle" });
-  const [groups, setGroups] = useState<GroupsResponse | null>(null);
+  const [groups, setGroups] = useState<Partial<Record<TestType, GroupsResponse>>>({});
 
   const lookUp = async (raw: string): Promise<void> => {
     const p = normalizePseudonym(raw);
@@ -72,17 +75,22 @@ export function HistoryPage({ initialPseudonym }: { initialPseudonym: string }) 
   // Open straight to a pseudonym passed from the Results page.
   useEffect(() => { if (initialPseudonym) void lookUp(initialPseudonym); }, [initialPseudonym]);
 
-  // The groups each session is shown beside, once each is big enough.
+  // The groups each session is shown beside, once each is big enough: the full test's and the
+  // quick test's, each only beside sessions of its own test type.
   useEffect(() => {
-    if (usingSample()) { setGroups(SAMPLE_GROUPS); return; }
+    if (usingSample()) { setGroups({ full: SAMPLE_GROUPS }); return; }
     if (!API_URL) return;
     const ctrl = new AbortController();
-    fetchGroups(TEST_VERSION, ctrl.signal).then(setGroups, () => setGroups(null));
+    for (const testType of TEST_TYPES) {
+      fetchGroups(TEST_VERSION, testType, ctrl.signal).then(g => setGroups(prev => ({ ...prev, [testType]: g })), () => {});
+    }
     return () => ctrl.abort();
   }, []);
 
   const onSubmit = (e: FormEvent): void => { e.preventDefault(); void lookUp(pseudonym); };
-  const shown: Shown = groups ? GROUPS.flatMap(g => { const m = shownMeasures(groups.groups[g]); return m ? [{ group: g, n: groups.groups[g].n, measures: m }] : []; }) : [];
+  const shownFor = (r: GroupsResponse | undefined): Shown =>
+    r ? GROUPS.flatMap(g => { const m = shownMeasures(r.groups[g]); return m ? [{ group: g, n: r.groups[g].n, measures: m }] : []; }) : [];
+  const shown: Record<TestType, Shown> = { full: shownFor(groups.full), quick: shownFor(groups.quick) };
 
   return (
     <section className="view view-stack" data-view="history" aria-labelledby="history-h">
@@ -111,7 +119,7 @@ export function HistoryPage({ initialPseudonym }: { initialPseudonym: string }) 
             <h3>{load.history.pseudonym}: {load.history.sessions.length} {load.history.sessions.length === 1 ? "session" : "sessions"}, newest first</h3>
             <p className="hint">
               Sensitivity is 1 ÷ threshold in percent: higher means less organised signal was needed.
-              {shown.length > 0 ? " Each group's bars are its median, and the line across a bar covers the middle half of its results." : ""}
+              {shown.full.length + shown.quick.length > 0 ? " Each group's bars are its median, and the line across a bar covers the middle half of its results." : ""}
               {" "}The staircases show the coherence of each scored trial.
             </p>
             <StaircaseKey />

@@ -55,7 +55,7 @@ export function initRouting(): void {
 export function goHome(): void {
   const { session } = getState();
   if (session?.results && !window.confirm("Leave your results and start again? Save them first if you want a copy.")) return;
-  setState({ contribution: null, session: null, distance: null, historyPseudonym: "" });
+  setState({ contribution: null, session: null, distance: null, testType: "full", historyPseudonym: "" });
   show("contribute");
 }
 

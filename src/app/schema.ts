@@ -7,21 +7,26 @@
 //
 // Files from before versioning have no schema_version: treat them as version 0. Their
 // "version" field ("0.1.0" or "0.2.0") was the app version, and they may have had test settings.
+//
+// Version 2 added test_type, "full" or "quick". Version 1 files have none: every one of them
+// is the full test.
 import type { Calibration, Display, Distance, Environment, Results, SessionContribution, Settings, Trial } from "./types";
-import type { CALIBRATION, Protocol } from "../core";
+import type { CALIBRATION, Protocol, TestType } from "../core";
 
 export const SCHEMA_NAME = "visual-tool/session";
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /** The contribution as exported: without its in-flight sending state. */
 export type ExportedContribution =
   | { contribute: false }
   | Omit<Extract<SessionContribution, { contribute: true }>, "sending" | "failed" | "failure_id" | "delete_token" | "removal">;
 
-export interface SessionExportV1 {
+export interface SessionExportV2 {
   schema: typeof SCHEMA_NAME;
   schema_version: typeof SCHEMA_VERSION;
   test_version: number;
+  /** Which test type ran. Quick and full results are never pooled. */
+  test_type: TestType;
   page: string;
   started_at: string;
   finished_at: string | null;
@@ -43,5 +48,14 @@ export interface SessionExportV1 {
   trials: Trial[];
 }
 
+/** The format before test_type: always the full test. */
+export type SessionExportV1 = Omit<SessionExportV2, "schema_version" | "test_type"> & { schema_version: 1; test_type?: undefined };
+
 /** The current format. */
-export type SessionExport = SessionExportV1;
+export type SessionExport = SessionExportV2;
+
+/** A session in any format the backend has stored. */
+export type AnySessionExport = SessionExportV1 | SessionExportV2;
+
+/** The test type a session ran: version 1 files are all the full test. */
+export const testTypeOf = (s: { test_type?: TestType | undefined }): TestType => s.test_type ?? "full";

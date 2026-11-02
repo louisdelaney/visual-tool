@@ -1,5 +1,5 @@
 // The session as JSON (what's saved and sent), and a short summary of what the results page shows.
-import { CALIBRATION, PROTOCOL } from "../core";
+import { CALIBRATION, PROTOCOLS } from "../core";
 import type { Session, SessionContribution, TaskName, TaskResult } from "./types";
 import { round } from "./format";
 import { SCHEMA_NAME, SCHEMA_VERSION, type ExportedContribution, type SessionExport } from "./schema";
@@ -13,11 +13,11 @@ function exportContribution(c: SessionContribution): ExportedContribution {
 
 export function exportObject(s: Session): SessionExport {
   return {
-    schema: SCHEMA_NAME, schema_version: SCHEMA_VERSION, test_version: s.testVersion,
+    schema: SCHEMA_NAME, schema_version: SCHEMA_VERSION, test_version: s.testVersion, test_type: s.testType,
     page: s.page,
     started_at: s.startedAt, finished_at: s.finishedAt, ended_early: s.endedEarly, seed: s.seed,
     settings: s.settings,
-    protocol: { id: s.settings.protocol, parameters: PROTOCOL, calibration: { card_mm: CALIBRATION.cardMm, blind_spot_deg: CALIBRATION.blindSpotDeg, ipd_cm: CALIBRATION.ipdCm } },
+    protocol: { id: s.settings.protocol, parameters: PROTOCOLS[s.testType], calibration: { card_mm: CALIBRATION.cardMm, blind_spot_deg: CALIBRATION.blindSpotDeg, ipd_cm: CALIBRATION.ipdCm } },
     sensitivity_units: "1 / threshold in %",
     calibration: s.calibration, viewing_distance: s.distance,
     display: {
@@ -47,10 +47,13 @@ export function summaryJSON(s: Session): string {
   const R = s.results;
   const d = R?.motion_minus_form;
   return JSON.stringify({
-    about: "Your results from the Form–Motion Coherence Test. Just for fun, not medical advice.",
+    about: s.testType === "quick"
+      ? "Your results from the quick Form–Motion Coherence Test, a shorter run that gives less precise results than the full test. Just for fun, not medical advice."
+      : "Your results from the Form–Motion Coherence Test. Just for fun, not medical advice.",
     pseudonym,
     started_at: s.startedAt,
     test_version: s.testVersion,
+    test_type: s.testType,
     answers: c ? answers : null,
     results: {
       motion: summaryResult(R?.motion ?? null),

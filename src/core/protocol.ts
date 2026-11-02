@@ -1,11 +1,18 @@
-// The test's parameters. There is one version and nothing is configurable, so results are
-// comparable across people and computers. Everything is frozen: sessions export these objects
-// as the record of how they were run.
+// The test's parameters. There are two fixed types of test, full and quick, and nothing else is
+// configurable, so results are comparable across people and computers. Everything is frozen:
+// sessions export these objects as the record of how they were run.
 //
 // Motion: Pavan, Skujevskis & Baggio (2013). Form: Roccato, Campana, Vicovaro, Donato & Pavan
-// (2024), dynamic Glass patterns in two-interval forced choice, their radial condition. The run
-// stops as Pavan's did, at 16 reversals averaging the last 12, which is within the length
+// (2024), dynamic Glass patterns in two-interval forced choice, their radial condition. The full
+// run stops as Pavan's did, at 16 reversals averaging the last 12, which is within the length
 // Alcalá-Quintana & García-Pérez (2007) recommend for a 1-up/3-down staircase.
+//
+// The quick test is a separate type of test with the same stimuli and staircase steps: it stops
+// at 8 reversals and averages the last 6, still discarding the first two, which sit high while the
+// staircase finds its level, and its easy check trial comes after every 16th trial instead of every
+// 8th. Simulated observers take about 48 trials a task against the full test's 90 (53%), with a
+// threshold that varies about ×1.26–1.40 from run to run against ×1.18–1.19. That's shorter than
+// any published recommendation for this staircase. Quick and full results are never pooled.
 
 export interface RunLength {
   stopReversals: number;
@@ -78,3 +85,17 @@ export const CALIBRATION = Object.freeze({
 });
 
 export type Protocol = typeof PROTOCOL;
+
+/** The two types of test. Every session records which it ran. */
+export type TestType = "full" | "quick";
+
+export const TEST_TYPES: readonly TestType[] = ["full", "quick"];
+
+/** The quick test: the full test's stimuli and staircase steps, a shorter run and fewer check trials. */
+export const QUICK_PROTOCOL: Protocol = Object.freeze({
+  ...PROTOCOL,
+  staircase: Object.freeze<StaircaseSpec>({ ...PROTOCOL.staircase, catchEvery: 16, maxTrials: 80 }),
+  run: Object.freeze<RunLength>({ stopReversals: 8, meanOfLast: 6 }),
+});
+
+export const PROTOCOLS: Readonly<Record<TestType, Protocol>> = Object.freeze({ full: PROTOCOL, quick: QUICK_PROTOCOL });

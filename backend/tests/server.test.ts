@@ -7,7 +7,7 @@ import { TEST_VERSION } from "../../src/core/protocol";
 import { MemoryStore } from "../src/db-memory";
 import type { SummaryRow } from "../src/summary";
 import { createApp, type ServerOptions } from "../src/server";
-import { makeSession, withThresholds } from "./fixture";
+import { asSchemaV1, makeQuickSession, makeSession, withThresholds } from "./fixture";
 
 const ORIGIN = "https://site.example";
 const EXPORT_URL = "https://github.com/owner/visual-tool/releases/download/data/visual-data.json.gz";
@@ -151,7 +151,7 @@ describe("GET /groups", () => {
     expect(parsed!.groups.control.n).toBe(30);
     expect(parsed!.groups.control.measures).not.toBeNull();
     expect(parsed!.groups.psychedelics).toEqual({ n: 0, measures: null });
-    expect(spy).toHaveBeenCalledWith(TEST_VERSION);
+    expect(spy).toHaveBeenCalledWith(TEST_VERSION, "full");
   });
 
   it("always answers for the current test version, whatever the query asks for", async () => {
@@ -161,7 +161,25 @@ describe("GET /groups", () => {
     const res = await fetch(`${base}/groups?test_version=99`);
     expect(res.status).toBe(200);
     expect(parseGroups(await res.json())!.test_version).toBe(TEST_VERSION);
-    expect(spy).toHaveBeenCalledWith(TEST_VERSION);
+    expect(spy).toHaveBeenCalledWith(TEST_VERSION, "full");
+  });
+
+  it("answers for the quick test's groups apart from the full test's", async () => {
+    const db = new MemoryStore();
+    await storeControls(db, 30);
+    await db.storeSession(makeQuickSession());
+    const { base } = await start(db);
+    const quick = parseGroups(await (await fetch(`${base}/groups?type=quick`)).json())!;
+    expect(quick.test_type).toBe("quick");
+    expect(quick.groups.control.n).toBe(1);
+    const full = parseGroups(await (await fetch(`${base}/groups?type=full`)).json())!;
+    expect(full.test_type).toBe("full");
+    expect(full.groups.control.n).toBe(30);
+  });
+
+  it("refuses a test type it doesn't know", async () => {
+    const { base } = await start(new MemoryStore());
+    expect((await fetch(`${base}/groups?type=short`)).status).toBe(400);
   });
 
   it("reads the store once for repeated requests", async () => {
@@ -214,6 +232,16 @@ describe("GET /history", () => {
     expect(parsed!.sessions[0]!.values.motion_threshold_pct).toBe(14.2);
     // Only what the page needs: no pseudonym or answers on the rows.
     expect(Object.keys((body as { sessions: object[] }).sessions[0]!)).not.toContain("pseudonym");
+  });
+
+  it("says which sessions were quick, and reads rows kept before the quick test as full", async () => {
+    const db = new MemoryStore();
+    const old = await db.storeSession(asSchemaV1(withThresholds(14.2, 31.5, { started_at: "2026-10-18T19:30:00.000Z", finished_at: "2026-10-18T19:40:00.000Z" })));
+    await db.storeSession(makeQuickSession({ started_at: "2026-10-19T19:30:00.000Z", finished_at: "2026-10-19T19:35:00.000Z" }));
+    // A row stored before rows had a test type.
+    delete (db as unknown as { summaries: Map<string, Partial<SummaryRow>> }).summaries.get(old)!.test_type;
+    const parsed = parseHistory(await (await fetch(`${(await start(db)).base}/history?pseudonym=quiet%20heron`)).json())!;
+    expect(parsed.sessions.map(s => s.test_type)).toEqual(["full", "quick"]);
   });
 
   it("returns staircases, reading them from the stored session for rows kept without them", async () => {

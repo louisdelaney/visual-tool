@@ -13,10 +13,10 @@ npm install
 npm run dev        # local dev server at http://localhost:5173, reloads on save
 ```
 
-Open it in a desktop browser (tested in Chrome). You need a laptop or desktop with a keyboard, a bank card to measure the screen, and about 10 minutes in a dim room. The page walks through:
+Open it in a desktop browser (tested in Chrome). You need a laptop or desktop with a keyboard, a bank card to measure the screen, and about 10 minutes in a dim room (about 7 for the quick test). The page walks through:
 
 1. **Contribute**: choose whether to send your results anonymously when you finish. If you say yes, a few questions follow: an optional pseudonym to link tests over time, any visual perceptual disorder, psychedelic use (how often and which ones), medications and notes. If you say no, nothing is sent.
-2. **Set up**: examples of both tasks and what you need.
+2. **Set up**: examples of both tasks, what you need, and the full or quick test (see [Method](#method)).
 3. **Screen size**: match an on-screen outline to an ID-1 card.
 4. **Viewing distance**: a blind-spot check that turns where a moving dot vanishes into a distance, so stimuli can be drawn in degrees of visual angle.
 5. **Motion task**, then **form task**: adaptive staircases that find each threshold.
@@ -41,15 +41,16 @@ Both use one backend, set with `VITE_API_URL` at build time (see `.env.example`)
 
 Five endpoints under `VITE_API_URL`. The page calls the first four from the browser, so the backend must allow CORS from the site's origin.
 
-`POST /sessions`: body is one session in the current schema (`schema_version` 1, the `SessionExportV1` type in `src/app/schema.ts`). Store it as one document. Reply 201 with `{ "submission_id": "…", "delete_token": "…" }`; anything else counts as a failure and the page offers a retry. Reject bodies over about 200 KB, a `schema` other than `"visual-tool/session"`, or a `schema_version` it doesn't know.
+`POST /sessions`: body is one session in the current schema (`schema_version` 2, the `SessionExportV2` type in `src/app/schema.ts`). Version 1, sent by a page opened before the quick test, is still accepted: it has no `test_type` and is always the full test. Store it as one document. Reply 201 with `{ "submission_id": "…", "delete_token": "…" }`; anything else counts as a failure and the page offers a retry. Reject bodies over about 200 KB, a `schema` other than `"visual-tool/session"`, or a `schema_version` it doesn't know.
 
 `DELETE /sessions`: body `{ "submission_id": "…", "delete_token": "…" }`, the pair `POST /sessions` returned. Removes the session, its summary row and its values in its group, and replies 204; a wrong id or token gets the same 404. The submission id alone can't do it, since history lookups and the public download show it: only a SHA-256 hash of the token is stored, and it isn't exported. The page holds the token in memory only, so the Results page can offer removal until the person runs the test again or closes the tab, and nowhere else. Sessions stored before removal existed have no token and can't be removed.
 
-`GET /groups`: summary statistics for each comparison group on the current test version (`TEST_VERSION`). There is no way to ask for another version, and `POST /sessions` only accepts the current one.
+`GET /groups?type=T`: summary statistics for each comparison group on the current test version (`TEST_VERSION`), for the full test (`type=full`, the default) or the quick test (`type=quick`). The two are kept apart and never pooled. There is no way to ask for another version, and `POST /sessions` only accepts the current one.
 
 ```json
 {
   "test_version": 2,
+  "test_type": "full",
   "groups": {
     "control": {
       "n": 64,
@@ -64,7 +65,7 @@ Five endpoints under `VITE_API_URL`. The page calls the first four from the brow
 }
 ```
 
-- Both groups are stored sessions with `contribution.answers.perceptual_disorder` = `"no"`, the current `test_version`, and both tasks `"complete"` in `results`.
+- Both groups are stored sessions with `contribution.answers.perceptual_disorder` = `"no"`, the current `test_version`, the asked-for `test_type` (none counts as `"full"`), and both tasks `"complete"` in `results`.
 - `control` also has `psychedelics` = `"no"`; `psychedelics` has `psychedelics` = `"yes"`. Sessions leaving the question unanswered (`null`), or answering `"prefer-not-to-say"` (offered by earlier versions of the page), are in neither group.
 - The measures come from `results.motion.threshold_pct`, `results.form.threshold_pct` and `results.motion_minus_form.sensitivity`.
 - `n` is the number of people in the group. While it's under 5, return `"measures": null`: too few to mean much, and too few to keep individuals hidden. The page enforces the same minimum, per group.
@@ -72,7 +73,7 @@ Five endpoints under `VITE_API_URL`. The page calls the first four from the brow
 
 The page validates the response and shows nothing from one that doesn't match (see `src/app/comparison.ts`).
 
-`GET /history?pseudonym=P`: every session sent with that pseudonym (at most 50, oldest first), for the "User results" page. Each has its three measures, medications, notes and the points of its two staircase charts (coherence, correct and reversal for each scored trial). Sessions stored before the points were kept in the summary row read them from the stored session. Pseudonyms are matched in stored form: trimmed, lower case, inner spaces collapsed (the page sends them that way). There's no password: the dataset is public, and the pseudonym is optional.
+`GET /history?pseudonym=P`: every session sent with that pseudonym (at most 50, oldest first), for the "User results" page. Each has its type of test (`"full"` or `"quick"`), its three measures, medications, notes and the points of its two staircase charts (coherence, correct and reversal for each scored trial). Sessions stored before the points were kept in the summary row read them from the stored session. Pseudonyms are matched in stored form: trimmed, lower case, inner spaces collapsed (the page sends them that way). There's no password: the dataset is public, and the pseudonym is optional.
 
 ```json
 {
@@ -82,6 +83,7 @@ The page validates the response and shows nothing from one that doesn't match (s
       "submission_id": "3eed1f03-…",
       "started_at": "2026-10-18T19:30:00Z",
       "test_version": 2,
+      "test_type": "full",
       "values": { "motion_threshold_pct": 10.2, "form_threshold_pct": 21.0, "motion_minus_form": 0.05043 },
       "medications": ["Lamotrigine"],
       "notes": null
@@ -181,7 +183,7 @@ The repository root has a `compose.yaml` that runs the backend against a Firesto
 
 ## Method
 
-Everyone takes the same test: there are no settings, so results are comparable across people and computers.
+There are two fixed types of test, the full test and a quick test, and no other settings, so results are comparable across people and computers. Quick and full results are never pooled or compared.
 
 | | Motion | Form |
 | --- | --- | --- |
@@ -192,6 +194,18 @@ Everyone takes the same test: there are no settings, so results are comparable a
 
 Both tasks start at 100% coherence and step down ×0.84 after each correct answer until the first error. After that, three correct in a row step down and an error steps up (3-down/1-up, about 79% correct, the rule and target Roccato et al. used). A run stops at 16 reversals, and the threshold is the geometric mean of the last 12, as in Pavan et al. That's typically 80–100 trials per task, within the 70–120 that Alcalá-Quintana & García-Pérez (2007) recommend for this kind of staircase; like them, it averages on a log scale because the steps multiply. An easy 100% trial after every eighth checks attention. Sensitivity is 1 ÷ threshold in percent, the scale the clinic reported.
 
+The **quick test** is a separate type of test with the same stimuli, start level and steps, and a shorter run: each task stops at 8 reversals and averages the last 6 (at most 80 scored trials), and the easy check trial comes after every 16th trial instead of every 8th. It still discards the first two reversals, which sit high while the staircase settles. Against simulated observers (4,000 runs each, thresholds of 6–45%):
+
+| | Full: 16 reversals, last 12 | Quick: 8 reversals, last 6 |
+| --- | --- | --- |
+| Trials per task at a 12% threshold, median (90th percentile) | 91 (110) | 48 (63) |
+| Trials per task, averaged over thresholds | 90 | 48 (53%) |
+| Task time, at about 1.8 s per motion trial and 2.8 s per form trial | about 7 minutes | about 3.7 minutes |
+| Run-to-run spread of the threshold (one geometric SD) | ×1.18–1.19 | ×1.26–1.40 |
+| Bias against the 79% point | −1% to −4% | −3% to +6% |
+
+Calibration and practice are the same for both, so the whole visit drops from about 10 minutes to about 7. The quick run is shorter than any published recommendation for this kind of staircase, which is why its results are labelled and kept apart. Shorter quick runs (6 or 7 reversals) were tried and were less precise, and a faster first descent saved trials only by pulling thresholds low.
+
 Screen size and viewing distance follow the virtual chinrest of Li et al. (2020), with the distance solved for off-axis viewing.
 
 The page's **Method and sources** table lists every parameter and where it comes from.
@@ -200,10 +214,11 @@ The page's **Method and sources** table lists every parameter and where it comes
 
 Sessions can be saved as JSON, with every trial, the calibration and the full protocol parameters. During the test the session is held in memory only; it's exported, and sent if the person chose to contribute, when the tasks finish.
 
-Each JSON file carries two version numbers:
+Each JSON file carries two version numbers and, from schema version 2, the type of test:
 
 - **`test_version`**: the version of the test itself. Any change to what participants see or do (timings, sizes, dot counts, the staircase, instructions that could change answers) is a different test and gets the next number. Never pool results across test versions. It's `TEST_VERSION` in `src/core/protocol.ts`; a unit test pins the parameters to it, so changing one without bumping it fails.
-- **`schema_version`**: the version of the JSON format, with `schema` set to `"visual-tool/session"`. It changes only when fields are added, removed, renamed or change meaning, so readers know how to parse a file. The format is the `SessionExportV1` type in `src/app/schema.ts`, and a unit test pins its fields.
+- **`test_type`**: `"full"` or `"quick"`. The quick test is a separate, less precise test; never pool or compare it with the full test. Schema version 1 files have none and are all the full test. `settings.run` says the same (`"published"` or `"quick"`), and `protocol.parameters` holds that test's own run length and check-trial spacing.
+- **`schema_version`**: the version of the JSON format, with `schema` set to `"visual-tool/session"`. It changes only when fields are added, removed, renamed or change meaning, so readers know how to parse a file. The format is the `SessionExportV2` type in `src/app/schema.ts`, and a unit test pins its fields. Version 2 added `test_type`.
 
 Files from before versioning have no `schema_version`: treat them as schema 0. Their `version` field (`"0.1.0"` or `"0.2.0"`) was the app version, and they may have used test settings that no longer exist, so keep them apart from versioned data.
 

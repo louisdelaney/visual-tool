@@ -1,6 +1,6 @@
 // A complete, realistic session as the page would send it, for the tests to start from.
-import { CALIBRATION, PROTOCOL, TEST_VERSION } from "../../src/core/protocol";
-import type { SessionExportV1 } from "../../src/app/schema";
+import { CALIBRATION, PROTOCOL, QUICK_PROTOCOL, TEST_VERSION } from "../../src/core/protocol";
+import type { SessionExportV1, SessionExportV2 } from "../../src/app/schema";
 import type { ContributionAnswers, Results, TaskResult, Trial } from "../../src/app/types";
 
 const STARTED = "2026-10-18T19:30:00.000Z";
@@ -51,19 +51,20 @@ const task = (threshold: number): TaskResult => ({
 });
 
 /** Overrides: any top-level field, with `answers` and `results` merged into the defaults. */
-export type SessionOverrides = Partial<Omit<SessionExportV1, "contribution" | "results">> & {
+export type SessionOverrides = Partial<Omit<SessionExportV2, "contribution" | "results">> & {
   answers?: Partial<ContributionAnswers>;
   results?: Partial<Results>;
   /** Replaces the whole contribution (e.g. `{ contribute: false }`). */
-  contribution?: SessionExportV1["contribution"];
+  contribution?: SessionExportV2["contribution"];
 };
 
-export function makeSession(overrides: SessionOverrides = {}): SessionExportV1 {
+export function makeSession(overrides: SessionOverrides = {}): SessionExportV2 {
   const { answers, results, contribution, ...rest } = overrides;
-  const base: SessionExportV1 = {
+  const base: SessionExportV2 = {
     schema: "visual-tool/session",
-    schema_version: 1,
+    schema_version: 2,
     test_version: TEST_VERSION,
+    test_type: "full",
     page: "https://example.org/visual-tool/",
     started_at: STARTED,
     finished_at: FINISHED,
@@ -103,15 +104,27 @@ export function makeSession(overrides: SessionOverrides = {}): SessionExportV1 {
     trials: makeTrials(120),
   };
 
-  let merged: SessionExportV1 = { ...base, ...rest };
+  let merged: SessionExportV2 = { ...base, ...rest };
   if (contribution !== undefined) merged = { ...merged, contribution };
   else if (answers && base.contribution?.contribute) merged = { ...merged, contribution: { ...base.contribution, answers: { ...base.contribution.answers, ...answers } } };
   if (results) merged = { ...merged, results: { ...base.results!, ...results } };
   return merged;
 }
 
+/** The same session as a page from before the quick test sent it: schema 1, no test type, the full test. */
+export function asSchemaV1(s: SessionExportV2): SessionExportV1 {
+  const { test_type: _type, schema_version: _version, ...rest } = s;
+  return { ...rest, schema_version: 1 };
+}
+
+/** A quick-test session: its own protocol and run, and fewer trials. */
+export function makeQuickSession(overrides: SessionOverrides = {}): SessionExportV2 {
+  const s = makeSession({ test_type: "quick", settings: { protocol: "clinic", motionDisplay: "brief", spiralDots: "flicker", order: "motion-first", run: "quick" }, trials: makeTrials(60), ...overrides });
+  return { ...s, protocol: { ...s.protocol, parameters: QUICK_PROTOCOL } };
+}
+
 /** Shorthand for a session whose two tasks and difference are set to these numbers. */
-export function withThresholds(motion: number, form: number, overrides: SessionOverrides = {}): SessionExportV1 {
+export function withThresholds(motion: number, form: number, overrides: SessionOverrides = {}): SessionExportV2 {
   return makeSession({
     ...overrides,
     results: { motion: task(motion), form: task(form), motion_minus_form: { sensitivity: Math.round((1 / motion - 1 / form) * 1e5) / 1e5, threshold_ratio: motion / form } },

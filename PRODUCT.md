@@ -15,7 +15,7 @@ Four audiences, all confirmed:
 - **Generally curious people** who want to try a real vision-science task.
 - **Researchers and analysts** who use the public data export to do their own analysis.
 
-Test-takers sit at a laptop or desktop with a keyboard, in a dim room, for about 10 minutes, with a bank card to hand for screen calibration.
+Test-takers sit at a laptop or desktop with a keyboard, in a dim room, for about 10 minutes (about 7 for the quick test), with a bank card to hand for screen calibration.
 
 ## Product Purpose
 
@@ -43,7 +43,7 @@ A careful rebuild of a clinic-style test, open to anyone, with every parameter t
 Binding rules live in AGENTS.md and override anything here. In short:
 
 - **Just for fun, not medical advice**, clearly on the home page and wherever results appear. No wording that diagnoses, screens or judges a result.
-- **Results show only** the person, the control group and the used-psychedelics group, as numbers (median, middle half, middle 80%). No verdicts, ranking colours or labels. A group needs at least 5 people. Groups are compared only within the same `test_version`.
+- **Results show only** the person, the control group and the used-psychedelics group, as numbers (median, middle half, middle 80%). No verdicts, ranking colours or labels. A group needs at least 5 people. Groups are compared only within the same `test_version` and type of test (full or quick).
 - **Privacy**: public and anonymous data, an optional pseudonym as the only key, no IPs or headers logged, no cookies, analytics or third-party requests, bundled fonts, strict CSP.
 - **One fixed test**: no configurable timings, sizes or modes. Stimulus, timing or staircase changes bump `TEST_VERSION`.
 - Desktop browser with a keyboard is required. Tested in Chrome.

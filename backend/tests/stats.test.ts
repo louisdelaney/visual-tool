@@ -60,14 +60,15 @@ describe("groupStats", () => {
 
 describe("groupsResponse", () => {
   it("gives both groups n 0 and no measures for a missing document", () => {
-    expect(groupsResponse(1, undefined)).toEqual({
+    expect(groupsResponse(1, "full", undefined)).toEqual({
       test_version: 1,
+      test_type: "full",
       groups: { control: { n: 0, measures: null }, psychedelics: { n: 0, measures: null } },
     });
   });
 
   it("passes the page's own parseGroups, with one group shown and one too small", () => {
-    const r = groupsResponse(2, { control: values(45), psychedelics: values(MIN_GROUP - 1) });
+    const r = groupsResponse(2, "full", { control: values(45), psychedelics: values(MIN_GROUP - 1) });
     const parsed = parseGroups(JSON.parse(JSON.stringify(r)));
     expect(parsed).not.toBeNull();
     expect(parsed!.test_version).toBe(2);
@@ -76,5 +77,9 @@ describe("groupsResponse", () => {
     expect(parsed!.groups.psychedelics).toEqual({ n: MIN_GROUP - 1, measures: null });
   });
 
-  it("passes parseGroups for an empty response", () => expect(parseGroups(groupsResponse(1, undefined))).not.toBeNull());
+  it("names the quick test's groups, and parseGroups keeps the name", () => {
+    expect(parseGroups(groupsResponse(2, "quick", undefined))!.test_type).toBe("quick");
+  });
+
+  it("passes parseGroups for an empty response", () => expect(parseGroups(groupsResponse(1, "full", undefined))).not.toBeNull());
 });
