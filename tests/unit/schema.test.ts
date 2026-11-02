@@ -4,9 +4,9 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { CALIBRATION, PROTOCOL, PROTOCOLS, QUICK_PROTOCOL, Staircase, TEST_VERSION } from "../../src/core";
-import { exportObject, summaryJSON } from "../../src/app/export";
+import { CSV_COLUMNS, exportObject, summaryJSON, trialsCSV } from "../../src/app/export";
 import { SCHEMA_VERSION } from "../../src/app/schema";
-import type { Session } from "../../src/app/types";
+import type { Session, Trial } from "../../src/app/types";
 
 test("test version 2: the parameters participants see are unchanged", () => {
   assert.equal(TEST_VERSION, 2, "TEST_VERSION changed: update the expected parameters below to match");
@@ -69,4 +69,17 @@ test("a quick session is marked as quick, with the quick protocol, in its export
   assert.equal(out.settings.run, "quick");
   assert.deepEqual(out.protocol.parameters, QUICK_PROTOCOL);
   assert.equal(JSON.parse(summaryJSON(quick)).test_type, "quick");
+});
+
+test("trials CSV: one column per trial field, one row per trial", () => {
+  const trial: Trial = {
+    protocol: "clinic", task: "form", phase: "test", trial: 3, level_pct: 50, effective_level_pct: 49.8, target: "left", response: "right",
+    correct: false, rt_ms: 640, reversal: true, frames: null, median_frame_ms: null, dropped_frames: null, display_ms: null,
+    flash1_ms: 201, flash2_ms: 199, spiral_deg: 0, scale: 1, px_per_deg: 33, seed: 7, at: "2026-10-30T12:01:00.000Z",
+  };
+  assert.deepEqual([...CSV_COLUMNS].sort(), Object.keys(trial).sort(), "Every trial field is a CSV column");
+  const [head, ...rows] = trialsCSV({ ...session, trials: [trial, trial] }).split("\n");
+  assert.equal(head, CSV_COLUMNS.join(","));
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0], "clinic,form,test,3,50,49.8,left,right,false,640,true,,,,,201,199,0,1,33,7,2026-10-30T12:01:00.000Z");
 });
