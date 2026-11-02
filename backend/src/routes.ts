@@ -4,7 +4,7 @@ import type { IncomingMessage } from "node:http";
 import { Readable } from "node:stream";
 import type { HistoryResponse } from "../../src/app/history";
 import { normalizePseudonym } from "../../src/app/history";
-import { TEST_VERSION } from "../../src/core/protocol";
+import { TEST_TYPES, TEST_VERSION, type TestType } from "../../src/core/protocol";
 import { hashDeleteToken, newDeleteToken, type Store } from "./store";
 import { HttpError, readBody } from "./http";
 import { groupsResponse } from "./stats";
@@ -28,7 +28,7 @@ const MAX_HISTORY = 50;
 const GROUPS_CACHE_MS = 60_000;
 
 export class Routes {
-  private groupsCache: { at: number; body: unknown } | null = null;
+  private readonly groupsCache = new Map<TestType, { at: number; body: unknown }>();
 
   constructor(private readonly db: Store, private readonly exportUrl: string, private readonly liveExport = false) {}
 
@@ -44,7 +44,7 @@ export class Routes {
     if (!v.ok) throw new HttpError(400, v.reason);
     const removal = newDeleteToken();
     const id = await this.db.storeSession(v.session, new Date(), removal.hash);
-    this.groupsCache = null;
+    this.groupsCache.clear();
     return { status: 201, body: { submission_id: id, delete_token: removal.token } };
   }
 
@@ -60,17 +60,23 @@ export class Routes {
     const id = body?.submission_id, token = body?.delete_token;
     if (typeof id !== "string" || !id || typeof token !== "string" || !token) throw new HttpError(400, "submission_id and delete_token are required");
     if (!(await this.db.deleteSession(id, hashDeleteToken(token)))) throw new HttpError(404, "no session with that id and token");
-    this.groupsCache = null;
+    this.groupsCache.clear();
     return { status: 204 };
   }
 
-  /** Always the current test version: there is no way to ask for another. */
-  async getGroups(): Promise<Reply> {
-    const cached = this.groupsCache;
+  /**
+   * Always the current test version: there is no way to ask for another. `type` picks the full
+   * test's groups (the default) or the quick test's, which are kept apart.
+   */
+  async getGroups(url: URL): Promise<Reply> {
+    const asked = url.searchParams.get("type") ?? "full";
+    if (!(TEST_TYPES as readonly string[]).includes(asked)) throw new HttpError(400, `type must be ${TEST_TYPES.join(" or ")}`);
+    const testType = asked as TestType;
+    const cached = this.groupsCache.get(testType);
     const now = Date.now();
     if (cached && now - cached.at < GROUPS_CACHE_MS) return { status: 200, body: cached.body, headers: { "Cache-Control": "public, max-age=300" } };
-    const body = groupsResponse(TEST_VERSION, await this.db.readGroups(TEST_VERSION));
-    this.groupsCache = { at: now, body };
+    const body = groupsResponse(TEST_VERSION, testType, await this.db.readGroups(TEST_VERSION, testType));
+    this.groupsCache.set(testType, { at: now, body });
     return { status: 200, body, headers: { "Cache-Control": "public, max-age=300" } };
   }
 

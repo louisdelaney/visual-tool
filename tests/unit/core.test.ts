@@ -143,6 +143,22 @@ test("staircase: 3-down/1-up converges on the 79.4% point; the test's run length
   assert.ok(Math.abs(Math.log(gm / p794)) < 0.03, "long run within 3% of 79.4% point");
 });
 
+test("staircase: the quick test's run lands near the 79.4% point in about half the full test's trials", () => {
+  const rng = C.mulberry32(78), alpha = 10, beta = 2, lapse = 0.02;
+  const p794 = alpha * Math.pow(-Math.log(1 - (0.7937 - 0.5) / (0.5 - lapse)), 1 / beta);
+  const run = (p: C.Protocol) => {
+    const logs: number[] = [], n: number[] = [];
+    for (let i = 0; i < 3000; i++) { const r = C.simulateRun({ alpha, beta, lapse, rng, run: p.run, staircase: p.staircase }); logs.push(Math.log(r.staircase.threshold!)); n.push(r.trials.length); }
+    const m = logs.reduce((a, b) => a + b, 0) / logs.length;
+    return { m, sd: Math.sqrt(logs.reduce((a, b) => a + (b - m) ** 2, 0) / logs.length), trials: n.reduce((a, b) => a + b, 0) / n.length };
+  };
+  const full = run(C.PROTOCOLS.full), quick = run(C.PROTOCOLS.quick);
+  console.log(`   quick run geo-mean ${Math.exp(quick.m).toFixed(2)}% (79.4% point ${p794.toFixed(2)}%), log-SD ${quick.sd.toFixed(3)} against ${full.sd.toFixed(3)}, trials ${quick.trials.toFixed(0)} against ${full.trials.toFixed(0)}`);
+  assert.ok(Math.abs(quick.m - Math.log(p794)) < 0.05, "quick run within 5% of the 79.4% point on average");
+  assert.ok(quick.sd < 0.35, "quick thresholds vary less than ×1.42 from run to run");
+  assert.ok(quick.trials > 0.45 * full.trials && quick.trials < 0.6 * full.trials, "quick run about half the full run's trials");
+});
+
 test("up/down motion: signal dots move vertically at 20.1 deg/s, noise replotted every frame", () => {
   const M = P.motion;
   for (const dir of [-1, 1] as const) {

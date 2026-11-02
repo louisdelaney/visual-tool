@@ -1,6 +1,6 @@
 // The shapes of everything the app keeps and exports. Field names in snake_case are written
 // to the JSON and CSV exports as they are, so changing them changes the data format.
-import type { Staircase } from "../core";
+import type { Staircase, TestType } from "../core";
 
 export type TaskName = "motion" | "form";
 export type Step = "contribute" | "questions" | "setup" | "screen" | "distance" | TaskName | "results";
@@ -13,15 +13,16 @@ export type View = Step | InfoPage;
 export const INFO_PAGES: readonly InfoPage[] = ["history", "privacy", "references", "data"];
 
 /**
- * How a session was run. There's one version of the test and nothing is configurable, but every
- * export still records this so sessions from older versions, which had options, can be told apart.
+ * How a session was run. The only choice is the test type: `run` is "quick" for the quick test and
+ * "published" for the full one. The rest is fixed, but every export still records it so sessions
+ * from older versions, which had options, can be told apart.
  */
 export interface Settings {
   protocol: "clinic";
   motionDisplay: "brief";
   spiralDots: "flicker";
   order: "motion-first";
-  run: "published";
+  run: "published" | "quick";
 }
 
 export interface Calibration {
@@ -180,6 +181,8 @@ export interface Session {
   page: string;
   /** TEST_VERSION when the session ran. */
   testVersion: number;
+  /** Full or quick: fixed when the session starts. */
+  testType: TestType;
   seed: number;
   startedAt: string;
   finishedAt: string | null;

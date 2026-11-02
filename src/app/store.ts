@@ -4,6 +4,7 @@
 // Sessions are mutated in place while a task runs (trials are pushed as they happen), so after
 // changing one, call touch() to tell the pages to re-render.
 import { useSyncExternalStore } from "react";
+import type { TestType } from "../core";
 import type { Calibration, ContributionChoice, Distance, Session, Step, View } from "./types";
 import { linkedPage } from "./address";
 import { dpr } from "./protocol";
@@ -15,6 +16,8 @@ export interface AppState {
   /** The answer given at step 1, or null before it's answered. */
   contribution: ContributionChoice | null;
   calib: Calibration | null;
+  /** Which test the next session runs, chosen on the setup step. */
+  testType: TestType;
   distance: Distance | null;
   session: Session | null;
   /** A task or the blind-spot check is running. */
@@ -40,7 +43,7 @@ function persist(s: AppState): void {
   try { window.localStorage.setItem(STORE_KEY, JSON.stringify({ calib: s.calib })); } catch { /* storage blocked */ }
 }
 
-let state: AppState = { view: "contribute", flash: "", contribution: null, calib: loadCalib(), distance: null, session: null, busy: false, returnTo: "contribute", historyPseudonym: "" };
+let state: AppState = { view: "contribute", flash: "", contribution: null, calib: loadCalib(), testType: "full", distance: null, session: null, busy: false, returnTo: "contribute", historyPseudonym: "" };
 
 // Opened at /privacy/, /references/, /data/ or /history/: start on that page.
 const linked = linkedPage();

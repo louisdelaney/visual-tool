@@ -2,7 +2,7 @@
 // is the only key, so anyone who enters a pseudonym sees what was sent with it. That's by design:
 // anonymity depends on people not putting anything identifying in the pseudonym or text answers.
 import type { MeasureKey } from "./comparison";
-import { TEST_VERSION } from "../core/protocol";
+import { TEST_TYPES, TEST_VERSION, type TestType } from "../core/protocol";
 import type { TaskName, Trial } from "./types";
 import { ADJECTIVES, NOUNS } from "./words";
 
@@ -28,6 +28,8 @@ export interface HistoryEntry {
   submission_id: string;
   started_at: string;
   test_version: number;
+  /** Full or quick. Sessions from before the quick test are all full. */
+  test_type: TestType;
   /** Null where that session didn't reach a value. */
   values: Record<MeasureKey, number | null>;
   medications: string[] | null;
@@ -89,7 +91,10 @@ function parseEntry(v: unknown): HistoryEntry | null {
   const m = numOrNull(vals.motion_threshold_pct), f = numOrNull(vals.form_threshold_pct), d = numOrNull(vals.motion_minus_form);
   const medications = strsOrNull(o.medications), notes = strOrNull(o.notes), staircases = parseStaircases(o.staircases);
   if (m === undefined || f === undefined || d === undefined || medications === undefined || notes === undefined || staircases === undefined) return null;
-  return { submission_id: o.submission_id, started_at: o.started_at, test_version: o.test_version, values: { motion_threshold_pct: m, form_threshold_pct: f, motion_minus_form: d }, medications, notes, staircases };
+  // A backend from before the quick test sends no test type: every session it has is full.
+  const testType = o.test_type ?? "full";
+  if (!(TEST_TYPES as readonly unknown[]).includes(testType)) return null;
+  return { submission_id: o.submission_id, started_at: o.started_at, test_version: o.test_version, test_type: testType as TestType, values: { motion_threshold_pct: m, form_threshold_pct: f, motion_minus_form: d }, medications, notes, staircases };
 }
 
 /** Checks a /history response; null if it isn't valid. Server data is untrusted. Sorts oldest first. */
@@ -136,7 +141,7 @@ export function sampleHistory(pseudonym: string): HistoryResponse {
   return {
     pseudonym,
     sessions: rows.map(([at, m, f, medications, notes], i) => ({
-      submission_id: `sample-${i + 1}`, started_at: at, test_version: TEST_VERSION,
+      submission_id: `sample-${i + 1}`, started_at: at, test_version: TEST_VERSION, test_type: i === 3 ? "quick" : "full",
       values: { motion_threshold_pct: m, form_threshold_pct: f, motion_minus_form: Math.round((1 / m - 1 / f) * 1e5) / 1e5 },
       medications, notes,
       staircases: { motion: sampleStaircase(m, 7 + i * 31), form: sampleStaircase(f, 11 + i * 17) },

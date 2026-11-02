@@ -124,11 +124,11 @@ export function GroupComparison({ session }: { session: Session }) {
     if (!API_URL) return;
     const ctrl = new AbortController();
     setLoad({ state: "loading" });
-    fetchGroups(session.testVersion, ctrl.signal)
+    fetchGroups(session.testVersion, session.testType, ctrl.signal)
       .then(stats => setLoad({ state: "ready", stats, sample: false }))
       .catch(() => { if (!ctrl.signal.aborted) setLoad({ state: "error" }); });
     return () => ctrl.abort();
-  }, [session.testVersion, attempt]);
+  }, [session.testVersion, session.testType, attempt]);
 
   if (!API_URL && !usingSample) return null;
   const results = session.results;
@@ -152,7 +152,9 @@ export function GroupComparison({ session }: { session: Session }) {
         <>
           {load.sample && <p className="banner">Sample data for development. These are not real groups.</p>}
           <p>
-            Your results are shown beside two groups of people who contributed results on this version of the test, as they described themselves:
+            {session.testType === "quick"
+              ? "This was the quick test, so your results are shown beside people who took the quick test on this version of it, never the full test's results. The groups, as people described themselves:"
+              : "Your results are shown beside two groups of people who contributed full-test results on this version of the test, as they described themselves:"}
           </p>
           <ul className="cmp-groups">
             {GROUPS.map(g => (

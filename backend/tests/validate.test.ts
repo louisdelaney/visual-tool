@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TEST_VERSION } from "../../src/core/protocol";
 import { validateSession } from "../src/validate";
-import { makeSession } from "./fixture";
+import { asSchemaV1, makeQuickSession, makeSession } from "./fixture";
 
 const finishedAfter = (startedAt: string, millis: number) => new Date(Date.parse(startedAt) + millis).toISOString();
 
@@ -24,8 +24,24 @@ describe("validateSession", () => {
 
   it("checks the schema name and version", () => {
     rejects({ ...makeSession(), schema: "something/else" }, /schema/);
-    rejects({ ...makeSession(), schema_version: 2 }, /schema_version/);
+    rejects({ ...makeSession(), schema_version: 3 }, /schema_version/);
     rejects({ ...makeSession(), schema_version: undefined }, /schema_version/);
+  });
+
+  describe("test type", () => {
+    it("accepts a quick session", () => expect(validateSession(makeQuickSession()).ok).toBe(true));
+    it("accepts schema 1, from a page opened before the quick test, as the full test", () => expect(validateSession(asSchemaV1(makeSession())).ok).toBe(true));
+    it("needs a known test type from schema 2", () => {
+      rejects({ ...makeSession(), test_type: undefined }, /test_type/);
+      rejects({ ...makeSession(), test_type: "short" }, /test_type/);
+    });
+    it("refuses a test type on schema 1", () => rejects({ ...asSchemaV1(makeQuickSession()), test_type: "quick" }, /test_type/));
+    it("holds each test type's complete tasks to its own run length", () => {
+      const results = (trials: number) => ({ motion: { ...makeSession().results!.motion!, staircase_trials: trials } });
+      expect(validateSession(makeQuickSession({ results: results(8) })).ok).toBe(true);
+      rejects(makeQuickSession({ results: results(7) }), /too few trials/);
+      rejects(makeSession({ results: results(8) }), /too few trials/);
+    });
   });
 
   it("needs the current test_version", () => {

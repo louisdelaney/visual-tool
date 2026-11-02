@@ -1,8 +1,8 @@
 // The last step: thresholds, staircase charts, session details, the data, and whether it was sent.
 import { useState } from "react";
-import { Core, PROTOCOL } from "../core";
+import { Core, PROTOCOL, PROTOCOLS } from "../core";
 import type { Results, Session, TaskName, TaskResult, Trial } from "../app/types";
-import { TASK_ORDER } from "../app/protocol";
+import { TASK_ORDER, TEST_TYPE_LABEL } from "../app/protocol";
 import { fmt } from "../app/format";
 import { getState, setState } from "../app/store";
 import { show, showHistory } from "../app/flow";
@@ -48,6 +48,8 @@ function sessionRows(s: Session, R: Results): [string, string][] {
   const c = s.calibration, dist = s.distance;
   const rows: [string, string][] = [];
   rows.push(["Test version", String(s.testVersion)]);
+  const run = PROTOCOLS[s.testType].run;
+  rows.push(["Test", `${TEST_TYPE_LABEL[s.testType]}: each task stops at ${run.stopReversals} reversals, threshold from the last ${run.meanOfLast}`]);
   rows.push(["Started", fmt.time(s.startedAt)]);
   rows.push(["Screen scale", c ? `${fmt.fixed(c.pxPerMm, 3)} px per mm, card ${fmt.fixed(c.cardPx, 1)} px wide` : "–"]);
   if (dist) {
@@ -156,7 +158,8 @@ export function ResultsPage({ session: s }: ResultsPageProps) {
     <section className="view view-stack" data-view="results" aria-labelledby="results-h">
       <FunNotice />
       <div className="panel">
-        <h2 id="results-h">Results</h2>
+        <h2 id="results-h">Results{s.testType === "quick" && <> <span className="pill type-pill" id="type-pill">{TEST_TYPE_LABEL.quick}</span></>}</h2>
+        {s.testType === "quick" && <p className="hint" id="test-type-note">This was the quick test: a shorter run, so these results are less precise than a full test's would be. They're saved and sent labelled as quick, and only ever shown beside other quick-test results.</p>}
         {pseudonym && (
           <p className="pseudonym-note" id="pseudonym-note">
             Your pseudonym is <strong>{pseudonym}</strong>. Use it to find these results again later{s.contribution?.contribute && s.contribution.sent_at

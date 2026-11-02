@@ -4,7 +4,7 @@
 import { randomUUID } from "node:crypto";
 import { Firestore } from "@google-cloud/firestore";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { SessionExportV1 } from "../../src/app/schema";
+import type { AnySessionExport } from "../../src/app/schema";
 import { Db } from "../src/db";
 import { TEST_VERSION } from "../../src/core/protocol";
 import { makeSession, withThresholds } from "./fixture";
@@ -20,7 +20,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("Db on the Firestore emula
   const controlA = withThresholds(10.2, 21.0, { started_at: "2026-10-18T19:30:00.000Z", finished_at: "2026-10-18T19:39:00.000Z", answers: { pseudonym: "Quiet Heron", notes: "second run" } });
   const controlB = withThresholds(12.4, 25.5, { started_at: "2026-10-19T08:00:00.000Z", finished_at: "2026-10-19T08:09:00.000Z", answers: { pseudonym: null } });
   const psychedelicsC = withThresholds(9.1, 19.3, { started_at: "2026-08-02T20:00:00.000Z", finished_at: "2026-08-02T20:09:00.000Z", answers: { pseudonym: " quiet  heron ", psychedelics: "yes", medications: ["Lamotrigine"] } });
-  const stored: SessionExportV1[] = [controlA, controlB, psychedelicsC];
+  const stored: AnySessionExport[] = [controlA, controlB, psychedelicsC];
   const ids: string[] = [];
 
   beforeAll(async () => {
@@ -41,7 +41,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("Db on the Firestore emula
   });
 
   it("keeps the values of each group in arrays", async () => {
-    const doc = await db.readGroups(V);
+    const doc = await db.readGroups(V, "full");
     expect(doc?.control?.motion).toEqual([10.2, 12.4]);
     expect(doc?.control?.form).toEqual([21.0, 25.5]);
     expect(doc?.control?.diff).toHaveLength(2);
@@ -51,19 +51,19 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("Db on the Firestore emula
   });
 
   it("has no groups document for a test version nobody ran", async () => {
-    expect(await db.readGroups(99)).toBeUndefined();
+    expect(await db.readGroups(99, "full")).toBeUndefined();
   });
 
   it("counts two people with the same threshold twice", async () => {
     const twin = withThresholds(7.7, 15.5, { test_version: V + 1, answers: { pseudonym: null } });
     await db.storeSession(twin);
     await db.storeSession(twin);
-    expect((await db.readGroups(V + 1))?.control?.motion).toEqual([7.7, 7.7]);
+    expect((await db.readGroups(V + 1, "full"))?.control?.motion).toEqual([7.7, 7.7]);
   });
 
   it("keeps a session out of the groups if it isn't in one", async () => {
     await db.storeSession(makeSession({ test_version: V + 2, answers: { psychedelics: "prefer-not-to-say", pseudonym: null } }));
-    expect(await db.readGroups(V + 2)).toBeUndefined();
+    expect(await db.readGroups(V + 2, "full")).toBeUndefined();
   });
 
   it("returns a pseudonym's history oldest first, matching how it was stored", async () => {
@@ -79,7 +79,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("Db on the Firestore emula
   });
 
   it("streams every session in arrival order, as stored", async () => {
-    const seen: { id: string; stored: { received_at: string }; session: SessionExportV1 }[] = [];
+    const seen: { id: string; stored: { received_at: string }; session: AnySessionExport }[] = [];
     for await (const s of db.allSessions(2)) seen.push(s); // a page size of 2 makes it fetch twice
     // The other tests store a few more sessions; these three are among them.
     const mine = seen.filter(s => ids.includes(s.id));

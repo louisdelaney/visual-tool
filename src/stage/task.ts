@@ -1,7 +1,7 @@
 // One task: instructions, practice with feedback, then the adaptive staircase with an easy
 // check trial every few trials.
 import type { Session, TaskName, TaskRecord, Trial, TrialPhase } from "../app/types";
-import { PROTOCOL, Staircase } from "../core";
+import { PROTOCOLS, Staircase } from "../core";
 import { TASK_LABEL } from "../app/protocol";
 import { feedback, stageMessage } from "./stage";
 import { waitForPauseDecision } from "./pause";
@@ -24,13 +24,13 @@ const RECAP: Record<TaskName, string> = {
  * the first message.
  */
 export async function runTask(s: Session, task: TaskName): Promise<TaskRecord | null> {
-  const S = PROTOCOL.staircase;
+  const P = PROTOCOLS[s.testType], S = P.staircase;
   const how = task === "motion"
       ? "Answer with <kbd>↑</kbd> or <kbd>↓</kbd>, or click the top or bottom half of the screen."
       : "Each trial is two quick flashes. Then press <kbd>1</kbd> or <kbd>2</kbd> (or <kbd>←</kbd> or <kbd>→</kbd>) for the flash that had the starburst.";
   const choice = await stageMessage(`<h2>${TASK_LABEL[task]}: practice</h2><p>${S.practiceTrials} easy examples first, with feedback. ${how}</p>`, { go: "Start practice", alt: "Back", altVerb: "go back" });
   if (choice !== "go") return null;
-  const sc = new Staircase({ start: S.start, factor: S.factor, down: S.down, min: S.min, max: S.max, maxTrials: S.maxTrials, ...PROTOCOL.run });
+  const sc = new Staircase({ start: S.start, factor: S.factor, down: S.down, min: S.min, max: S.max, maxTrials: S.maxTrials, ...P.run });
   const rec: TaskRecord = { task, staircase: sc, trials: [], endedEarly: false };
   // Redoing a task (after going back to it) replaces its earlier run.
   s.trials = s.trials.filter(t => t.task !== task);

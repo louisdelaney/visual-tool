@@ -32,6 +32,7 @@ export function DataPage() {
         <p>
           The download is one gzipped JSON file, <code>visual-data.json.gz</code>, hosted on GitHub. It holds every session in order of arrival, in the same format as the file you can save from your own results, plus the date each was received.
           {" "}Each session records its <code>test_version</code>; only compare sessions from the same version, since a new version means the test itself changed.
+          {" "}Sessions also record <code>test_type</code>, <code>"full"</code> or <code>"quick"</code> (none means full). The quick test is a separate, shorter test with less precise results: keep it apart from the full test.
         </p>
         <p>The results come from people taking a casual online test on their own screens, unsupervised, so screens, viewing distances and attention vary.</p>
       </div>

@@ -22,7 +22,7 @@ Rules:
 - People who answered "prefer not to say" about psychedelics are in neither group.
 - **Information only.** Show the numbers (median, middle half, middle 80%) and the person's own value. Draw no conclusions from where a value falls: no verdicts, labels, colours or text that rank or classify the person.
 - A group isn't shown until it has at least 5 people (`MIN_GROUP` in `src/app/comparison.ts`). The backend enforces the same minimum.
-- Only groups from the same `test_version` are ever compared or pooled.
+- Only groups from the same `test_version` and type of test (full or quick) are ever compared or pooled.
 - Both pages show sensitivity bars in the clinic's "Glass Patterns" style: the person's motion, form and motion − form bars, then each group's median bars with a line across the middle half.
 - The User results page is a list of the person's sessions, newest first: each with its sensitivity bars beside the groups and its two staircases. No charts across sessions.
 - No example, sample or simulated results in the production site. Development-only sample data must be clearly labelled and never ship in a build.
@@ -39,9 +39,12 @@ What the site promises users, on the Privacy and risks page:
 
 Don't add anything that breaks these promises. If a change touches what's collected or sent, update the Privacy and risks page to match.
 
-## One fixed test
+## Two fixed types of test
 
-- Everyone takes the same test, with no configurable timings, sizes or modes, so results are consistent across computers.
-- Any change to stimuli, timing or the staircase is a new test: bump `TEST_VERSION` in `src/core/protocol.ts`.
+- There are exactly two types of test, **full** and **quick** (`PROTOCOLS` in `src/core/protocol.ts`), and nothing else is configurable: no other timings, sizes or modes, so results are consistent across computers.
+- The quick test is a different type of test, not a setting of the full one. Each has its own frozen protocol. The quick test keeps the full test's stimuli, start level and staircase steps, and runs for about half the full test's task time.
+- Every session records its type (`test_type`), and so does everything stored or exported from it, so the data says clearly which test each result came from. Say plainly on the page that quick results are less precise, without medical wording.
+- Quick and full results are never pooled or compared: groups are kept per `test_version` and type, `MIN_GROUP` applies to each, and a person's results are shown only beside groups of their own type.
+- Any change to stimuli, timing or the staircase of either type is a new test: bump `TEST_VERSION` in `src/core/protocol.ts`.
 - A change to the exported JSON shape bumps `schema_version` in `src/app/schema.ts`.
 - Changes to `src/core/` or `src/stage/` need the end-to-end tests run (`npm run test:e2e`).

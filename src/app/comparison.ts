@@ -2,7 +2,7 @@
 // suspect a visual perceptual disorder: the control group, who have never used psychedelic drugs,
 // and those who have. The backend sends only summary numbers (a count and percentiles), never
 // anyone's individual results.
-import { TEST_VERSION } from "../core/protocol";
+import { TEST_TYPES, TEST_VERSION, type TestType } from "../core/protocol";
 import type { Results } from "./types";
 
 /** A group isn't shown below this many people: too few to mean much, and too few to keep individuals hidden. */
@@ -37,9 +37,10 @@ export interface GroupStats {
   measures: Record<MeasureKey, Quantiles> | null;
 }
 
-/** GET /groups: summary statistics for each group on one test version. */
+/** GET /groups: summary statistics for each group on one test version and test type. */
 export interface GroupsResponse {
   test_version: number;
+  test_type: TestType;
   groups: Record<GroupKey, GroupStats>;
 }
 
@@ -71,11 +72,16 @@ function parseGroup(v: unknown): GroupStats | null {
   return { n: o.n, measures };
 }
 
-/** Checks a /groups response. Returns null if it isn't valid: server data is untrusted. */
+/**
+ * Checks a /groups response. Returns null if it isn't valid: server data is untrusted. A backend
+ * from before the quick test sends no test_type: its groups are the full test's.
+ */
 export function parseGroups(v: unknown): GroupsResponse | null {
   if (!v || typeof v !== "object") return null;
   const o = v as Record<string, unknown>;
   if (!isNum(o.test_version) || !o.groups || typeof o.groups !== "object") return null;
+  const testType = o.test_type ?? "full";
+  if (!(TEST_TYPES as readonly unknown[]).includes(testType)) return null;
   const g = o.groups as Record<string, unknown>;
   const groups = {} as Record<GroupKey, GroupStats>;
   for (const key of GROUPS) {
@@ -83,7 +89,7 @@ export function parseGroups(v: unknown): GroupsResponse | null {
     if (!stats) return null;
     groups[key] = stats;
   }
-  return { test_version: o.test_version, groups };
+  return { test_version: o.test_version, test_type: testType as TestType, groups };
 }
 
 /** A group's measures if it's big enough to show, otherwise null. */
@@ -135,6 +141,7 @@ export function groupSensitivities(m: Record<MeasureKey, Quantiles>): Record<key
 /** Made-up numbers for developing the charts before the backend exists. Never shown in a production build. */
 export const SAMPLE_GROUPS: GroupsResponse = {
   test_version: TEST_VERSION,
+  test_type: "full",
   groups: {
     control: {
       n: 64,

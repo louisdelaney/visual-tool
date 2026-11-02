@@ -56,7 +56,7 @@ export function createApp({ allowedOrigin, exportUrl, db, liveExport = false, po
         return routes.getHistory(url);
       }
       if (!gets.take()) throw new HttpError(429, "too many requests");
-      if (url.pathname === "/groups") return routes.getGroups();
+      if (url.pathname === "/groups") return routes.getGroups(url);
       if (url.pathname === "/export") return routes.getExport();
     }
     throw new HttpError(404, "not found");

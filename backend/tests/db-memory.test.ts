@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryStore } from "../src/db-memory";
 import { hashDeleteToken, MAX_GROUP_VALUES } from "../src/store";
 import { TEST_VERSION } from "../../src/core/protocol";
-import { makeSession, withThresholds } from "./fixture";
+import { asSchemaV1, makeQuickSession, makeSession, withThresholds } from "./fixture";
 
 // The fixture runs the current test; another version is any other number.
 const V = TEST_VERSION;
@@ -49,7 +49,7 @@ describe("deleteSession", () => {
     expect(store.size).toBe(1);
     expect(await store.readSession(id)).toBeUndefined();
     expect((await store.historyFor("blue fox")).map(r => r.submission_id)).not.toContain(id);
-    expect((await store.readGroups(V))?.control?.motion).toEqual([10]);
+    expect((await store.readGroups(V, "full"))?.control?.motion).toEqual([10]);
   });
 
   it("removes only one of two sessions with the same values", async () => {
@@ -57,7 +57,7 @@ describe("deleteSession", () => {
     await store.storeSession(withThresholds(10, 20));
     const id = await store.storeSession(withThresholds(10, 20), at(1), hash);
     await store.deleteSession(id, hash);
-    expect((await store.readGroups(V))?.control?.motion).toEqual([10]);
+    expect((await store.readGroups(V, "full"))?.control?.motion).toEqual([10]);
   });
 
   it("refuses a wrong token, an unknown id, and a session stored without a token", async () => {
@@ -73,7 +73,7 @@ describe("deleteSession", () => {
 
 describe("readGroups", () => {
   it("has nothing for a test version nobody ran", async () => {
-    expect(await new MemoryStore().readGroups(V)).toBeUndefined();
+    expect(await new MemoryStore().readGroups(V, "full")).toBeUndefined();
   });
 
   it("puts control, psychedelics and neither in the right place", async () => {
@@ -85,14 +85,26 @@ describe("readGroups", () => {
     await store.storeSession(makeSession({ answers: { perceptual_disorder: "yes" } }));
     await store.storeSession(withThresholds(8, 16, { test_version: V + 1 }));
 
-    const doc = await store.readGroups(V);
+    const doc = await store.readGroups(V, "full");
     expect(doc?.control?.motion).toEqual([10, 12]);
     expect(doc?.control?.form).toEqual([20, 24]);
     expect(doc?.control?.diff).toHaveLength(2);
     expect(doc?.psychedelics?.motion).toEqual([9]);
     expect(doc?.psychedelics?.diff).toHaveLength(1);
     expect(Object.keys(doc!).sort()).toEqual(["control", "psychedelics"]);
-    expect((await store.readGroups(V + 1))?.control?.motion).toEqual([8]);
+    expect((await store.readGroups(V + 1, "full"))?.control?.motion).toEqual([8]);
+  });
+
+  it("keeps the quick test's groups apart from the full test's", async () => {
+    const store = new MemoryStore();
+    await store.storeSession(withThresholds(10, 20));
+    await store.storeSession(asSchemaV1(withThresholds(11, 22)));
+    const quickId = await store.storeSession(makeQuickSession({ results: withThresholds(14, 28).results! }), new Date(), "h");
+    expect((await store.readGroups(V, "full"))?.control?.motion).toEqual([10, 11]);
+    expect((await store.readGroups(V, "quick"))?.control?.motion).toEqual([14]);
+    expect(await store.deleteSession(quickId, "h")).toBe(true);
+    expect((await store.readGroups(V, "quick"))?.control?.motion).toEqual([]);
+    expect((await store.readGroups(V, "full"))?.control?.motion).toEqual([10, 11]);
   });
 
   it("counts two sessions with the same threshold twice", async () => {
@@ -100,14 +112,14 @@ describe("readGroups", () => {
     const twin = withThresholds(7.7, 15.5);
     await store.storeSession(twin);
     await store.storeSession(twin);
-    expect((await store.readGroups(V))?.control?.motion).toEqual([7.7, 7.7]);
+    expect((await store.readGroups(V, "full"))?.control?.motion).toEqual([7.7, 7.7]);
   });
 
   it("returns a copy, so a caller can't change what's stored", async () => {
     const store = new MemoryStore();
     await store.storeSession(withThresholds(10, 20));
-    (await store.readGroups(V))!.control!.motion.push(99);
-    expect((await store.readGroups(V))?.control?.motion).toEqual([10]);
+    (await store.readGroups(V, "full"))!.control!.motion.push(99);
+    expect((await store.readGroups(V, "full"))?.control?.motion).toEqual([10]);
   });
 });
 
@@ -145,7 +157,7 @@ describe("allSessions", () => {
     expect(seen.map(s => s.id)).toEqual([ids[1], ids[2], ids[0]]);
     expect(seen.map(s => s.session)).toEqual([sessions[1], sessions[2], sessions[0]]);
     expect(seen.map(s => s.stored.received_at)).toEqual([at(1), at(3), at(5)].map(d => d.toISOString()));
-    expect(seen[0]!.stored).toMatchObject({ schema_version: 1, test_version: V });
+    expect(seen[0]!.stored).toMatchObject({ schema_version: 2, test_version: V });
   });
 });
 
@@ -158,7 +170,7 @@ describe("persistence", () => {
 
     const second = new MemoryStore(file);
     expect(second.size).toBe(2);
-    expect(await second.readGroups(V)).toEqual(await first.readGroups(V));
+    expect(await second.readGroups(V, "full")).toEqual(await first.readGroups(V, "full"));
     expect(await second.historyFor("quiet heron")).toEqual(await first.historyFor("quiet heron"));
     expect((await second.historyFor("quiet heron")).map(r => r.submission_id)).toEqual([b, a]);
 
@@ -173,7 +185,7 @@ describe("persistence", () => {
     const second = new MemoryStore(file);
     await second.storeSession(withThresholds(11, 22));
     expect(new MemoryStore(file).size).toBe(2);
-    expect((await new MemoryStore(file).readGroups(V))?.control?.motion).toEqual([10, 11]);
+    expect((await new MemoryStore(file).readGroups(V, "full"))?.control?.motion).toEqual([10, 11]);
   });
 
   it("starts empty when the file doesn't exist, and creates it on the first store", async () => {
@@ -216,7 +228,7 @@ describe("a full group", () => {
     const store = new MemoryStore(fullFile());
     await expect(store.storeSession(withThresholds(10, 20))).rejects.toThrow("group is full");
     expect(store.size).toBe(1);
-    expect((await store.readGroups(V))?.control?.motion).toHaveLength(MAX_GROUP_VALUES);
+    expect((await store.readGroups(V, "full"))?.control?.motion).toHaveLength(MAX_GROUP_VALUES);
   });
 
   it("still takes sessions for the other group, another version, or no group", async () => {
