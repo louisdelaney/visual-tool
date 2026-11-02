@@ -162,7 +162,7 @@ export function ResultsPage({ session: s }: ResultsPageProps) {
       <FunNotice />
       <div className="panel">
         <h2 id="results-h">Results{s.testType === "quick" && <> <span className="pill type-pill" id="type-pill">{TEST_TYPE_LABEL.quick}</span></>}</h2>
-        {s.testType === "quick" && <p className="hint" id="test-type-note">This was the quick test: a shorter run, so these results are less precise than a full test's would be. They're saved and sent labelled as quick, and only ever shown beside other quick-test results.</p>}
+        {s.testType === "quick" && <p className="hint" id="test-type-note">This was the quick test: a shorter run, so these results are less precise than a full test's would be. They're only ever shown beside other quick-test results{s.contribution?.contribute ? ", and they're sent labelled as quick" : ""}.</p>}
         {pseudonym && (
           <p className="pseudonym-note" id="pseudonym-note">
             Your pseudonym is <strong>{pseudonym}</strong>. Use it to find these results again later{s.contribution?.contribute && s.contribution.sent_at

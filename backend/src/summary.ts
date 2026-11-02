@@ -14,7 +14,7 @@ import type { TestType } from "../../src/core/protocol";
  * perceptual_disorder is stored as `disorder`, the name rows have had from the start. Rows from
  * before the quick test have no test_type.
  */
-export interface SummaryRow extends Omit<HistoryEntry, "test_type">, Omit<ContributionAnswers, "pseudonym" | "perceptual_disorder" | "medications" | "notes"> {
+export interface SummaryRow extends Omit<HistoryEntry, "test_type" | "answers">, Omit<ContributionAnswers, "pseudonym" | "perceptual_disorder" | "medications" | "notes"> {
   test_type?: TestType;
   pseudonym: string | null;
   disorder: ContributionAnswers["perceptual_disorder"];
@@ -83,10 +83,23 @@ export function groupValuesOf(s: AnySessionExport): { motion: number; form: numb
 }
 
 /**
- * Strips a stored row down to a `HistoryEntry`: what GET /history returns. Rows stored before
- * staircases were kept have none; the caller passes them in from the stored session. Rows stored
- * before the quick test have no test type: they're all the full test.
+ * Strips a stored row down to a `HistoryEntry`: what GET /history returns, with the answers so the
+ * questions page can fill them in again. Everything but the pseudonym is already public in the
+ * export. Rows stored before staircases were kept have none; the caller passes them in from the
+ * stored session. Rows stored before the quick test have no test type: they're all the full test.
  */
 export function historyEntry(row: SummaryRow, staircases: Staircases | null = row.staircases ?? null): HistoryEntry {
-  return { submission_id: row.submission_id, started_at: row.started_at, test_version: row.test_version, test_type: testTypeOf(row), values: row.values, medications: row.medications, notes: row.notes, staircases };
+  const answers = {
+    perceptual_disorder: row.disorder ?? null,
+    condition: row.condition ?? null,
+    other_condition: row.other_condition ?? null,
+    diagnosed: row.diagnosed ?? null,
+    psychedelics: row.psychedelics ?? null,
+    psychedelic_uses: row.psychedelic_uses ?? null,
+    psychedelics_used: row.psychedelics_used ?? null,
+    takes_medication: row.takes_medication ?? null,
+    found_via: row.found_via ?? null,
+    found_via_other: row.found_via_other ?? null,
+  };
+  return { submission_id: row.submission_id, started_at: row.started_at, test_version: row.test_version, test_type: testTypeOf(row), values: row.values, medications: row.medications, notes: row.notes, staircases, answers };
 }

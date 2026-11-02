@@ -8,7 +8,7 @@ import { useWindowSize } from "../hooks";
 import { StimulusPreview } from "../components/StimulusPreview";
 
 /** About how long the whole visit takes, card and viewing distance included. */
-const MINUTES: Record<TestType, number> = { full: 10, quick: 7 };
+const MINUTES: Record<TestType, number> = { full: 10, quick: 5 };
 
 interface SetupPageProps {
   testType: TestType;
@@ -49,7 +49,7 @@ export function SetupPage({ testType, session }: SetupPageProps) {
         </label>
         <label className="opt">
           <input type="radio" name="test-type" value="quick" id="test-type-quick" checked={chosen === "quick"} disabled={locked} onChange={() => pick("quick")} />
-          <span><strong>Quick test</strong>, about {MINUTES.quick} minutes. Each task runs for about half as long, so the results are less precise. They're labelled as quick and kept apart from full-test results.</span>
+          <span><strong>Quick test</strong>, about {MINUTES.quick} minutes. Each task runs for about half as long, so the results are less precise. They're only ever compared with other quick-test results.</span>
         </label>
         {locked && <p className="small-note">You've started the {chosen} test, so this stays as it is until you start again.</p>}
       </fieldset>

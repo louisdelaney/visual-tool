@@ -3,7 +3,7 @@
 // anonymity depends on people not putting anything identifying in the pseudonym or text answers.
 import type { MeasureKey } from "./comparison";
 import { TEST_TYPES, TEST_VERSION, type TestType } from "../core/protocol";
-import type { TaskName, Trial } from "./types";
+import type { Condition, ContributionAnswers, FoundVia, PsychedelicUse, TaskName, Trial, YesNo } from "./types";
 import { ADJECTIVES, NOUNS } from "./words";
 
 /** One scored trial on a staircase chart. */
@@ -23,6 +23,9 @@ export const staircasePoints = (trials: readonly Trial[], task: TaskName): Stair
   trials.filter(t => t.task === task && t.phase === "test")
     .map(t => ({ coherence_pct: Math.round(t.effective_level_pct * 100) / 100, correct: t.correct, reversal: t.reversal }));
 
+/** The answers sent with a past session, for filling the questions in again. Medications and notes are the entry's own fields. */
+export type PreviousAnswers = Omit<ContributionAnswers, "pseudonym" | "medications" | "notes">;
+
 /** One past session, as GET /history returns it. */
 export interface HistoryEntry {
   submission_id: string;
@@ -36,6 +39,8 @@ export interface HistoryEntry {
   notes: string | null;
   /** Null for a session that has none to show. */
   staircases: Staircases | null;
+  /** Null from a backend that doesn't send them. */
+  answers: PreviousAnswers | null;
 }
 
 export interface HistoryResponse {
@@ -82,6 +87,31 @@ function parseStaircases(v: unknown): Staircases | null | undefined {
   return motion && form ? { motion, form } : undefined;
 }
 
+const oneOf = <T extends string>(v: unknown, allowed: readonly T[]): T | null | undefined =>
+  v === null || v === undefined ? null : (allowed as readonly unknown[]).includes(v) ? (v as T) : undefined;
+
+const YES_NO: readonly YesNo[] = ["yes", "no"];
+
+/** The answers, or null if they're missing or anything in them isn't valid: they only ever fill a form in. */
+function parseAnswers(v: unknown): PreviousAnswers | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const uses = numOrNull(o.psychedelic_uses ?? null);
+  const a = {
+    perceptual_disorder: oneOf<YesNo>(o.perceptual_disorder, YES_NO),
+    condition: oneOf<Condition>(o.condition, ["vss", "hppd", "other"]),
+    other_condition: strOrNull(o.other_condition ?? null),
+    diagnosed: oneOf<YesNo>(o.diagnosed, YES_NO),
+    psychedelics: oneOf<PsychedelicUse>(o.psychedelics, ["yes", "no", "prefer-not-to-say"]),
+    psychedelic_uses: uses === undefined || (uses !== null && !Number.isInteger(uses)) ? undefined : uses,
+    psychedelics_used: strsOrNull(o.psychedelics_used ?? null),
+    takes_medication: oneOf<YesNo>(o.takes_medication, YES_NO),
+    found_via: oneOf<FoundVia>(o.found_via, ["reddit", "forum", "other"]),
+    found_via_other: strOrNull(o.found_via_other ?? null),
+  };
+  return Object.values(a).includes(undefined) ? null : (a as PreviousAnswers);
+}
+
 function parseEntry(v: unknown): HistoryEntry | null {
   if (!v || typeof v !== "object") return null;
   const o = v as Record<string, unknown>;
@@ -94,7 +124,7 @@ function parseEntry(v: unknown): HistoryEntry | null {
   // A backend from before the quick test sends no test type: every session it has is full.
   const testType = o.test_type ?? "full";
   if (!(TEST_TYPES as readonly unknown[]).includes(testType)) return null;
-  return { submission_id: o.submission_id, started_at: o.started_at, test_version: o.test_version, test_type: testType as TestType, values: { motion_threshold_pct: m, form_threshold_pct: f, motion_minus_form: d }, medications, notes, staircases };
+  return { submission_id: o.submission_id, started_at: o.started_at, test_version: o.test_version, test_type: testType as TestType, values: { motion_threshold_pct: m, form_threshold_pct: f, motion_minus_form: d }, medications, notes, staircases, answers: parseAnswers(o.answers) };
 }
 
 /** Checks a /history response; null if it isn't valid. Server data is untrusted. Sorts oldest first. */
@@ -145,6 +175,7 @@ export function sampleHistory(pseudonym: string): HistoryResponse {
       values: { motion_threshold_pct: m, form_threshold_pct: f, motion_minus_form: Math.round((1 / m - 1 / f) * 1e5) / 1e5 },
       medications, notes,
       staircases: { motion: sampleStaircase(m, 7 + i * 31), form: sampleStaircase(f, 11 + i * 17) },
+      answers: null,
     })),
   };
 }

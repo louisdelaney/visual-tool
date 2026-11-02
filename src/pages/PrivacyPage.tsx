@@ -26,7 +26,7 @@ export function PrivacyPage() {
 
         <h3>Your pseudonym</h3>
         <p>A pseudonym is completely optional. Leave it blank and your results can't be looked up or linked to each other: that's the most private choice.</p>
-        <p>If you give one, it's the only key to your results. There's no password, so anyone who enters it sees every result and answer sent with it. Use the "Generate one" button for a random pair of words, and don't use your name, a username you use elsewhere, or anything else that points to you.</p>
+        <p>If you give one, it's the only key to your results. There's no password, so anyone who enters it sees every result and answer sent with it, and can fill the questions in with the answers sent last time. Use the "Generate one" button for a random pair of words, and don't use your name, a username you use elsewhere, or anything else that points to you.</p>
 
         <h3>What the backend logs</h3>
         <p>To fix faults, the backend keeps a short record of each request for 7 days. It says which part of the service was called (for example "sending results"), whether it worked, how long it took, and a random reference number made for that one request. If something goes wrong it also keeps a short error message.</p>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupOf, historyEntry, measuresOf, staircasesOf, summaryRow } from "../src/summary";
+import { groupOf, historyEntry, measuresOf, staircasesOf, summaryRow, type SummaryRow } from "../src/summary";
 import { makeSession } from "./fixture";
 
 describe("summaryRow", () => {
@@ -67,14 +67,21 @@ describe("groupOf", () => {
 });
 
 describe("historyEntry", () => {
-  it("drops the pseudonym, disorder and psychedelics answers", () => {
+  it("drops the pseudonym and keeps the answers, so the questions page can fill them in again", () => {
     const row = summaryRow(makeSession({ answers: { notes: "hello" } }), "abc");
     const entry = historyEntry(row);
-    expect(Object.keys(entry).sort()).toEqual(["medications", "notes", "staircases", "started_at", "submission_id", "test_type", "test_version", "values"]);
+    expect(Object.keys(entry).sort()).toEqual(["answers", "medications", "notes", "staircases", "started_at", "submission_id", "test_type", "test_version", "values"]);
     expect(entry).not.toHaveProperty("pseudonym");
-    expect(entry).not.toHaveProperty("disorder");
-    expect(entry).not.toHaveProperty("psychedelics");
     expect(entry.notes).toBe("hello");
+    expect(entry.answers).toEqual({
+      perceptual_disorder: row.disorder, condition: row.condition, other_condition: row.other_condition, diagnosed: row.diagnosed,
+      psychedelics: row.psychedelics, psychedelic_uses: row.psychedelic_uses, psychedelics_used: row.psychedelics_used,
+      takes_medication: row.takes_medication, found_via: row.found_via, found_via_other: row.found_via_other,
+    });
+  });
+  it("fills answers missing from an older row with null", () => {
+    const { found_via: _, found_via_other: __, ...old } = summaryRow(makeSession(), "abc");
+    expect(historyEntry(old as SummaryRow).answers).toMatchObject({ found_via: null, found_via_other: null });
   });
 });
 

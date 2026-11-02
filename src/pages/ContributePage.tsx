@@ -2,7 +2,7 @@
 // second page a few questions. Nothing is sent here: the answers are kept and sent with the
 // results when the tasks finish.
 import { useState, type FormEvent } from "react";
-import { freshPseudonym } from "../app/api";
+import { API_URL, fetchHistory, freshPseudonym } from "../app/api";
 import { normalizePseudonym } from "../app/history";
 import type { Condition, ContributionAnswers, ContributionChoice, FoundVia, YesNo } from "../app/types";
 import { getState, setState } from "../app/store";
@@ -34,7 +34,10 @@ const EMPTY: Draft = { contribute: "", pseudonym: "", disorder: "", condition: "
 function fromChoice(c: ContributionChoice | null): Draft {
   if (!c) return EMPTY;
   if (!c.contribute) return { ...EMPTY, contribute: "no" };
-  const a = c.answers;
+  return fromAnswers(c.answers);
+}
+
+function fromAnswers(a: ContributionAnswers): Draft {
   return {
     contribute: "yes",
     pseudonym: a.pseudonym ?? "",
@@ -53,6 +56,8 @@ function fromChoice(c: ContributionChoice | null): Draft {
     foundViaOther: a.found_via_other ?? "",
   };
 }
+
+const date = (iso: string): string => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 const FOUND_VIA: [FoundVia, string][] = [["reddit", "Reddit"], ["forum", "Forum"], ["other", "Other"]];
 
@@ -185,6 +190,28 @@ export function ContributePage({ part }: { part: "contribute" | "questions" }) {
     document.getElementById(m.focus)?.focus();
   };
 
+  /** After "Fill in my last answers": what happened, for the line under the button. */
+  const [fillStatus, setFillStatus] = useState("");
+  const [filling, setFilling] = useState(false);
+  /** Fills the questions in from the newest session sent with this pseudonym. Notes are per test, so they're left as they are. */
+  const fillPrevious = async (pseudonym: string): Promise<void> => {
+    setFilling(true);
+    setFillStatus("");
+    try {
+      const last = (await fetchHistory(pseudonym)).sessions.filter(e => e.answers).pop();
+      if (!last?.answers) { setFillStatus(`No earlier answers were found for ${pseudonym}.`); return; }
+      const previous = fromAnswers({ ...last.answers, pseudonym, medications: last.medications, notes: null });
+      setDraft(prev => ({ ...previous, contribute: "yes", pseudonym: prev.pseudonym, notes: prev.notes }));
+      setMissing(null);
+      setStatus("");
+      setFillStatus(`Filled in from your test on ${date(last.started_at)}. Check each answer and change anything that's different now.`);
+    } catch {
+      setFillStatus("Your earlier answers couldn't be loaded. You can still fill them in yourself.");
+    } finally {
+      setFilling(false);
+    }
+  };
+
   /** Keeps what's been answered so far, so Back and the info pages don't lose it. */
   const keepDraft = (): void => setState({ contribution: { contribute: true, answers: toAnswers(d) } });
 
@@ -220,6 +247,13 @@ export function ContributePage({ part }: { part: "contribute" | "questions" }) {
           <header className="as-pseudonym">
             <h2 id="questions-h"><span className="visually-hidden">Questions for </span><span className="pseudonym">{pseudonym}</span></h2>
             <p className="hint">Your answers and results are sent under this pseudonym.</p>
+            {API_URL && (
+              <div className="fill-previous">
+                <p className="hint">Sent results with this pseudonym before? Fill in the answers you gave last time, then change anything that's different.</p>
+                <p><button type="button" className="btn secondary" id="cq-fill" disabled={filling} onClick={() => void fillPrevious(pseudonym)}>{filling ? "Filling in…" : "Fill in my last answers"}</button></p>
+                <p className="hint" id="cq-fill-status" role="status" aria-live="polite">{fillStatus}</p>
+              </div>
+            )}
           </header>
         ) : (
           <h2 id="questions-h">About you</h2>

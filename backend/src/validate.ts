@@ -18,7 +18,8 @@ const MAX_PSEUDONYM = 60;
 const MIN_RUN_MS = 60_000;
 const MAX_RUN_MS = 90 * 60_000;
 
-/** Two tasks, each at most 4 practice + 150 staircase + catch trials. */
+/** Two tasks of at most 150 staircase + 18 catch trials (336), plus 4 per practice round, which can be
+ * repeated. A typical run is about 220, so this is room to spare rather than an exact limit. */
 const MAX_TRIALS = 400;
 /** A complete task has reached its run's last reversal, so it has at least this many scored trials. */
 const minCompleteTrials = (testType: TestType): number => PROTOCOLS[testType].run.stopReversals;

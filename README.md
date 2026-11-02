@@ -73,7 +73,7 @@ Five endpoints under `VITE_API_URL`. The page calls the first four from the brow
 
 The page validates the response and shows nothing from one that doesn't match (see `src/app/comparison.ts`).
 
-`GET /history?pseudonym=P`: every session sent with that pseudonym (at most 50, oldest first), for the "User results" page. Each has its type of test (`"full"` or `"quick"`), its three measures, medications, notes and the points of its two staircase charts (coherence, correct and reversal for each scored trial). Sessions stored before the points were kept in the summary row read them from the stored session. Pseudonyms are matched in stored form: trimmed, lower case, inner spaces collapsed (the page sends them that way). There's no password: the dataset is public, and the pseudonym is optional.
+`GET /history?pseudonym=P`: every session sent with that pseudonym (at most 50, oldest first), for the "User results" page and the questions page's "Fill in my last answers" button. Each has its type of test (`"full"` or `"quick"`), its three measures, medications, notes, the points of its two staircase charts (coherence, correct and reversal for each scored trial) and `answers`: the other answers sent with it, which the button fills the questions in from (all but the notes). They're all public in the export already. Sessions stored before the points were kept in the summary row read them from the stored session. Pseudonyms are matched in stored form: trimmed, lower case, inner spaces collapsed (the page sends them that way). There's no password: the dataset is public, and the pseudonym is optional.
 
 ```json
 {
