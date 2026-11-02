@@ -1,11 +1,11 @@
-// The four endpoints the README documents. Each handler gets the parsed URL and the request,
+// The five endpoints the README documents. Each handler gets the parsed URL and the request,
 // and returns what to send; the server does CORS, limits and error handling around them.
 import type { IncomingMessage } from "node:http";
 import { Readable } from "node:stream";
 import type { HistoryResponse } from "../../src/app/history";
 import { normalizePseudonym } from "../../src/app/history";
 import { TEST_VERSION } from "../../src/core/protocol";
-import type { Store } from "./store";
+import { hashDeleteToken, newDeleteToken, type Store } from "./store";
 import { HttpError, readBody } from "./http";
 import { groupsResponse } from "./stats";
 import { EXPORT_FILE, runExport } from "./jobs/export";
@@ -21,6 +21,8 @@ export interface Reply {
 }
 
 const MAX_PSEUDONYM = 60;
+/** A removal request is two short strings. */
+const MAX_DELETE_BYTES = 1024;
 /** No pseudonym is expected to have more sessions than this; it bounds what one lookup reads. */
 const MAX_HISTORY = 50;
 const GROUPS_CACHE_MS = 60_000;
@@ -40,9 +42,26 @@ export class Routes {
     }
     const v = validateSession(body);
     if (!v.ok) throw new HttpError(400, v.reason);
-    const id = await this.db.storeSession(v.session);
+    const removal = newDeleteToken();
+    const id = await this.db.storeSession(v.session, new Date(), removal.hash);
     this.groupsCache = null;
-    return { status: 201, body: { submission_id: id } };
+    return { status: 201, body: { submission_id: id, delete_token: removal.token } };
+  }
+
+  /** Removes a session for whoever holds its token. The same 404 whether the id or the token is wrong. */
+  async deleteSession(req: IncomingMessage): Promise<Reply> {
+    const text = await readBody(req, MAX_DELETE_BYTES);
+    let body: { submission_id?: unknown; delete_token?: unknown } | null;
+    try {
+      body = JSON.parse(text) as typeof body;
+    } catch {
+      throw new HttpError(400, "body is not JSON");
+    }
+    const id = body?.submission_id, token = body?.delete_token;
+    if (typeof id !== "string" || !id || typeof token !== "string" || !token) throw new HttpError(400, "submission_id and delete_token are required");
+    if (!(await this.db.deleteSession(id, hashDeleteToken(token)))) throw new HttpError(404, "no session with that id and token");
+    this.groupsCache = null;
+    return { status: 204 };
   }
 
   /** Always the current test version: there is no way to ask for another. */

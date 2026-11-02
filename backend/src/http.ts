@@ -48,7 +48,7 @@ export function cors(req: IncomingMessage, res: ServerResponse, allowed: string)
   if (!origin) return true;
   if (!allowed.split(",").map(o => o.trim()).includes(origin)) return false;
   res.setHeader("Access-Control-Allow-Origin", origin);
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Access-Control-Max-Age", "86400");
   res.setHeader("Vary", "Origin");

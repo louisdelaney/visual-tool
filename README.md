@@ -39,9 +39,11 @@ Both use one backend, set with `VITE_API_URL` at build time (see `.env.example`)
 
 ### Backend API
 
-Four endpoints under `VITE_API_URL`. The page calls the first three from the browser, so the backend must allow CORS from the site's origin.
+Five endpoints under `VITE_API_URL`. The page calls the first four from the browser, so the backend must allow CORS from the site's origin.
 
-`POST /sessions`: body is one session in the current schema (`schema_version` 1, the `SessionExportV1` type in `src/app/schema.ts`). Store it as one document. Reply with any 2xx status; anything else counts as a failure and the page offers a retry. Reject bodies over about 200 KB, a `schema` other than `"visual-tool/session"`, or a `schema_version` it doesn't know.
+`POST /sessions`: body is one session in the current schema (`schema_version` 1, the `SessionExportV1` type in `src/app/schema.ts`). Store it as one document. Reply 201 with `{ "submission_id": "…", "delete_token": "…" }`; anything else counts as a failure and the page offers a retry. Reject bodies over about 200 KB, a `schema` other than `"visual-tool/session"`, or a `schema_version` it doesn't know.
+
+`DELETE /sessions`: body `{ "submission_id": "…", "delete_token": "…" }`, the pair `POST /sessions` returned. Removes the session, its summary row and its values in its group, and replies 204; a wrong id or token gets the same 404. The submission id alone can't do it, since history lookups and the public download show it: only a SHA-256 hash of the token is stored, and it isn't exported. The page holds the token in memory only, so the Results page can offer removal until the person runs the test again or closes the tab, and nowhere else. Sessions stored before removal existed have no token and can't be removed.
 
 `GET /groups`: summary statistics for each comparison group on the current test version (`TEST_VERSION`). There is no way to ask for another version, and `POST /sessions` only accepts the current one.
 
@@ -63,7 +65,7 @@ Four endpoints under `VITE_API_URL`. The page calls the first three from the bro
 ```
 
 - Both groups are stored sessions with `contribution.answers.perceptual_disorder` = `"no"`, the current `test_version`, and both tasks `"complete"` in `results`.
-- `control` also has `psychedelics` = `"no"`; `psychedelics` has `psychedelics` = `"yes"`. Sessions answering `"prefer-not-to-say"`, or leaving the question unanswered (`null`), are in neither group.
+- `control` also has `psychedelics` = `"no"`; `psychedelics` has `psychedelics` = `"yes"`. Sessions leaving the question unanswered (`null`), or answering `"prefer-not-to-say"` (offered by earlier versions of the page), are in neither group.
 - The measures come from `results.motion.threshold_pct`, `results.form.threshold_pct` and `results.motion_minus_form.sensitivity`.
 - `n` is the number of people in the group. While it's under 5, return `"measures": null`: too few to mean much, and too few to keep individuals hidden. The page enforces the same minimum, per group.
 - Return only these numbers, never individual sessions or answers.
@@ -159,7 +161,7 @@ backend/
 infra/                Terraform for everything on Google Cloud (see infra/README.md).
 ```
 
-Each session is stored three ways so that nothing the page asks for grows with the dataset: `/groups` reads one document of flat value arrays, `/history` reads one person's rows, and only the export job reads the raw sessions. Rate limits are a token bucket per instance, not per caller: the backend never looks at who is asking. Per instance and minute: 10 posts, 60 history lookups, and 600 other GETs. A history lookup returns at most 50 sessions.
+Each session is stored three ways so that nothing the page asks for grows with the dataset: `/groups` reads one document of flat value arrays, `/history` reads one person's rows, and only the export job reads the raw sessions. Rate limits are a token bucket per instance, not per caller: the backend never looks at who is asking. Per instance and minute: 10 posts and removals together, 60 history lookups, and 600 other GETs. A history lookup returns at most 50 sessions.
 
 Two stores, chosen by `BACKEND`: `firestore` (the default when `GOOGLE_CLOUD_PROJECT` is set) and `memory`, which needs no Google account and keeps everything in `DATA_FILE` if one is set. Memory mode refuses to run on Cloud Run. The export job writes to the folder `EXPORT_DIR`. A server without `EXPORT_URL` (anywhere but Cloud Run) builds the same file on each `GET /export` instead, so a local copy needs no export step.
 

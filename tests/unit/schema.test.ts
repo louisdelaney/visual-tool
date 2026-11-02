@@ -32,7 +32,7 @@ const session: Session = {
   env: { browser: "Chrome 131 on macOS", language: "en-GB", screen: [1440, 900], viewport: [1440, 900], devicePixelRatio: 2 },
   tasks: { motion: { task: "motion", staircase: new Staircase(), trials: [], endedEarly: false } },
   trials: [], results: null,
-  contribution: { contribute: true, submission_id: "abc", sent_at: null, sending: true, failed: false, answers: { pseudonym: null, perceptual_disorder: "no", condition: null, other_condition: null, diagnosed: null, psychedelics: "no", psychedelic_uses: null, psychedelics_used: null, takes_medication: null, medications: null, notes: null, found_via: null, found_via_other: null } },
+  contribution: { contribute: true, submission_id: "abc", sent_at: null, sending: true, failed: false, delete_token: "secret", removal: "failed", answers: { pseudonym: null, perceptual_disorder: "no", condition: null, other_condition: null, diagnosed: null, psychedelics: "no", psychedelic_uses: null, psychedelics_used: null, takes_medication: null, medications: null, notes: null, found_via: null, found_via_other: null } },
 };
 
 test("schema version 1: the export's fields are unchanged", () => {
@@ -46,6 +46,6 @@ test("schema version 1: the export's fields are unchanged", () => {
     "settings", "protocol", "sensitivity_units", "calibration", "viewing_distance", "display", "environment",
     "contribution", "results", "trials",
   ], "The export's fields changed. Bump SCHEMA_VERSION in src/app/schema.ts and update its type.");
-  assert.deepEqual(Object.keys(out.contribution ?? {}), ["contribute", "submission_id", "sent_at", "answers"], "Sending state must not be exported");
+  assert.deepEqual(Object.keys(out.contribution ?? {}), ["contribute", "submission_id", "sent_at", "answers"], "Sending and removal state must not be exported");
   assert.equal(JSON.stringify(out).includes('"tasks"'), false, "In-memory staircases must not be exported");
 });

@@ -4,10 +4,10 @@ import type { Session, SessionContribution, TaskName, TaskResult } from "./types
 import { round } from "./format";
 import { SCHEMA_NAME, SCHEMA_VERSION, type ExportedContribution, type SessionExport } from "./schema";
 
-/** The contribution without its in-flight sending state. */
+/** The contribution without its sending and removal state. */
 function exportContribution(c: SessionContribution): ExportedContribution {
   if (!c.contribute) return c;
-  const { sending: _sending, failed: _failed, failure_id: _failureId, ...rest } = c;
+  const { sending: _sending, failed: _failed, failure_id: _failureId, delete_token: _deleteToken, removal: _removal, ...rest } = c;
   return rest;
 }
 

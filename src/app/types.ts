@@ -124,6 +124,7 @@ export interface Environment {
 
 export type YesNo = "yes" | "no";
 export type Condition = "vss" | "hppd" | "other";
+/** The page now asks only Yes or No; "prefer-not-to-say" is kept for sessions sent before that. */
 export type PsychedelicUse = "yes" | "no" | "prefer-not-to-say";
 export type FoundVia = "reddit" | "forum" | "other";
 
@@ -167,6 +168,10 @@ export type SessionContribution =
       failed?: boolean;
       /** The backend's reference for the failed attempt, to quote in a report. Not exported. */
       failure_id?: string;
+      /** The secret the backend returned for removing this session again. Held in memory only. Not exported. */
+      delete_token?: string;
+      /** Where removing it from the database has got to, once asked. Not exported. */
+      removal?: "removing" | "failed" | "removed";
     };
 
 // ----- Session -----

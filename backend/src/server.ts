@@ -21,7 +21,7 @@ export interface ServerOptions {
   db: Store;
   /** Without an exportUrl, build the export on each GET /export (local copies only). */
   liveExport?: boolean;
-  /** Per instance, per minute. History has its own limit because each lookup reads up to 50 rows. */
+  /** Per instance, per minute; removals share the posts' limit. History has its own limit because each lookup reads up to 50 rows. */
   postsPerMinute?: number;
   getsPerMinute?: number;
   historyPerMinute?: number;
@@ -44,6 +44,10 @@ export function createApp({ allowedOrigin, exportUrl, db, liveExport = false, po
     if (method === "POST" && url.pathname === "/sessions") {
       if (!posts.take()) throw new HttpError(429, "too many requests");
       return routes.postSession(req);
+    }
+    if (method === "DELETE" && url.pathname === "/sessions") {
+      if (!posts.take()) throw new HttpError(429, "too many requests");
+      return routes.deleteSession(req);
     }
     if (method === "GET" || method === "HEAD") {
       if (url.pathname === "/healthz") return { status: 200, body: { ok: true } };

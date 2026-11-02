@@ -6,7 +6,7 @@ import { TASK_ORDER } from "../app/protocol";
 import { fmt } from "../app/format";
 import { getState, setState } from "../app/store";
 import { show, showHistory } from "../app/flow";
-import { sendContribution } from "../app/contribution";
+import { removeContribution, sendContribution } from "../app/contribution";
 import { downloadFile, fileBase, sessionJSON, summaryJSON } from "../app/export";
 import { StaircaseChart, StaircaseKey } from "../components/StaircaseChart";
 import { staircasePoints } from "../app/history";
@@ -85,10 +85,38 @@ function contributionNote(s: Session): string {
   const c = s.contribution;
   if (!c) return "";
   if (!c.contribute) return "You chose not to contribute, so nothing was sent.";
+  if (c.removal === "removed") return "Removed from the database. It's already out of the group figures, and it leaves the public download at its next daily refresh.";
   if (c.sent_at) return `Sent anonymously. Thank you. Reference: ${c.submission_id}.`;
   if (c.sending) return "Sending your results…";
   if (c.failed) return "Couldn't send your results. Check your connection and try again.";
   return "Sending isn't set up on this copy of the test yet, so nothing was sent. Your answers are included when you save the session as JSON.";
+}
+
+/** Takes a sent session back out of the database. Only this page has its token, so it's offered here and nowhere else. */
+function RemoveContribution({ session: s }: { session: Session }) {
+  const [asking, setAsking] = useState(false);
+  const c = s.contribution;
+  if (!c?.contribute || !c.sent_at || !c.delete_token || c.removal === "removed") return null;
+  const busy = c.removal === "removing";
+  return (
+    <div id="remove">
+      {asking ? (
+        <>
+          <p className="hint">Remove this session from the database? This can't be undone.</p>
+          <div className="actions">
+            <button type="button" className="btn secondary" id="remove-confirm" disabled={busy} onClick={() => void removeContribution(s)}>{busy ? "Removing…" : "Remove it"}</button>
+            <button type="button" className="btn secondary" id="remove-cancel" disabled={busy} onClick={() => setAsking(false)}>Keep it</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="hint">Changed your mind, or something got in the way during the test? You can remove this session from the database until you run the test again or close this tab.</p>
+          <div className="actions"><button type="button" className="btn secondary" id="remove-start" onClick={() => setAsking(true)}>Remove from the database</button></div>
+        </>
+      )}
+      {c.removal === "failed" && <p className="hint" id="remove-failed" role="status">Couldn't remove it. Check your connection and try again.{c.failure_id ? ` Reference: ${c.failure_id}.` : ""}</p>}
+    </div>
+  );
 }
 
 const TRIAL_COLUMNS: [string, (t: Trial) => string | number][] = [
@@ -172,6 +200,7 @@ export function ResultsPage({ session: s }: ResultsPageProps) {
         {note && <p className="hint" id="contrib-note">{note}</p>}
         {failureId && <p className="hint" id="contrib-failure-id">Reference: {failureId}. You can quote it if you report a problem.</p>}
         {failed && <div className="actions"><button type="button" className="btn secondary" id="contrib-retry" onClick={() => void sendContribution(s)}>Try sending again</button></div>}
+        <RemoveContribution session={s} />
         <details id="raw" onToggle={e => { if (e.currentTarget.open) setRaw(sessionJSON(s)); }}>
           <summary>Show the raw data</summary>
           <p className="hint">Everything recorded, exactly as {s.contribution?.contribute ? "it's" : "it would be"} sent to the database.</p>

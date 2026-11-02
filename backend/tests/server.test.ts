@@ -101,6 +101,42 @@ const storeControls = async (db: MemoryStore, count: number) => {
   for (let i = 0; i < count; i++) await db.storeSession(withThresholds(5 + i, 10 + i));
 };
 
+const remove = (base: string, body: unknown) =>
+  fetch(`${base}/sessions`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+describe("DELETE /sessions", () => {
+  it("removes a session with the token its POST returned, once", async () => {
+    const { base, db } = await start();
+    const sent = (await (await post(base, makeSession())).json()) as { submission_id: string; delete_token: string };
+    expect(sent.delete_token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    const res = await remove(base, sent);
+    expect(res.status).toBe(204);
+    expect(db.size).toBe(0);
+    expect((await remove(base, sent)).status).toBe(404);
+  });
+
+  it("returns 404 for a wrong token and keeps the session", async () => {
+    const { base, db } = await start();
+    const sent = (await (await post(base, makeSession())).json()) as { submission_id: string };
+    expect((await remove(base, { submission_id: sent.submission_id, delete_token: "guess" })).status).toBe(404);
+    expect(db.size).toBe(1);
+  });
+
+  it("returns 400 without both fields", async () => {
+    const { base } = await start();
+    expect((await remove(base, { submission_id: "x" })).status).toBe(400);
+  });
+
+  it("takes the session out of GET /groups straight away", async () => {
+    const { base } = await start();
+    const sent: { submission_id: string; delete_token: string }[] = [];
+    for (let i = 0; i < MIN_GROUP; i++) sent.push((await (await post(base, withThresholds(10 + i, 20))).json()) as (typeof sent)[number]);
+    expect((await (await fetch(`${base}/groups`)).json() as { groups: { control: { n: number } } }).groups.control.n).toBe(MIN_GROUP);
+    await remove(base, sent[0]);
+    expect((await (await fetch(`${base}/groups`)).json() as { groups: { control: { n: number } } }).groups.control.n).toBe(MIN_GROUP - 1);
+  });
+});
+
 describe("GET /groups", () => {
   it("returns group statistics the page accepts, cacheable for five minutes", async () => {
     const db = new MemoryStore();
@@ -264,6 +300,7 @@ describe("CORS", () => {
     expect(res.status).toBe(204);
     expect(res.headers.get("access-control-allow-origin")).toBe(ORIGIN);
     expect(res.headers.get("access-control-allow-methods")).toContain("POST");
+    expect(res.headers.get("access-control-allow-methods")).toContain("DELETE");
     expect(res.headers.get("access-control-allow-headers")).toContain("Content-Type");
   });
 

@@ -194,7 +194,7 @@ async function storedSession(id, dataFile) {
     const stored = id ? await storedSession(id, dataFile) : null;
     check(!!stored, `no stored session for reference ${id}`);
     if (stored) {
-      check(JSON.stringify(stored.fields) === JSON.stringify(["body_gzip", "received_at", "schema_version", "test_version"]), `the stored session has fields ${stored.fields}`);
+      check(JSON.stringify(stored.fields) === JSON.stringify(["body_gzip", "delete_hash", "received_at", "schema_version", "test_version"]), `the stored session has fields ${stored.fields}`);
       const raw = stored.body;
       const body = JSON.parse(raw);
       check(!raw.includes(userAgent), "the stored session contains the browser's user agent");
@@ -216,6 +216,18 @@ async function storedSession(id, dataFile) {
     log(`contribute: group sizes: control ${before.groups.control.n} → ${after.groups.control.n}, used psychedelics ${before.groups.psychedelics.n} → ${after.groups.psychedelics.n} (both thresholds reached: ${complete})`);
     check(after.groups.control.n === before.groups.control.n, "the control group changed");
     check(after.groups.psychedelics.n === before.groups.psychedelics.n + (complete ? 1 : 0), "the used-psychedelics group didn't count the session");
+
+    // Removing it from the results page takes it out of the store, the history and the group.
+    await p.click("#remove-start");
+    await p.click("#remove-confirm");
+    await p.waitForFunction(() => /Removed from the database|Couldn't remove/.test(document.querySelector("#contrib-note")?.textContent + " " + (document.querySelector("#remove-failed")?.textContent ?? "")), null, { timeout: 15000 });
+    const removedNote = await p.$eval("#contrib-note", el => el.textContent);
+    check(removedNote.startsWith("Removed from the database"), `after removing, the page says: ${removedNote}`);
+    check(!(id && await storedSession(id, dataFile)), "the session is still stored after removing it");
+    const historyAfter = await (await fetch(`${API}/history?pseudonym=${PSEUDONYM}`)).json();
+    check(historyAfter.sessions?.length === 0, "the history still lists the removed session");
+    const groupsAfter = await (await fetch(`${API}/groups`)).json();
+    check(groupsAfter.groups.psychedelics.n === before.groups.psychedelics.n, "the used-psychedelics group still counts the removed session");
     await ctx.close();
   } catch (e) {
     errors.push(String((e && e.stack) || e));
