@@ -138,7 +138,7 @@ src/
                Plain DOM and canvas, outside React, so nothing re-renders while stimuli are on screen.
   app/         State, sessions and scoring, exports, sending results, and the flows that run the stage.
   pages/       One React component per step.
-  components/  Shared React pieces: step list, header, footer, stimulus previews, staircase charts.
+  components/  Shared React pieces: step list, header, stimulus previews, staircase charts.
   styles/      CSS by area, with colour and type tokens in tokens.css.
 tests/
   unit/        Vitest unit tests for src/core.

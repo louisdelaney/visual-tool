@@ -34,7 +34,7 @@ PascalCase-matching, so they never become component cards.
 
 ## Scope
 
-Synced: `ChipInput`, `Footer`, `FunNotice`, `Masthead`, `Stepper` — the form and page-chrome parts.
+Synced: `ChipInput`, `FunNotice`, `Masthead`, `Stepper` — the form and page-chrome parts.
 
 Deliberately **not** synced (maintainer's call, 2026-11-01): `GroupComparison`, `HistoryChart`,
 `StaircaseChart` (results displays governed by the AGENTS.md rules on what the graphs may show) and
@@ -88,9 +88,9 @@ surface is part of the system, not preview chrome.
 - All five components land in group `general`: they live in `src/components/`, and `components` is in the
   converter's `GENERIC_DIR` set, so the directory name is not used as a group. Regrouping would need
   `cfg.docsMap` stubs carrying a `category:` frontmatter key.
-- `Masthead` and `Footer` import `../app/flow`, which pulls the whole stage/task module graph into the
+- `Masthead` imports `../app/flow`, which pulls the whole stage/task module graph into the
   bundle. It is inert at load (no top-level side effects) and the bundle is still only ~17 KB, but that
-  is why the bundle is larger than five small components would suggest.
+  is why the bundle is larger than four small components would suggest.
 - `src/app/store.ts` reads `window.location.hash` at module load. Harmless in previews (no hash → no
   state change), but it is a real top-level side effect if anything ever changes there.
 

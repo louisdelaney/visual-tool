@@ -1,4 +1,4 @@
-/* Page frame: reset, layout column, masthead and stepper, panels, buttons, tables and footer. */
+/* Page frame: reset, layout column, masthead and stepper, panels, buttons, and tables. */
 body {
   margin: 0;
   padding: 0;
@@ -313,21 +313,6 @@ th, td {
 th {
   color: var(--ink-2);
   font-weight: 700;
-}
-
-.foot {
-  display: grid;
-  gap: 10px;
-  font-size: var(--t-sm);
-  color: var(--ink-2);
-}
-
-.foot p {
-  margin: 0;
-}
-
-.foot a {
-  color: var(--accent);
 }
 
 .protocol td:nth-child(2) {
