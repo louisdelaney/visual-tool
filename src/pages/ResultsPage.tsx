@@ -1,53 +1,30 @@
 // The last step: thresholds, staircase charts, session details, the data, and whether it was sent.
 import { useState } from "react";
-import { Core, PROTOCOL } from "../core";
-import type { Results, Session, TaskName, TaskResult, Trial } from "../app/types";
-import { TASK_ORDER } from "../app/protocol";
+import { Core, PROTOCOL, PROTOCOLS } from "../core";
+import type { Results, Session } from "../app/types";
+import { TASK_ORDER, TEST_TYPE_LABEL } from "../app/protocol";
 import { fmt } from "../app/format";
-import { getState, setState } from "../app/store";
 import { show, showHistory } from "../app/flow";
+import { pageHref } from "../app/address";
 import { removeContribution, sendContribution } from "../app/contribution";
-import { downloadFile, fileBase, sessionJSON, summaryJSON } from "../app/export";
+import { downloadFile, exportObject, fileBase, sessionJSON, summaryJSON } from "../app/export";
 import { StaircaseChart, StaircaseKey } from "../components/StaircaseChart";
-import { staircasePoints } from "../app/history";
-import { GroupComparison } from "../components/GroupComparison";
+import { runInfoOf, staircasePoints } from "../app/history";
+import { reportSession, savePDF } from "../app/report";
+import { GroupComparison, useGroupStats } from "../components/GroupComparison";
+import { RunNotes, SessionNotes } from "../components/RunNotes";
+import { RunSummary } from "../components/RunSummary";
+import { SaveMenu } from "../components/SaveMenu";
 import { FunNotice } from "../components/FunNotice";
-
-function Tile({ task, result }: { task: TaskName; result: TaskResult | null }) {
-  const name = task === "motion" ? "Motion" : "Form";
-  const head = <span className="label"><span className={`key key-${task}`} />{name} threshold</span>;
-  if (!result) return <div className="tile">{head}<span className="value">–</span><span className="sub">Not run</span></div>;
-  return (
-    <div className="tile">
-      {head}
-      <span className="value">{fmt.pct(result.threshold_pct)}</span>
-      <span className="sub">sensitivity {fmt.fixed(result.sensitivity, 3)} · {result.staircase_trials} scored trials</span>
-      {result.status !== "complete" && <span className="pill"><span className="pip" aria-hidden="true" />{result.status === "incomplete" ? "Ended early" : "No threshold"}</span>}
-    </div>
-  );
-}
-
-function interpretation(R: Results): string {
-  const m = R.motion?.threshold_pct, f = R.form?.threshold_pct;
-  let text = "";
-  if (m != null && f != null) {
-    const rel = Math.abs(m - f) / ((m + f) / 2) < 0.1 ? "about the same as" : m < f ? "lower than" : "higher than";
-    text += `Your motion threshold was ${rel} your form threshold (${fmt.pct(m)} against ${fmt.pct(f)}). A lower threshold means fewer organised elements were needed to find the target. `;
-  } else {
-    text += "At least one task ended before a threshold could be estimated. ";
-  }
-  text += "Both thresholds are the coherence that gives about 79% correct. ";
-  text += "Sensitivity is 1 ÷ threshold in percent, so a 10% threshold is a sensitivity of 0.1.";
-  const missed = [R.motion, R.form].reduce((a, r) => a + (r ? r.catch_total - r.catch_correct : 0), 0);
-  if (missed > 0) text += ` ${missed === 1 ? "One" : missed} of the easy check trials ${missed === 1 ? "was" : "were"} answered wrongly. That can mean lapses of attention or a display problem, so treat these thresholds with caution.`;
-  return text;
-}
+import { ResultsExplained } from "../components/ResultsExplained";
 
 /** Label and value rows for the Session list. */
 function sessionRows(s: Session, R: Results): [string, string][] {
   const c = s.calibration, dist = s.distance;
   const rows: [string, string][] = [];
   rows.push(["Test version", String(s.testVersion)]);
+  const run = PROTOCOLS[s.testType].run;
+  rows.push(["Test", `${TEST_TYPE_LABEL[s.testType]}: each task stops at ${run.stopReversals} reversals, threshold from the last ${run.meanOfLast}`]);
   rows.push(["Started", fmt.time(s.startedAt)]);
   rows.push(["Screen scale", c ? `${fmt.fixed(c.pxPerMm, 3)} px per mm, card ${fmt.fixed(c.cardPx, 1)} px wide` : "–"]);
   if (dist) {
@@ -62,7 +39,7 @@ function sessionRows(s: Session, R: Results): [string, string][] {
     const ppdText = hi - lo < 0.05 ? fmt.fixed(lo, 1) : `${fmt.fixed(lo, 1)}–${fmt.fixed(hi, 1)}`;
     rows.push(["Pixels per degree", `${ppdText}${minScale < 0.999 ? `, stimuli shrunk to ${Math.round(minScale * 100)}% of protocol size to fit` : ", stimuli at full protocol size"}`]);
   }
-  if (s.display) rows.push(["Window", s.display.fullscreen ? "Full screen" : `Not full screen, ${Math.round(100 * s.display.viewport[0] / Math.max(1, s.env.screen[0]))}% of the screen's width`]);
+  if (s.display) rows.push(["Window", s.display.fullscreen ? "Full screen" : `Not full screen, ${Math.round(100 * s.display.viewport[0] / Math.max(1, window.screen.width))}% of the screen's width`]);
   rows.push(["Display refresh", s.refreshHz ? `${fmt.fixed(s.refreshHz, 0)} Hz, median frame ${fmt.fixed(s.frameMs, 1)} ms` : "–"]);
   const dropped = (["motion", "form"] as const).map(task => {
     const tt = s.trials.filter(t => t.task === task && t.frames != null && t.dropped_frames != null);
@@ -84,12 +61,47 @@ function sessionRows(s: Session, R: Results): [string, string][] {
 function contributionNote(s: Session): string {
   const c = s.contribution;
   if (!c) return "";
-  if (!c.contribute) return "You chose not to contribute, so nothing was sent.";
+  // Not contributing, or sent: the anonymity note above already says so.
+  if (!c.contribute) return "";
   if (c.removal === "removed") return "Removed from the database. It's already out of the group figures, and it leaves the public download at its next daily refresh.";
-  if (c.sent_at) return `Sent anonymously. Thank you. Reference: ${c.submission_id}.`;
+  if (c.sent_at) return "";
   if (c.sending) return "Sending your results…";
   if (c.failed) return "Couldn't send your results. Check your connection and try again.";
   return "Sending isn't set up on this copy of the test yet, so nothing was sent. Your answers are included when you save the session as JSON.";
+}
+
+/** What happens to these results, carrying on the "just for fun" line: they're anonymous. The Privacy and risks page has the detail. */
+function AnonymityNote({ session: s }: { session: Session }) {
+  const c = s.contribution;
+  const privacy = <a href={pageHref("privacy")} onClick={e => { e.preventDefault(); show("privacy"); }}>Privacy and risks</a>;
+  if (!c?.contribute) {
+    return <span id="anonymity-note">Nothing was sent: these results stay in this browser tab, and nothing that identifies you is collected. More in {privacy}.</span>;
+  }
+  return (
+    <span id="anonymity-note">
+      Your results are anonymous. Nothing that identifies you, such as your name, email address or IP address, is collected or stored. More in {privacy}.
+    </span>
+  );
+}
+
+/**
+ * The Results page's notice, shown in the header above the steps: "just for fun", carrying on with
+ * what happens to the person's data, then anything about sending it.
+ */
+export function ResultsNotice({ session: s }: { session: Session }) {
+  const note = contributionNote(s);
+  const failed = !!(s.contribution?.contribute && s.contribution.failed && !s.contribution.sending);
+  const failureId = failed && s.contribution?.contribute ? s.contribution.failure_id : undefined;
+  return (
+    <FunNotice more={<AnonymityNote session={s} />}>
+      <section id="your-data" aria-label="Sending your results">
+        {note && <p className="hint" id="contrib-note">{note}</p>}
+        {failureId && <p className="hint" id="contrib-failure-id">Reference: {failureId}. You can quote it if you report a problem.</p>}
+        {failed && <div className="actions"><button type="button" className="btn secondary" id="contrib-retry" onClick={() => void sendContribution(s)}>Try sending again</button></div>}
+        <RemoveContribution session={s} />
+      </section>
+    </FunNotice>
+  );
 }
 
 /** Takes a sent session back out of the database. Only this page has its token, so it's offered here and nowhere else. */
@@ -119,63 +131,74 @@ function RemoveContribution({ session: s }: { session: Session }) {
   );
 }
 
-const TRIAL_COLUMNS: [string, (t: Trial) => string | number][] = [
-  ["Task", t => t.task], ["Trial", t => t.trial], ["Phase", t => t.phase], ["Coherence", t => fmt.pct(t.effective_level_pct)],
-  ["Target", t => t.target], ["Answer", t => t.response], ["Correct", t => (t.correct ? "yes" : "no")], ["Time", t => `${t.rt_ms} ms`], ["Reversal", t => (t.reversal ? "yes" : "")],
-];
-
 interface ResultsPageProps {
   session: Session | null;
 }
 
-export function ResultsPage({ session: s }: ResultsPageProps) {
-  const [dataStatus, setDataStatus] = useState("");
-  const [raw, setRaw] = useState("");
-  if (!s || !s.results) return null;
+export function ResultsPage({ session }: ResultsPageProps) {
+  return session?.results ? <SessionResults session={session} /> : null;
+}
+
+// Split out so the groups hook always has a session.
+function SessionResults({ session: s }: { session: Session }) {
+  const groups = useGroupStats(s);
+  if (!s.results) return null;
   const R = s.results;
   const tasks = TASK_ORDER.filter(t => s.tasks[t]);
 
-  const save = (kind: "summary" | "full"): void => {
+  /** Saves one of the two files and returns its name, for the save menu. */
+  const save = (kind: "summary" | "full"): string => {
     const filename = `${fileBase(s)}${kind === "summary" ? "-summary" : ""}.json`;
     downloadFile(filename, kind === "summary" ? summaryJSON(s) : sessionJSON(s), "application/json");
-    setDataStatus(`Saved ${filename}.`);
+    return filename;
   };
 
-  const again = (): void => {
-    setState({ session: null });
-    show(getState().calib ? "distance" : "screen");
+  /** The PDF summary: what this page shows, beside the groups as loaded here. */
+  const savePdf = (): Promise<string> => {
+    const one = reportSession(s, groups.available ? groups.load : null)!;
+    return savePDF(`${fileBase(s)}-summary.pdf`, { pseudonym, sessions: [one] });
   };
 
-  const d = R.motion_minus_form;
-  const note = contributionNote(s);
-  const failed = !!(s.contribution?.contribute && s.contribution.failed && !s.contribution.sending);
-  const failureId = failed && s.contribution?.contribute ? s.contribution.failure_id : undefined;
+  // Back returns here with everything, but a reload or a closed tab loses this run: ask first.
+  const openHistory = (p: string): void => {
+    if (window.confirm("Leave this page to see all your results? Back brings you here again, but if the page is reloaded or closed, these results are gone unless you've saved them.")) showHistory(p);
+  };
+
   const pseudonym = s.contribution?.contribute ? s.contribution.answers.pseudonym : null;
+  const sent = !!(s.contribution?.contribute && s.contribution.sent_at);
 
   return (
     <section className="view view-stack" data-view="results" aria-labelledby="results-h">
-      <FunNotice />
       <div className="panel">
-        <h2 id="results-h">Results</h2>
-        {pseudonym && (
-          <p className="pseudonym-note" id="pseudonym-note">
-            Your pseudonym is <strong>{pseudonym}</strong>. Use it to find these results again later{s.contribution?.contribute && s.contribution.sent_at
-              ? <>: <button type="button" className="linkish" id="history-link" onClick={() => showHistory(pseudonym)}>see all results for {pseudonym}</button>.</>
-              : " on the User results page, once they've been sent."}
-          </p>
-        )}
-        <div className="tiles" id="tiles">
-          <Tile task="motion" result={R.motion} />
-          <Tile task="form" result={R.form} />
-          <div className="tile">
-            <span className="label">Motion minus form sensitivity</span>
-            <span className="value">{d ? fmt.signed(d.sensitivity, 3) : "–"}</span>
-            <span className="sub">{d ? `motion ÷ form threshold ${fmt.fixed(d.threshold_ratio, 2)}` : "Needs both thresholds"}</span>
-          </div>
-        </div>
-        <p className="interp" id="interpretation">{interpretation(R)}</p>
+        <ResultsExplained groups={groups.available} thresholdCharts />
       </div>
-      <GroupComparison session={s} />
+      <div className="panel save-card">
+        <h2 id="results-h">Results{s.testType === "quick" && <> <span className="pill type-pill" id="type-pill">{TEST_TYPE_LABEL.quick}</span></>}</h2>
+        <SaveMenu id="save-menu" options={[
+          { id: "save-pdf", label: "Save summary (PDF)", description: "These results, charts and the groups as they are now, to read or print.", pending: "Making the PDF…", save: savePdf },
+          { id: "save-summary", label: "Save summary (JSON)", description: "Your pseudonym, answers, results and the points on the staircase charts.", save: () => save("summary") },
+          { id: "save-json", label: "Save full data (JSON)", description: `Everything recorded, exactly as ${s.contribution?.contribute ? "it's" : "it would be"} sent to the database.`, save: () => save("full") },
+        ]} />
+        {s.testType === "quick" && <p className="hint" id="test-type-note">This was the quick test: a shorter run, so these results are less precise than a full test's would be. They're only ever shown beside other quick-test results{s.contribution?.contribute ? ", and they're sent labelled as quick" : ""}.</p>}
+        {pseudonym && (
+          <header className="as-pseudonym" id="pseudonym-note">
+            <p>
+              {sent ? (
+                <button type="button" className="pseudonym pseudonym-link" id="history-link" onClick={() => openHistory(pseudonym)}>
+                  <span className="visually-hidden">See all results for </span>{pseudonym}
+                </button>
+              ) : (
+                <span className="pseudonym"><span className="visually-hidden">Your pseudonym: </span>{pseudonym}</span>
+              )}
+            </p>
+            <p className="hint">{sent ? "Your results are saved under this pseudonym. Select it to see all your results." : "Your pseudonym. Use it to find these results again on the Results by pseudonym page, once they've been sent."}</p>
+          </header>
+        )}
+        <RunSummary results={R} ids />
+        <RunNotes run={runInfoOf(exportObject(s))} taken={false} />
+        {s.contribution?.contribute && <SessionNotes medications={s.contribution.answers.medications} notes={s.contribution.answers.notes} />}
+      </div>
+      <GroupComparison session={s} groups={groups} />
       <div className="panel">
         <h3>Staircases</h3>
         <div className="charts" id="charts">
@@ -185,41 +208,13 @@ export function ResultsPage({ session: s }: ResultsPageProps) {
           )) : <p className="hint">No trials were completed.</p>}
         </div>
         <StaircaseKey />
-        <hr className="section-rule" />
-        <h3>Session</h3>
+      </div>
+      <details className="panel more-stats" id="session-details">
+        <summary><h3>Session</h3></summary>
         <dl className="meta" id="meta">
           {sessionRows(s, R).map(([k, v]) => [<dt key={`${k}-dt`}>{k}</dt>, <dd key={`${k}-dd`}>{v}</dd>])}
         </dl>
-        <hr className="section-rule" />
-        <h3>Your data</h3>
-        <p className="hint">The summary has your pseudonym, your answers, your results and the points on the staircase charts.</p>
-        <div className="actions">
-          <button type="button" className="btn" id="save-summary" onClick={() => save("summary")}>Save summary</button>
-        </div>
-        <p className="status" id="data-status" role="status" aria-live="polite">{dataStatus}</p>
-        {note && <p className="hint" id="contrib-note">{note}</p>}
-        {failureId && <p className="hint" id="contrib-failure-id">Reference: {failureId}. You can quote it if you report a problem.</p>}
-        {failed && <div className="actions"><button type="button" className="btn secondary" id="contrib-retry" onClick={() => void sendContribution(s)}>Try sending again</button></div>}
-        <RemoveContribution session={s} />
-        <details id="raw" onToggle={e => { if (e.currentTarget.open) setRaw(sessionJSON(s)); }}>
-          <summary>Show the raw data</summary>
-          <p className="hint">Everything recorded, exactly as {s.contribution?.contribute ? "it's" : "it would be"} sent to the database.</p>
-          <div className="actions">
-            <button type="button" className="btn secondary" id="save-json" onClick={() => save("full")}>Save full data (JSON)</button>
-          </div>
-          <textarea id="raw-json" readOnly rows={10} aria-label="Session data as JSON" value={raw} />
-        </details>
-        <details>
-          <summary>Trial table</summary>
-          <div className="table-wrap">
-            <table id="trial-table">
-              <thead><tr>{TRIAL_COLUMNS.map(([h]) => <th key={h} scope="col">{h}</th>)}</tr></thead>
-              <tbody>{s.trials.map((t, i) => <tr key={i}>{TRIAL_COLUMNS.map(([h, get]) => <td key={h}>{get(t)}</td>)}</tr>)}</tbody>
-            </table>
-          </div>
-        </details>
-      </div>
-      <div className="actions"><button type="button" className="btn" id="again" onClick={again}>Run the test again</button></div>
+      </details>
     </section>
   );
 }

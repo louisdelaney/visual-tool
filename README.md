@@ -13,16 +13,16 @@ npm install
 npm run dev        # local dev server at http://localhost:5173, reloads on save
 ```
 
-Open it in a desktop browser (tested in Chrome). You need a laptop or desktop with a keyboard, a bank card to measure the screen, and about 10 minutes in a dim room. The page walks through:
+Open it in a desktop browser (tested in Chrome). You need a laptop or desktop with a keyboard, a bank card to measure the screen, and about 10 minutes in a dim room (about 5 for the quick test). A large tablet works if it stands still in a stand, and the page warns tablet users about this before they start. Phones can't start the test, because their screens are too small for the tasks at an arm's length, but they can open every other page. A device with a touch screen and no mouse or trackpad is treated as a tablet if the shorter side of its screen is at least 700 CSS pixels (`src/app/device.ts`), and as a phone otherwise. The page works this out in the browser. A contributed session records only the result, `computer` or `tablet`, in `environment.device`. The page walks through:
 
 1. **Contribute**: choose whether to send your results anonymously when you finish. If you say yes, a few questions follow: an optional pseudonym to link tests over time, any visual perceptual disorder, psychedelic use (how often and which ones), medications and notes. If you say no, nothing is sent.
-2. **Set up**: examples of both tasks and what you need.
+2. **Set up**: examples of both tasks, what you need, and the full or quick test (see [Method](#method)).
 3. **Screen size**: match an on-screen outline to an ID-1 card.
 4. **Viewing distance**: a blind-spot check that turns where a moving dot vanishes into a distance, so stimuli can be drawn in degrees of visual angle.
 5. **Motion task**, then **form task**: adaptive staircases that find each threshold.
 6. **Results**: thresholds, sensitivities, staircase charts and the session data. If you chose to contribute, the results are sent here.
 
-On the results page, **Save summary** downloads a short JSON file of what the page shows (pseudonym, answers, thresholds and sensitivities, and the staircase points). **Show the raw data** shows the whole session as JSON, exactly as it's sent to the backend, and **Save full data (JSON)** downloads it.
+The results page shows the thresholds, sensitivities and motion − form (with a label for any task that didn't finish), a sentence comparing the two thresholds, how the run was taken (computer or tablet, viewing distance, full screen) and a note if easy check trials were missed, then the sensitivity bars and threshold charts beside the groups, and the staircases. **Session**, closed at first, has the session details. The disk button at the top right of the results opens three saves. **Save summary (PDF)** makes an A4 PDF of what the page shows, to read or print: the "just for fun, not medical advice" note, the numbers and sentence, how the run was taken, any medications and notes, the sensitivity bars and threshold charts beside the groups as they are when it's saved, the staircases, and what the numbers mean. **Save summary (JSON)** downloads a short JSON file of what the page shows (pseudonym, answers, thresholds and sensitivities, how it was taken, missed easy checks, and the staircase points). **Save full data (JSON)** downloads the whole session, exactly as it's sent to the backend. All three are made in the browser: nothing is sent to save them. The PDF code (pdf-lib, in `src/app/pdf.ts`) loads only when someone saves one, and draws with the site's own bundled font, unpacked from WOFF to TrueType in the browser (`src/app/woff.ts`).
 
 ### Sending results and the group comparison
 
@@ -33,23 +33,24 @@ The Results page then shows the person's thresholds beside two groups, as people
 - **Control group**: answered **No** to having or suspecting a visual perceptual disorder, and **No** to having used psychedelic drugs.
 - **Used psychedelics**: answered **No** to the disorder question, and **Yes** to having used psychedelic drugs.
 
-It starts with sensitivity bars in the style of the clinic's "Glass Patterns" chart: the person's motion, form and motion − form sensitivity, then each group's medians with a line across the middle half. Below that, for each measure it shows each group's 10th–90th and 25th–75th percentile ranges and median, with the person's own value marked. It's information only: the page draws no conclusions from where someone's results fall. It appears for everyone, contributors or not: fetching the summary sends nothing about them. The User results page lists each of a person's sessions, newest first, with the same bars and that session's two staircases.
+It starts with sensitivity bars in the style of the clinic's "Glass Patterns" chart: the person's motion, form and motion − form sensitivity, then each group's medians with a line across the middle half. Below the bars, for each measure it shows each group's 10th–90th and 25th–75th percentile ranges and median, with the person's own value marked. It's information only: the page draws no conclusions from where someone's results fall. It appears for everyone, contributors or not: fetching the summary sends nothing about them. The Results by pseudonym page lists each of a person's sessions, newest first, with the same numbers, sentence, run notes and "Compared with other groups" section as the Results page, and that session's two staircases. The groups are fetched fresh on each visit, so a past session is always shown beside the groups as they are now. It works the numbers out from the stored row: sensitivity is 1 ÷ threshold, and scored trials are the staircase's points. A disk button on each session saves it as a PDF summary, a JSON summary or in full, and one on the card above saves every session at once the same ways. To save a PDF of only some sessions, tick them: a bar pinned to the bottom of the window then saves the ticked ones, newest first, in one PDF. PDFs are made from what the page already has, so they need no extra request.
 
 Both use one backend, set with `VITE_API_URL` at build time (see `.env.example`). While it's unset, the Contribute step still runs but nothing is sent and no comparison is shown, except in `npm run dev`, which shows labelled sample data.
 
 ### Backend API
 
-Five endpoints under `VITE_API_URL`. The page calls the first four from the browser, so the backend must allow CORS from the site's origin.
+Six endpoints under `VITE_API_URL`. The page calls the first five from the browser, so the backend must allow CORS from the site's origin.
 
-`POST /sessions`: body is one session in the current schema (`schema_version` 1, the `SessionExportV1` type in `src/app/schema.ts`). Store it as one document. Reply 201 with `{ "submission_id": "…", "delete_token": "…" }`; anything else counts as a failure and the page offers a retry. Reject bodies over about 200 KB, a `schema` other than `"visual-tool/session"`, or a `schema_version` it doesn't know.
+`POST /sessions`: body is one session in the current schema (`schema_version` 2, the `SessionExportV2` type in `src/app/schema.ts`). Version 1, sent by a page opened before the quick test, is still accepted: it has no `test_type` and is always the full test, and its length is checked from `finished_at`. Version 2 must have `environment.device` set to `computer` or `tablet`, and a plausible `duration_s`. Store it as one document. Reply 201 with `{ "submission_id": "…", "delete_token": "…" }`; anything else counts as a failure and the page offers a retry. Reject bodies over about 200 KB, a `schema` other than `"visual-tool/session"`, or a `schema_version` it doesn't know.
 
 `DELETE /sessions`: body `{ "submission_id": "…", "delete_token": "…" }`, the pair `POST /sessions` returned. Removes the session, its summary row and its values in its group, and replies 204; a wrong id or token gets the same 404. The submission id alone can't do it, since history lookups and the public download show it: only a SHA-256 hash of the token is stored, and it isn't exported. The page holds the token in memory only, so the Results page can offer removal until the person runs the test again or closes the tab, and nowhere else. Sessions stored before removal existed have no token and can't be removed.
 
-`GET /groups`: summary statistics for each comparison group on the current test version (`TEST_VERSION`). There is no way to ask for another version, and `POST /sessions` only accepts the current one.
+`GET /groups?type=T`: summary statistics for each comparison group on the current test version (`TEST_VERSION`), for the full test (`type=full`, the default) or the quick test (`type=quick`). The two are kept apart and never pooled. There is no way to ask for another version, and `POST /sessions` only accepts the current one.
 
 ```json
 {
   "test_version": 2,
+  "test_type": "full",
   "groups": {
     "control": {
       "n": 64,
@@ -64,7 +65,7 @@ Five endpoints under `VITE_API_URL`. The page calls the first four from the brow
 }
 ```
 
-- Both groups are stored sessions with `contribution.answers.perceptual_disorder` = `"no"`, the current `test_version`, and both tasks `"complete"` in `results`.
+- Both groups are stored sessions with `contribution.answers.perceptual_disorder` = `"no"`, the current `test_version`, the asked-for `test_type` (none counts as `"full"`), and both tasks `"complete"` in `results`.
 - `control` also has `psychedelics` = `"no"`; `psychedelics` has `psychedelics` = `"yes"`. Sessions leaving the question unanswered (`null`), or answering `"prefer-not-to-say"` (offered by earlier versions of the page), are in neither group.
 - The measures come from `results.motion.threshold_pct`, `results.form.threshold_pct` and `results.motion_minus_form.sensitivity`.
 - `n` is the number of people in the group. While it's under 5, return `"measures": null`: too few to mean much, and too few to keep individuals hidden. The page enforces the same minimum, per group.
@@ -72,7 +73,7 @@ Five endpoints under `VITE_API_URL`. The page calls the first four from the brow
 
 The page validates the response and shows nothing from one that doesn't match (see `src/app/comparison.ts`).
 
-`GET /history?pseudonym=P`: every session sent with that pseudonym (at most 50, oldest first), for the "User results" page. Each has its three measures, medications, notes and the points of its two staircase charts (coherence, correct and reversal for each scored trial). Sessions stored before the points were kept in the summary row read them from the stored session. Pseudonyms are matched in stored form: trimmed, lower case, inner spaces collapsed (the page sends them that way). There's no password: the dataset is public, and the pseudonym is optional.
+`GET /history?pseudonym=P`: every session sent with that pseudonym (at most 50, oldest first), for the "Results by pseudonym" page and the questions page's "Fill in last answers" button. Each has its type of test (`"full"` or `"quick"`), its three measures, medications, notes, the points of its two staircase charts (coherence, correct and reversal for each scored trial), `run` (each task's status, easy check trials answered wrongly, device, viewing distance and whether it ran full screen) and `answers`: the other answers sent with it, which the button fills the questions in from (all but the notes). They're all public in the export already. Sessions stored before the points or `run` were kept in the summary row send them as `null`: `/history` reads only the rows. Pseudonyms are matched in stored form: trimmed, lower case, inner spaces collapsed (the page sends them that way). There's no password: the dataset is public, and the pseudonym is optional.
 
 ```json
 {
@@ -82,12 +83,19 @@ The page validates the response and shows nothing from one that doesn't match (s
       "submission_id": "3eed1f03-…",
       "started_at": "2026-10-18T19:30:00Z",
       "test_version": 2,
+      "test_type": "full",
       "values": { "motion_threshold_pct": 10.2, "form_threshold_pct": 21.0, "motion_minus_form": 0.05043 },
       "medications": ["Lamotrigine"],
       "notes": null
     }
   ]
 }
+```
+
+`GET /history/sessions?pseudonym=P`: the same sessions in full, as the public export has them (times to the hour, no trial times), each with its `submission_id`, for the Results by pseudonym page's save buttons. The page only asks for them when someone saves. It shares `/history`'s rate limit.
+
+```json
+{ "pseudonym": "quiet-heron", "sessions": [ { "schema": "visual-tool/session", "submission_id": "3eed1f03-…", … } ] }
 ```
 
 Return an empty `sessions` list for a pseudonym nobody has used; the page's "Generate one" button relies on that to avoid handing out a pseudonym that's taken.
@@ -104,17 +112,18 @@ Return an empty `sessions` list for a pseudonym nobody has used; the page's "Gen
 ```
 
 - The file is gzip-encoded on the wire (browsers and `curl --compressed` unpack it) and served as a download. It holds every session in order of arrival, exactly as `POST /sessions` stored it, plus its `submission_id` and `received_at`, from every test version and every answer, including people who reported a disorder. This is the "anyone can download" the Privacy and risks page promises.
-- Times are coarsened: `started_at`, `finished_at` and `received_at` are rounded to the hour, and each trial's `at` is dropped (see below).
+- Times are coarse: `started_at` and `received_at` are to the hour, with `duration_s` for how long the run took. Trials have no times (see below).
 - The data is up to a day old.
 
 ### Privacy rules the backend must keep
 
 The Privacy and risks page promises these, so the backend has to keep them:
 
-- **No IP addresses or request headers stored**, with sessions or anywhere else. That includes `X-Forwarded-For`, and the `User-Agent`, `Sec-CH-UA` and `Accept-Language` headers browsers add to every request: the page sends a coarse browser description inside the session, and that's all that should be kept.
+- **No IP addresses or request headers stored**, with sessions or anywhere else. That includes `X-Forwarded-For`, and the `User-Agent`, `Sec-CH-UA` and `Accept-Language` headers browsers add to every request: the page sends the browser and its major version ("Chrome 131") inside the session, and that's all that should be kept.
 - **No platform request logs kept.** Cloud Run writes request logs, with the caller's IP, user agent and referrer, by default: exclude them (a Cloud Logging exclusion on `run.googleapis.com/requests` for the service, in Terraform). The app's own logs are kept for 7 days (`log_retention_days`) and hold only errors and one anonymous line per response: the method, the name of the matched route (or `unmatched`), the status, the duration and a random id that failed requests also return in the error body so a person can quote it. Never an IP, a header, a path or query string, a request body or a pseudonym.
 - **Nothing beyond the session is stored**: no cookies, no analytics, no extra fields.
-- **The public download** is the stored sessions as they are, except that `started_at`, `finished_at` and `received_at` are rounded to the hour and the trial `at` times are dropped: exact times can help single someone out and aren't needed to analyse the results.
+- **Only what's needed to read the results is collected** (AGENTS.md, "What's collected"). The page sends `started_at` to the hour and `duration_s`, no trial times, the browser and major version only, and `environment.device`. It doesn't send a language, screen resolution, operating system or the card-measuring time. Pages opened before this was tightened still send some of those, and sessions stored then have them, so `backend/src/scrub.ts` strips them before a session is stored and again as the download is written. `received_at` is stored to the hour.
+- **The public download** is the stored sessions, scrubbed as above: exact times can help single someone out and aren't needed to analyse the results.
 
 If any of this changes, update `src/pages/PrivacyPage.tsx` to match.
 
@@ -161,7 +170,7 @@ backend/
 infra/                Terraform for everything on Google Cloud (see infra/README.md).
 ```
 
-Each session is stored three ways so that nothing the page asks for grows with the dataset: `/groups` reads one document of flat value arrays, `/history` reads one person's rows, and only the export job reads the raw sessions. Rate limits are a token bucket per instance, not per caller: the backend never looks at who is asking. Per instance and minute: 10 posts and removals together, 60 history lookups, and 600 other GETs. A history lookup returns at most 50 sessions.
+Each session is stored three ways so that nothing the page asks for grows with the dataset: `/groups` reads one document of flat value arrays, `/history` reads one person's rows, and only the export job and `/history/sessions` (one person's, when they save) read the raw sessions. Rate limits are a token bucket per instance, not per caller: the backend never looks at who is asking. Per instance and minute: 10 posts and removals together, 60 history lookups, 10 full-session lookups (`/history/sessions`, which can send several MB), and 600 other GETs. A history lookup returns at most 50 sessions.
 
 Two stores, chosen by `BACKEND`: `firestore` (the default when `GOOGLE_CLOUD_PROJECT` is set) and `memory`, which needs no Google account and keeps everything in `DATA_FILE` if one is set. Memory mode refuses to run on Cloud Run. The export job writes to the folder `EXPORT_DIR`. A server without `EXPORT_URL` (anywhere but Cloud Run) builds the same file on each `GET /export` instead, so a local copy needs no export step.
 
@@ -181,7 +190,7 @@ The repository root has a `compose.yaml` that runs the backend against a Firesto
 
 ## Method
 
-Everyone takes the same test: there are no settings, so results are comparable across people and computers.
+There are two fixed types of test, the full test and a quick test, and no other settings, so results are comparable across people and computers. Quick and full results are never pooled or compared.
 
 | | Motion | Form |
 | --- | --- | --- |
@@ -192,6 +201,18 @@ Everyone takes the same test: there are no settings, so results are comparable a
 
 Both tasks start at 100% coherence and step down ×0.84 after each correct answer until the first error. After that, three correct in a row step down and an error steps up (3-down/1-up, about 79% correct, the rule and target Roccato et al. used). A run stops at 16 reversals, and the threshold is the geometric mean of the last 12, as in Pavan et al. That's typically 80–100 trials per task, within the 70–120 that Alcalá-Quintana & García-Pérez (2007) recommend for this kind of staircase; like them, it averages on a log scale because the steps multiply. An easy 100% trial after every eighth checks attention. Sensitivity is 1 ÷ threshold in percent, the scale the clinic reported.
 
+The **quick test** is a separate type of test with the same stimuli, start level and steps, and a shorter run: each task stops at 8 reversals and averages the last 6 (at most 80 scored trials), and the easy check trial comes after every 16th trial instead of every 8th. It still discards the first two reversals, which sit high while the staircase settles. Against simulated observers (4,000 runs each, thresholds of 6–45%):
+
+| | Full: 16 reversals, last 12 | Quick: 8 reversals, last 6 |
+| --- | --- | --- |
+| Trials per task at a 12% threshold, median (90th percentile) | 91 (110) | 48 (63) |
+| Trials per task, averaged over thresholds | 90 | 48 (53%) |
+| Task time, at about 1.8 s per motion trial and 2.8 s per form trial | about 7 minutes | about 3.7 minutes |
+| Run-to-run spread of the threshold (one geometric SD) | ×1.18–1.19 | ×1.26–1.40 |
+| Bias against the 79% point | −1% to −4% | −3% to +6% |
+
+Calibration and practice are the same for both, so the whole visit drops from about 10 minutes to about 7. The quick run is shorter than any published recommendation for this kind of staircase, which is why its results are labelled and kept apart. Shorter quick runs (6 or 7 reversals) were tried and were less precise, and a faster first descent saved trials only by pulling thresholds low.
+
 Screen size and viewing distance follow the virtual chinrest of Li et al. (2020), with the distance solved for off-axis viewing.
 
 The page's **Method and sources** table lists every parameter and where it comes from.
@@ -200,10 +221,11 @@ The page's **Method and sources** table lists every parameter and where it comes
 
 Sessions can be saved as JSON, with every trial, the calibration and the full protocol parameters. During the test the session is held in memory only; it's exported, and sent if the person chose to contribute, when the tasks finish.
 
-Each JSON file carries two version numbers:
+Each JSON file carries two version numbers and, from schema version 2, the type of test:
 
 - **`test_version`**: the version of the test itself. Any change to what participants see or do (timings, sizes, dot counts, the staircase, instructions that could change answers) is a different test and gets the next number. Never pool results across test versions. It's `TEST_VERSION` in `src/core/protocol.ts`; a unit test pins the parameters to it, so changing one without bumping it fails.
-- **`schema_version`**: the version of the JSON format, with `schema` set to `"visual-tool/session"`. It changes only when fields are added, removed, renamed or change meaning, so readers know how to parse a file. The format is the `SessionExportV1` type in `src/app/schema.ts`, and a unit test pins its fields.
+- **`test_type`**: `"full"` or `"quick"`. The quick test is a separate, less precise test; never pool or compare it with the full test. Schema version 1 files have none and are all the full test. `settings.run` says the same (`"published"` or `"quick"`), and `protocol.parameters` holds that test's own run length and check-trial spacing.
+- **`schema_version`**: the version of the JSON format, with `schema` set to `"visual-tool/session"`. It changes only when fields are added, removed, renamed or change meaning, so readers know how to parse a file. The format is the `SessionExportV2` type in `src/app/schema.ts`, and a unit test pins its fields. Version 2 added `test_type`, and keeps only what's needed to read the results: `started_at` to the hour and `duration_s` in place of `finished_at`, no trial `at`, the browser and major version only, `environment.device`, and no language, screen size, card-measuring time or `sent_at`. Version 1 files sent from now on, and those already stored, are trimmed to match before they're stored or exported, except that they have no `device`.
 
 Files from before versioning have no `schema_version`: treat them as schema 0. Their `version` field (`"0.1.0"` or `"0.2.0"`) was the app version, and they may have used test settings that no longer exist, so keep them apart from versioned data.
 

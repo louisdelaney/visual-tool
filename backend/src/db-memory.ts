@@ -5,9 +5,10 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { gunzipSync, gzipSync } from "node:zlib";
-import type { SessionExportV1 } from "../../src/app/schema";
+import { testTypeOf, type AnySessionExport } from "../../src/app/schema";
+import type { TestType } from "../../src/core/protocol";
 import { logError, logInfo } from "./log";
-import { emptyGroupValues, removeValues, type GroupsDoc } from "./stats";
+import { emptyGroupValues, groupsDocId, removeValues, type GroupsDoc } from "./stats";
 import { MAX_GROUP_VALUES, sameHash, type Store, type StoredSession } from "./store";
 import { groupOf, groupValuesOf, measuresOf, summaryRow, type SummaryRow } from "./summary";
 
@@ -27,17 +28,17 @@ export class MemoryStore implements Store {
     if (file) this.load(file);
   }
 
-  async storeSession(s: SessionExportV1, now: Date = new Date(), deleteHash?: string): Promise<string> {
+  async storeSession(s: AnySessionExport, now: Date = new Date(), deleteHash?: string): Promise<string> {
     const id = randomUUID();
     const group = groupOf(s);
     // The same order as the Firestore transaction: the group check first, so a full group
     // rejects the write before anything is stored.
     if (group) {
-      const key = String(s.test_version);
+      const key = groupsDocId(s.test_version, testTypeOf(s));
       const doc = this.groups.get(key) ?? {};
       const values = doc[group] ?? emptyGroupValues();
       if (values.motion.length >= MAX_GROUP_VALUES) {
-        logError(`group ${group} for test version ${key} is full`);
+        logError(`group ${group} for ${key} is full`);
         throw new Error("group is full");
       }
       const m = measuresOf(s);
@@ -55,9 +56,9 @@ export class MemoryStore implements Store {
   async deleteSession(id: string, deleteHash: string): Promise<boolean> {
     const stored = this.sessions.get(id);
     if (!stored || !sameHash(stored.delete_hash, deleteHash)) return false;
-    const s = JSON.parse(gunzipSync(stored.body_gzip).toString("utf8")) as SessionExportV1;
+    const s = JSON.parse(gunzipSync(stored.body_gzip).toString("utf8")) as AnySessionExport;
     const group = groupOf(s);
-    const values = group && this.groups.get(String(s.test_version))?.[group];
+    const values = group && this.groups.get(groupsDocId(s.test_version, testTypeOf(s)))?.[group];
     if (values) removeValues(values, groupValuesOf(s));
     this.sessions.delete(id);
     this.summaries.delete(id);
@@ -65,8 +66,8 @@ export class MemoryStore implements Store {
     return true;
   }
 
-  async readGroups(testVersion: number): Promise<GroupsDoc | undefined> {
-    const doc = this.groups.get(String(testVersion));
+  async readGroups(testVersion: number, testType: TestType): Promise<GroupsDoc | undefined> {
+    const doc = this.groups.get(groupsDocId(testVersion, testType));
     return doc && structuredClone(doc);
   }
 
@@ -78,14 +79,14 @@ export class MemoryStore implements Store {
       .map(r => structuredClone(r));
   }
 
-  async readSession(id: string): Promise<SessionExportV1 | undefined> {
+  async readSession(id: string): Promise<AnySessionExport | undefined> {
     const stored = this.sessions.get(id);
-    return stored && (JSON.parse(gunzipSync(stored.body_gzip).toString("utf8")) as SessionExportV1);
+    return stored && (JSON.parse(gunzipSync(stored.body_gzip).toString("utf8")) as AnySessionExport);
   }
 
-  async *allSessions(): AsyncGenerator<{ id: string; stored: StoredSession; session: SessionExportV1 }> {
+  async *allSessions(): AsyncGenerator<{ id: string; stored: StoredSession; session: AnySessionExport }> {
     const ordered = [...this.sessions.entries()].sort(([ia, a], [ib, b]) => a.received_at.localeCompare(b.received_at) || ia.localeCompare(ib));
-    for (const [id, stored] of ordered) yield { id, stored, session: JSON.parse(gunzipSync(stored.body_gzip).toString("utf8")) as SessionExportV1 };
+    for (const [id, stored] of ordered) yield { id, stored, session: JSON.parse(gunzipSync(stored.body_gzip).toString("utf8")) as AnySessionExport };
   }
 
   get size(): number {

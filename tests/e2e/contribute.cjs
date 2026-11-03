@@ -171,15 +171,17 @@ async function storedSession(id, dataFile) {
     log(`contribute: tasks took ${((Date.now() - t0) / 1000).toFixed(0)} s`);
 
     // The page sends the session when the results appear.
-    await p.waitForFunction(() => /Sent anonymously|Couldn't send/.test(document.querySelector("#contrib-note")?.textContent ?? ""), null, { timeout: 15000 });
-    const note = await p.$eval("#contrib-note", el => el.textContent);
-    log("contribute: results page says:", note);
-    check(note.startsWith("Sent anonymously"), `the page says: ${note}`);
-    const id = /Reference: ([0-9a-f-]{36})/.exec(note)?.[1];
+    // Once sent, the pseudonym becomes a link to its Results by pseudonym.
+    await p.waitForFunction(() => !!document.querySelector("#history-link") || /Couldn't send/.test(document.querySelector("#contrib-note")?.textContent ?? ""), null, { timeout: 15000 });
+    const note = await p.$eval("#contrib-note", el => el.textContent).catch(() => "");
+    check(await p.$("#history-link") !== null, `the page didn't show the results as sent: ${note}`);
     await p.screenshot({ path: path.join(OUT, "contribute-results.png"), fullPage: true });
     await p.evaluate(() => document.fullscreenElement ? document.exitFullscreen() : null); await sleep(300);
-    await p.click("#raw > summary"); await sleep(250);
-    const exported = JSON.parse(await p.$eval("#raw-json", el => el.value));
+    await p.click("#save-menu");
+    const [saved] = await Promise.all([p.waitForEvent("download"), p.click("#save-json")]);
+    const exported = JSON.parse(fs.readFileSync(await saved.path(), "utf8"));
+    const id = exported.contribution?.submission_id;
+    log("contribute: sent as", id);
     const userAgent = await p.evaluate(() => navigator.userAgent);
 
     // Exactly one POST, carrying no cookies and no referrer.

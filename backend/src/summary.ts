@@ -4,21 +4,26 @@
 // Anyone else is in neither. People who reported a disorder are never grouped (AGENTS.md).
 import type { GroupKey, MeasureKey } from "../../src/app/comparison";
 import type { HistoryEntry, Staircases } from "../../src/app/history";
-import { normalizePseudonym, staircasePoints } from "../../src/app/history";
-import type { SessionExportV1 } from "../../src/app/schema";
+import { normalizePseudonym, runInfoOf, staircasePoints, type RunInfo } from "../../src/app/history";
+import { testTypeOf, toHour, type AnySessionExport } from "../../src/app/schema";
 import type { ContributionAnswers } from "../../src/app/types";
+import type { TestType } from "../../src/core/protocol";
 
 /**
  * One row in the `summaries` collection: every answer the person gave, beside the measures.
- * perceptual_disorder is stored as `disorder`, the name rows have had from the start.
+ * perceptual_disorder is stored as `disorder`, the name rows have had from the start. Rows from
+ * before the quick test have no test_type.
  */
-export interface SummaryRow extends HistoryEntry, Omit<ContributionAnswers, "pseudonym" | "perceptual_disorder" | "medications" | "notes"> {
+export interface SummaryRow extends Omit<HistoryEntry, "test_type" | "answers" | "run">, Omit<ContributionAnswers, "pseudonym" | "perceptual_disorder" | "medications" | "notes"> {
+  test_type?: TestType;
+  /** Rows from before it was kept have none. */
+  run?: RunInfo;
   pseudonym: string | null;
   disorder: ContributionAnswers["perceptual_disorder"];
 }
 
 /** The three measures of a session, null where it didn't reach a value. */
-export function measuresOf(s: SessionExportV1): Record<MeasureKey, number | null> {
+export function measuresOf(s: AnySessionExport): Record<MeasureKey, number | null> {
   const r = s.results;
   return {
     motion_threshold_pct: r?.motion?.threshold_pct ?? null,
@@ -28,14 +33,14 @@ export function measuresOf(s: SessionExportV1): Record<MeasureKey, number | null
 }
 
 /** The points each staircase chart draws. */
-export const staircasesOf = (s: SessionExportV1): Staircases =>
+export const staircasesOf = (s: AnySessionExport): Staircases =>
   ({ motion: staircasePoints(s.trials, "motion"), form: staircasePoints(s.trials, "form") });
 
-function answersOf(s: SessionExportV1) {
+function answersOf(s: AnySessionExport) {
   return s.contribution && s.contribution.contribute ? s.contribution.answers : null;
 }
 
-export function summaryRow(s: SessionExportV1, submissionId: string): SummaryRow {
+export function summaryRow(s: AnySessionExport, submissionId: string): SummaryRow {
   const a = answersOf(s);
   const raw = a?.pseudonym?.trim() ? normalizePseudonym(a.pseudonym) : "";
   return {
@@ -43,6 +48,7 @@ export function summaryRow(s: SessionExportV1, submissionId: string): SummaryRow
     pseudonym: raw || null,
     started_at: s.started_at,
     test_version: s.test_version,
+    test_type: testTypeOf(s),
     disorder: a?.perceptual_disorder ?? null,
     condition: a?.condition ?? null,
     other_condition: a?.other_condition ?? null,
@@ -51,17 +57,18 @@ export function summaryRow(s: SessionExportV1, submissionId: string): SummaryRow
     psychedelic_uses: a?.psychedelic_uses ?? null,
     psychedelics_used: a?.psychedelics_used ?? null,
     takes_medication: a?.takes_medication ?? null,
+    found_via: a?.found_via ?? null,
+    found_via_other: a?.found_via_other ?? null,
     values: measuresOf(s),
     medications: a?.medications ?? null,
     notes: a?.notes ?? null,
-    found_via: a?.found_via ?? null,
-    found_via_other: a?.found_via_other ?? null,
     staircases: staircasesOf(s),
+    run: runInfoOf(s),
   };
 }
 
 /** The group this session's measures join, or null. Only complete sessions with all three values count. */
-export function groupOf(s: SessionExportV1): GroupKey | null {
+export function groupOf(s: AnySessionExport): GroupKey | null {
   const a = answersOf(s);
   if (!a || a.perceptual_disorder !== "no") return null;
   if (s.results?.motion?.status !== "complete" || s.results?.form?.status !== "complete") return null;
@@ -73,15 +80,32 @@ export function groupOf(s: SessionExportV1): GroupKey | null {
 }
 
 /** The values a grouped session added to its group's arrays. Only call it when groupOf(s) isn't null. */
-export function groupValuesOf(s: SessionExportV1): { motion: number; form: number; diff: number } {
+export function groupValuesOf(s: AnySessionExport): { motion: number; form: number; diff: number } {
   const m = measuresOf(s);
   return { motion: m.motion_threshold_pct!, form: m.form_threshold_pct!, diff: m.motion_minus_form! };
 }
 
 /**
- * Strips a stored row down to a `HistoryEntry`: what GET /history returns. Rows stored before
- * staircases were kept have none; the caller passes them in from the stored session.
+ * Strips a stored row down to a `HistoryEntry`: what GET /history returns, with the answers so the
+ * questions page can fill them in again. Everything but the pseudonym is already public in the
+ * export. Rows stored before staircases or run info were kept send them as null. Rows stored
+ * before the quick test have no test type: they're all the full test.
  */
-export function historyEntry(row: SummaryRow, staircases: Staircases | null = row.staircases ?? null): HistoryEntry {
-  return { submission_id: row.submission_id, started_at: row.started_at, test_version: row.test_version, values: row.values, medications: row.medications, notes: row.notes, staircases };
+export function historyEntry(row: SummaryRow): HistoryEntry {
+  const staircases: Staircases | null = row.staircases ?? null;
+  const run = row.run ?? null;
+  const answers = {
+    perceptual_disorder: row.disorder ?? null,
+    condition: row.condition ?? null,
+    other_condition: row.other_condition ?? null,
+    diagnosed: row.diagnosed ?? null,
+    psychedelics: row.psychedelics ?? null,
+    psychedelic_uses: row.psychedelic_uses ?? null,
+    psychedelics_used: row.psychedelics_used ?? null,
+    takes_medication: row.takes_medication ?? null,
+    found_via: row.found_via ?? null,
+    found_via_other: row.found_via_other ?? null,
+  };
+  // Rows stored before times were cut to the hour have the exact time: never send it.
+  return { submission_id: row.submission_id, started_at: toHour(row.started_at), test_version: row.test_version, test_type: testTypeOf(row), values: row.values, medications: row.medications, notes: row.notes, staircases, answers, run };
 }

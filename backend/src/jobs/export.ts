@@ -1,23 +1,23 @@
 // The public download, rebuilt nightly by .github/workflows/export.yml: every stored session,
 // as sent, written as one gzipped JSON file, visual-data.json, which the workflow publishes on
 // the repository's "data" release as visual-data.json.gz.
-// Times are rounded to the hour and trial times dropped, which the README suggests: exact
-// times help single people out and aren't needed to analyse the results.
+// Each session is scrubbed as it's written (scrub.ts), so sessions stored before the page sent
+// less still go out with times to the hour and only what the results need.
 //   EXPORT_DIR      where the file goes (default ./data/export)
 // A local server without EXPORT_URL builds the same file on each GET /export instead (server.ts).
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
-import type { SessionExportV1 } from "../../../src/app/schema";
+import { toHour, type AnySessionExport } from "../../../src/app/schema";
+import { scrubSession } from "../scrub";
 import { exportDir, openStore } from "../config";
 import { logError, logInfo } from "../log";
 import type { Store } from "../store";
 
-export interface ExportedSession extends Omit<SessionExportV1, "trials"> {
+export type ExportedSession = AnySessionExport & {
   submission_id: string;
   received_at: string;
-  trials: Omit<SessionExportV1["trials"][number], "at">[];
-}
+};
 
 /** The whole download. Written gzip-encoded; browsers and `curl --compressed` unpack it. */
 export interface ExportFile {
@@ -30,16 +30,10 @@ export interface ExportFile {
 
 export const EXPORT_FILE = "visual-data.json";
 
-export const toHour = (iso: string): string => {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  d.setUTCMinutes(0, 0, 0);
-  return d.toISOString();
-};
+export { toHour };
 
-export function coarsen(id: string, receivedAt: string, s: SessionExportV1): ExportedSession {
-  const trials = s.trials.map(({ at: _at, ...rest }) => rest);
-  return { ...s, submission_id: id, received_at: toHour(receivedAt), started_at: toHour(s.started_at), finished_at: s.finished_at && toHour(s.finished_at), trials };
+export function coarsen(id: string, receivedAt: string, s: AnySessionExport): ExportedSession {
+  return { ...scrubSession(s), submission_id: id, received_at: toHour(receivedAt) };
 }
 
 export interface ExportSink {

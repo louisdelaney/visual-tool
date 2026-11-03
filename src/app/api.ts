@@ -1,13 +1,14 @@
 // The backend API. One base URL, set at build time from VITE_API_URL:
 //   POST {VITE_API_URL}/sessions                    a contributed session's JSON (schema in schema.ts)
 //   DELETE {VITE_API_URL}/sessions                  removes one, with the token its POST returned
-//   GET  {VITE_API_URL}/groups                       summary statistics for each comparison group, current test only
+//   GET  {VITE_API_URL}/groups?type=V             summary statistics for each comparison group, current test only
 //   GET  {VITE_API_URL}/history?pseudonym=P          every session sent with that pseudonym (at most 50)
 // Empty until the backend exists: nothing is sent, and no comparison is shown.
 import { parseGroups, type GroupsResponse } from "./comparison";
-import { normalizePseudonym, parseHistory, suggestPseudonym, type HistoryResponse } from "./history";
+import { normalizePseudonym, parseHistory, parseRawHistory, suggestPseudonym, type HistoryResponse, type RawHistory } from "./history";
 import { ApiError, parseErrorId } from "./failure";
 import type { SessionExport } from "./schema";
+import type { TestType } from "../core/protocol";
 
 /** Every request: no cookies or credentials, and no referrer saying which page it came from. */
 const PRIVATE: RequestInit = { credentials: "omit", referrerPolicy: "no-referrer", cache: "no-store" };
@@ -34,13 +35,18 @@ export async function deleteSession(id: string, deleteToken: string): Promise<vo
   if (!r.ok) throw new ApiError(`HTTP ${r.status}`, parseErrorId(await r.json().catch(() => null)));
 }
 
-/** The groups for the backend's current test version, which must be `testVersion` (a page built before a new version would otherwise compare across versions). */
-export async function fetchGroups(testVersion: number, signal?: AbortSignal): Promise<GroupsResponse> {
-  const r = await fetch(`${API_URL}/groups`, { ...PRIVATE, signal: signal ?? null });
+/**
+ * The groups for one test type on the backend's current test version, which must be `testVersion`
+ * (a page built before a new version would otherwise compare across versions). The test type must
+ * match too: quick and full results are never compared.
+ */
+export async function fetchGroups(testVersion: number, testType: TestType, signal?: AbortSignal): Promise<GroupsResponse> {
+  const r = await fetch(`${API_URL}/groups?type=${testType}`, { ...PRIVATE, signal: signal ?? null });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const stats = parseGroups(await r.json());
   if (!stats) throw new Error("The group statistics weren't in the expected format");
   if (stats.test_version !== testVersion) throw new Error(`Got statistics for test version ${stats.test_version}, not ${testVersion}`);
+  if (stats.test_type !== testType) throw new Error(`Got statistics for the ${stats.test_type} test, not the ${testType} test`);
   return stats;
 }
 
@@ -50,6 +56,15 @@ export async function fetchHistory(pseudonym: string, signal?: AbortSignal): Pro
   const history = parseHistory(await r.json());
   if (!history) throw new Error("The history wasn't in the expected format");
   return history;
+}
+
+/** Every session sent with a pseudonym, in full, for saving from the Results by pseudonym page. */
+export async function fetchRawHistory(pseudonym: string): Promise<RawHistory> {
+  const r = await fetch(`${API_URL}/history/sessions?pseudonym=${encodeURIComponent(normalizePseudonym(pseudonym))}`, PRIVATE);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const raw = parseRawHistory(await r.json());
+  if (!raw) throw new Error("The sessions weren't in the expected format");
+  return raw;
 }
 
 /**

@@ -2,13 +2,29 @@
   "version": "2.0.0",
   "tasks": [
     {
-      // The backend on the build server (REMOTE_HOST) with its debugger tunnelled to :9229, and
-      // the site on http://localhost:5180. Ready once Vite is. The begin pattern matches only the
-      // script's first line: matching any line would mark the task busy again on every backend
-      // log line, and a second launch would wait for it forever.
+      // What "Site + backend" in launch.json runs first: the rebuild every time, then the site
+      // if it isn't running yet. See .claude/dev-server.sh for why they're separate tasks.
       "label": "dev+server",
+      "dependsOn": ["backend: rebuild", "site: serve"],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      // Copies the working tree to the build server (REMOTE_HOST) and rebuilds the backend there
+      // with its debugger. Runs to the end, so it starts again on every launch.
+      "label": "backend: rebuild",
       "type": "shell",
-      "command": "sh .claude/dev-server.sh",
+      "command": "sh .claude/dev-server.sh rebuild",
+      "problemMatcher": []
+    },
+    {
+      // The backend's debugger tunnelled to :9229 and its logs, and the site on
+      // http://localhost:5180. Ready once Vite is. The begin pattern matches only the script's
+      // first line: matching any line would mark the task busy again on every backend log line,
+      // and a second launch would wait for it forever.
+      "label": "site: serve",
+      "type": "shell",
+      "command": "sh .claude/dev-server.sh serve",
       "isBackground": true,
       "problemMatcher": {
         "owner": "dev+server",

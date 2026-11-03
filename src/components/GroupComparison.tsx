@@ -1,57 +1,22 @@
 // The person's results beside two groups of people who said they don't have or suspect a visual
 // perceptual disorder: the control group (never used psychedelic drugs) and those who have used
-// them. For each measure, one shared axis with a lane per group showing its 10th–90th and
-// 25th–75th percentile ranges and median, and the person's own value marked across both lanes.
+// them. Sensitivity bars first; then the threshold charts give each measure one shared axis with a lane per group showing its 10th–90th and 25th–75th
+// percentile ranges and median, and the person's own value marked across both lanes.
 // It only shows the numbers: it draws no conclusions from where a value falls.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { API_URL, fetchGroups } from "../app/api";
-import { GROUP_INFO, GROUPS, MEASURES, MIN_GROUP, ownValues, SAMPLE_GROUPS, sensitivities, shownMeasures, type GroupKey, type GroupsResponse, type MeasureKey, type Quantiles } from "../app/comparison";
+import { describeQuantiles, GROUP_INFO, groupLine, GROUPS, groupsIntro, MEASURE_INFO, MEASURES, ownValues, SAMPLE_GROUPS, sensitivities, sensitivityNote, shownGroups, THRESHOLD_CHARTS_NOTE, type ShownGroup, type GroupKey, type GroupsResponse, type MeasureKey, type Quantiles } from "../app/comparison";
+import { rangeAxis, tickDecimals } from "../app/scales";
 import type { Session } from "../app/types";
+import type { TestType } from "../core/protocol";
 import { fmt } from "../app/format";
 import { useElementWidth } from "../hooks";
 import { SensitivityBars } from "./SensitivityBars";
-
-interface MeasureInfo {
-  title: string;
-  /** Series colour class, matching the staircase charts. */
-  series: "motion" | "form" | "diff";
-  log: boolean;
-  format: (v: number) => string;
-  /** What higher or lower means. */
-  reading: string;
-}
-
-const INFO: Record<MeasureKey, MeasureInfo> = {
-  motion_threshold_pct: { title: "Motion threshold", series: "motion", log: true, format: v => fmt.pct(v), reading: "Lower means less organised motion was needed to see it." },
-  form_threshold_pct: { title: "Form threshold", series: "form", log: true, format: v => fmt.pct(v), reading: "Lower means less organised form was needed to see it." },
-  motion_minus_form: { title: "Motion minus form sensitivity", series: "diff", log: false, format: v => fmt.signed(v, 3), reading: "Above zero means motion sensitivity was higher than form sensitivity." },
-};
 
 const LANE = 40;
 const TOP = 4;
 const AXIS_H = 20;
 const PAD = { l: 14, r: 14 };
-const LOG_TICKS = [1, 2, 5, 10, 20, 50, 100];
-
-/** Axis covering every group's range and the person's value, with some room either side. */
-function axis(qs: Quantiles[], value: number | null, log: boolean): { to: (v: number) => number; ticks: number[] } {
-  const lo = Math.min(...qs.map(q => q.p10), value ?? Infinity), hi = Math.max(...qs.map(q => q.p90), value ?? -Infinity);
-  if (log) {
-    const a = Math.log10(Math.max(1, lo / 1.4)), b = Math.log10(Math.min(100, hi * 1.4));
-    const ticks = LOG_TICKS.filter(t => Math.log10(t) >= a - 1e-9 && Math.log10(t) <= b + 1e-9);
-    return { to: v => (Math.log10(Math.min(100, Math.max(1, v))) - a) / (b - a || 1), ticks };
-  }
-  const span = hi - lo || 0.01, a = lo - span * 0.25, b = hi + span * 0.25;
-  // The smallest round step (1, 2 or 5 × 10^k) that gives at most five ticks.
-  const base = Math.pow(10, Math.floor(Math.log10(b - a)) - 1);
-  const step = [1, 2, 5, 10, 20, 50].map(m => m * base).find(st => Math.floor(b / st) - Math.ceil(a / st) + 1 <= 5) ?? 100 * base;
-  const ticks: number[] = [];
-  for (let k = Math.ceil(a / step); k * step <= b + 1e-12; k++) ticks.push(Number((k * step).toPrecision(6)));
-  return { to: v => (v - a) / (b - a), ticks };
-}
-
-const describe = (info: MeasureInfo, q: Quantiles): string =>
-  `median ${info.format(q.p50)}, middle half ${info.format(q.p25)} to ${info.format(q.p75)}, middle 80% ${info.format(q.p10)} to ${info.format(q.p90)}`;
 
 interface MeasureRowProps {
   measure: MeasureKey;
@@ -62,14 +27,13 @@ interface MeasureRowProps {
 function MeasureRow({ measure, lanes, value }: MeasureRowProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const W = Math.max(260, Math.round(useElementWidth(hostRef, 320)));
-  const info = INFO[measure];
-  const { to, ticks } = axis(lanes.map(l => l.q), value, info.log);
+  const info = MEASURE_INFO[measure];
+  const { to, ticks } = rangeAxis(lanes.map(l => l.q), value, info.log);
   const x = (v: number): number => PAD.l + to(v) * (W - PAD.l - PAD.r);
   const H = TOP + lanes.length * LANE + AXIS_H;
-  // Enough decimals to tell neighbouring ticks apart.
-  const decimals = ticks.length > 1 ? Math.max(0, -Math.floor(Math.log10(ticks[1]! - ticks[0]!) + 1e-9)) : 2;
-  const yours = value == null ? "Your run didn't reach a value for this." : `Yours: ${info.format(value)}.`;
-  const groups = lanes.map(l => `${GROUP_INFO[l.group].name}: ${describe(info, l.q)}.`);
+  const decimals = tickDecimals(ticks, 0);
+  const yours = value == null ? "This run didn't reach a value for this." : `This run: ${info.format(value)}.`;
+  const groups = lanes.map(l => `${GROUP_INFO[l.group].name}: ${describeQuantiles(info, l.q)}.`);
 
   return (
     <div className={`cmp-row cmp-${info.series}`}>
@@ -108,13 +72,20 @@ function MeasureRow({ measure, lanes, value }: MeasureRowProps) {
   );
 }
 
-type Load =
+export type Load =
   | { state: "loading" }
   | { state: "error" }
   | { state: "ready"; stats: GroupsResponse; sample: boolean };
 
-/** The comparison section, or nothing in a build with no backend. */
-export function GroupComparison({ session }: { session: Session }) {
+/** The groups a session is shown beside, loaded once for the page: the bars and the threshold charts share them. */
+export interface GroupStats {
+  load: Load;
+  retry: () => void;
+  /** False in a build with no backend, where nothing about groups is shown. */
+  available: boolean;
+}
+
+export function useGroupStats(session: Session): GroupStats {
   const usingSample = !API_URL && import.meta.env.DEV;
   const [load, setLoad] = useState<Load>(() => (usingSample ? { state: "ready", stats: SAMPLE_GROUPS, sample: true } : { state: "loading" }));
   const [attempt, setAttempt] = useState(0);
@@ -124,65 +95,81 @@ export function GroupComparison({ session }: { session: Session }) {
     if (!API_URL) return;
     const ctrl = new AbortController();
     setLoad({ state: "loading" });
-    fetchGroups(session.testVersion, ctrl.signal)
+    fetchGroups(session.testVersion, session.testType, ctrl.signal)
       .then(stats => setLoad({ state: "ready", stats, sample: false }))
       .catch(() => { if (!ctrl.signal.aborted) setLoad({ state: "error" }); });
     return () => ctrl.abort();
-  }, [session.testVersion, attempt]);
+  }, [session.testVersion, session.testType, attempt]);
 
-  if (!API_URL && !usingSample) return null;
-  const results = session.results;
-  if (!results) return null;
+  return { load, retry, available: !!API_URL || usingSample };
+}
 
-  const shown = load.state === "ready" ? GROUPS.flatMap(g => { const m = shownMeasures(load.stats.groups[g]); return m ? [{ group: g, n: load.stats.groups[g].n, measures: m }] : []; }) : [];
-  const waiting = load.state === "ready" ? GROUPS.filter(g => !shownMeasures(load.stats.groups[g])) : [];
-  const own = ownValues(results);
+/** The groups big enough to show. */
+const shownOf = (load: Load): ShownGroup[] => (load.state === "ready" ? shownGroups(load.stats) : []);
 
+/** The comparison section on the Results page, or nothing in a build with no backend. */
+export function GroupComparison({ session, groups: { load, retry, available } }: { session: Session; groups: GroupStats }) {
+  if (!available || !session.results) return null;
   return (
     <div className="panel" id="comparison" aria-labelledby="comparison-h">
-      <h3 id="comparison-h">You and other groups</h3>
+      <GroupSection testType={session.testType} load={load} own={ownValues(session.results)} retry={retry} heading={<h3 id="comparison-h">Compared with other groups</h3>} />
+    </div>
+  );
+}
+
+interface GroupSectionProps {
+  testType: TestType;
+  load: Load;
+  /** The person's values for this run. */
+  own: Record<MeasureKey, number | null>;
+  /** Offered when loading failed. */
+  retry?: () => void;
+  heading: ReactNode;
+}
+
+/**
+ * One run beside the groups of its test type, as they are now: who's in each and how many, the
+ * sensitivity bars and threshold charts. How the groups are formed is on the Method page. Both results pages
+ * use it, the Results by pseudonym page once per session, so a stored session is always shown beside the
+ * current groups, never figures saved with it.
+ */
+export function GroupSection({ testType, load, own, retry, heading }: GroupSectionProps) {
+  const shown = shownOf(load);
+  return (
+    <>
+      {heading}
       {load.state === "loading" && <p className="hint">Loading the comparison…</p>}
       {load.state === "error" && (
         <>
           <p className="hint">Couldn't load the comparison. Check your connection and try again.</p>
-          <div className="actions"><button type="button" className="btn secondary" onClick={retry}>Try again</button></div>
+          {retry && <div className="actions"><button type="button" className="btn secondary" onClick={retry}>Try again</button></div>}
         </>
       )}
       {load.state === "ready" && (
         <>
           {load.sample && <p className="banner">Sample data for development. These are not real groups.</p>}
-          <p>
-            Your results are shown beside two groups of people who contributed results on this version of the test, as they described themselves:
-          </p>
+          <p>{groupsIntro(testType)}</p>
           <ul className="cmp-groups">
-            {GROUPS.map(g => (
-              <li key={g}><strong>{GROUP_INFO[g].name}:</strong> {GROUP_INFO[g].who}. {load.stats.groups[g].n} {load.stats.groups[g].n === 1 ? "person" : "people"} so far.</li>
-            ))}
+            {GROUPS.map(g => { const l = groupLine(g, load.stats.groups[g].n); return <li key={g}><strong>{l.name}</strong> {l.rest}</li>; })}
           </ul>
-          <p>
-            Sensitivity is 1 ÷ threshold in percent: higher means less organised signal was needed. {shown.length > 0 ? "Each group's bars are its median, and the line across a bar covers the middle half of its results." : ""}
-          </p>
+          <p>{sensitivityNote(shown.length > 0)}</p>
           <SensitivityBars own={sensitivities(own)} groups={shown} />
-          {shown.length > 0 && (
-            <>
-              <p>
-                The same results as thresholds. For each group, the lighter bar covers the middle 80% of results, the darker bar the middle half, and the line is the median. The dot is yours. This is information only: nothing is concluded from where your results fall.
-              </p>
-              <div className="cmp-rows">
-                {MEASURES.map(m => <MeasureRow key={m} measure={m} lanes={shown.map(s => ({ group: s.group, q: s.measures[m] }))} value={own[m]} />)}
-              </div>
-            </>
-          )}
-          {waiting.length > 0 && (
-            <p className="hint">
-              A group appears once at least {MIN_GROUP} people in it have contributed. Not shown yet: {waiting.map(g => GROUP_INFO[g].name).join(" and ")}.
-            </p>
-          )}
-          <p className="hint">
-            Just for fun, and not medical advice. Results taken in a browser vary with screens, lighting and attention, and people describe themselves.
-          </p>
+          <ThresholdRows shown={shown} own={own} />
         </>
       )}
-    </div>
+    </>
+  );
+}
+
+/** The same results as thresholds, with each group's ranges: below the bars on both results pages. Nothing until a group is big enough to show. */
+export function ThresholdRows({ shown, own }: { shown: { group: GroupKey; measures: Record<MeasureKey, Quantiles> }[]; own: Record<MeasureKey, number | null> }) {
+  if (shown.length === 0) return null;
+  return (
+    <section className="threshold-charts">
+      <p>{THRESHOLD_CHARTS_NOTE}</p>
+      <div className="cmp-rows">
+        {MEASURES.map(m => <MeasureRow key={m} measure={m} lanes={shown.map(s => ({ group: s.group, q: s.measures[m] }))} value={own[m]} />)}
+      </div>
+    </section>
   );
 }

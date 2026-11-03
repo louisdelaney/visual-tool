@@ -54,7 +54,8 @@ export default defineConfig(({ mode }) => ({
   // Relative asset paths, so the build works under GitHub Pages' /visual-tool/ path or any other.
   base: "./",
   // Never inline assets as data: URLs: the security policy allows files from this site only.
-  build: { assetsInlineLimit: 0 },
+  // The PDF chunk (pdf-lib and its font code, about 1.1 MB) loads only when someone saves a PDF.
+  build: { assetsInlineLimit: 0, chunkSizeWarningLimit: 1200 },
   test: {
     include: ["tests/unit/**/*.test.ts"],
     environment: "node",

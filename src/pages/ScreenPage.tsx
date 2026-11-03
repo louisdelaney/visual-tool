@@ -24,7 +24,7 @@ export function ScreenPage({ calib }: ScreenPageProps) {
   const pxPerMm = cardPx / CALIBRATION.cardMm.w;
 
   const accept = (): void => {
-    setState({ calib: { cardPx: round(cardPx, 2), pxPerMm: round(cardPx / CALIBRATION.cardMm.w, 5), dpr: dpr(), measuredAt: new Date().toISOString() } });
+    setState({ calib: { cardPx: round(cardPx, 2), pxPerMm: round(cardPx / CALIBRATION.cardMm.w, 5), dpr: dpr() } });
     show("distance");
   };
 

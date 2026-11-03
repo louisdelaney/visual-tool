@@ -1,8 +1,9 @@
 // Creating a session from the current state, and scoring it when the tasks end.
-import { Core, PROTOCOL, TEST_VERSION } from "../core";
+import { Core, PROTOCOLS, TEST_VERSION } from "../core";
 import type { Results, Session, TaskResult } from "./types";
-import { dpr, PAGE_NAME, SETTINGS } from "./protocol";
-import { round, shortUA } from "./format";
+import { dpr, PAGE_NAME, settingsFor } from "./protocol";
+import { browserName, round } from "./format";
+import { thisDevice } from "./device";
 import { getState, setState } from "./store";
 
 export function newSeed(): number {
@@ -12,21 +13,22 @@ export function newSeed(): number {
 export const newId = (): string =>
   crypto.randomUUID ? crypto.randomUUID() : [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, "0")).join("");
 
-/** Starts a session with the current settings and calibration, and makes it the current one. */
+/** Starts a session with the chosen test type and the current calibration, and makes it the current one. */
 export function createSession(): Session {
-  const { calib, distance, contribution } = getState();
+  const { calib, distance, contribution, testType } = getState();
   const session: Session = {
     page: PAGE_NAME,
     testVersion: TEST_VERSION,
+    testType,
     seed: newSeed(),
     startedAt: new Date().toISOString(),
     finishedAt: null,
     endedEarly: false,
-    settings: { ...SETTINGS },
+    settings: settingsFor(testType),
     calibration: calib ? { ...calib } : null,
     distance: distance ? { ...distance, readings: [...distance.readings] } : null,
     frameMs: null, refreshHz: null, display: null, attempts: 0,
-    env: { browser: shortUA(navigator.userAgent), language: navigator.language, screen: [screen.width, screen.height], viewport: [window.innerWidth, window.innerHeight], devicePixelRatio: dpr() },
+    env: { browser: browserName(navigator.userAgent), device: thisDevice(), viewport: [window.innerWidth, window.innerHeight], devicePixelRatio: dpr() },
     tasks: {}, trials: [], results: null,
     contribution: !contribution ? null
       : contribution.contribute ? { contribute: true, submission_id: newId(), sent_at: null, answers: { ...contribution.answers } }
@@ -39,7 +41,7 @@ export function createSession(): Session {
 /** Works out each task's threshold and sensitivity from its staircase. */
 export function finalizeSession(s: Session): void {
   s.finishedAt = s.finishedAt || new Date().toISOString();
-  const run = PROTOCOL.run;
+  const run = PROTOCOLS[s.testType].run;
   const scored = { motion: null as TaskResult | null, form: null as TaskResult | null };
   for (const task of ["motion", "form"] as const) {
     const rec = s.tasks[task];

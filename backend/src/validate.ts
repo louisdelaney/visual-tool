@@ -1,8 +1,8 @@
-// Checks a POST /sessions body before it's stored. The body is kept as sent, so this doesn't
-// rebuild it field by field: it checks the things the groups and histories depend on, and that
-// the session could have come from a real run. Anything else passes through.
-import { SCHEMA_NAME, SCHEMA_VERSION, type SessionExportV1 } from "../../src/app/schema";
-import { PROTOCOL, TEST_VERSION } from "../../src/core/protocol";
+// Checks a POST /sessions body before it's stored. The body is kept as sent, less what scrub.ts
+// takes out, so this doesn't rebuild it field by field: it checks the things the groups and
+// histories depend on, and that the session could have come from a real run.
+import { SCHEMA_NAME, SCHEMA_VERSION, testTypeOf, type AnySessionExport } from "../../src/app/schema";
+import { PROTOCOLS, TEST_TYPES, TEST_VERSION, type TestType } from "../../src/core/protocol";
 
 /** Bodies above this are refused before they're parsed. A real session is about 65 KB. */
 export const MAX_BODY_BYTES = 200_000;
@@ -18,12 +18,19 @@ const MAX_PSEUDONYM = 60;
 const MIN_RUN_MS = 60_000;
 const MAX_RUN_MS = 90 * 60_000;
 
-/** Two tasks, each at most 4 practice + 150 staircase + catch trials. */
+/** Two tasks of at most 150 staircase + 18 catch trials (336), plus 4 per practice round, which can be
+ * repeated. A typical run is about 220, so this is room to spare rather than an exact limit. */
 const MAX_TRIALS = 400;
-/** A complete task has reached the run's last reversal, so it has at least this many scored trials. */
-const MIN_COMPLETE_TRIALS = PROTOCOL.run.stopReversals;
+/** A complete task has reached its run's last reversal, so it has at least this many scored trials. */
+const minCompleteTrials = (testType: TestType): number => PROTOCOLS[testType].run.stopReversals;
 
-export type Validation = { ok: true; session: SessionExportV1 } | { ok: false; reason: string };
+/**
+ * The current format, and version 1 (no test_type, always the full test), which a page opened
+ * before the quick test existed still sends.
+ */
+const SCHEMA_VERSIONS: readonly number[] = [1, SCHEMA_VERSION];
+
+export type Validation = { ok: true; session: AnySessionExport } | { ok: false; reason: string };
 
 const bad = (reason: string): Validation => ({ ok: false, reason });
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
@@ -32,14 +39,14 @@ const isDate = (v: unknown): v is string => typeof v === "string" && !Number.isN
 const textOk = (v: unknown, max: number): boolean => v === null || v === undefined || (typeof v === "string" && v.length <= max);
 const listOk = (v: unknown): boolean => v === null || v === undefined || (Array.isArray(v) && v.length >= 1 && v.length <= MAX_LIST && v.every(x => typeof x === "string" && x.length >= 1 && x.length <= MAX_ENTRY));
 
-function checkTask(name: string, t: unknown): string | null {
+function checkTask(name: string, t: unknown, testType: TestType): string | null {
   if (t === null) return null;
   if (!isObj(t)) return `results.${name} must be an object or null`;
   if (t.status !== "complete" && t.status !== "incomplete" && t.status !== "not reached") return `results.${name}.status is not a known status`;
   if (t.threshold_pct !== null && !(isNum(t.threshold_pct) && t.threshold_pct > 0 && t.threshold_pct <= 100)) return `results.${name}.threshold_pct must be null or in (0, 100]`;
   if (t.status === "complete") {
     if (!isNum(t.threshold_pct)) return `results.${name} is complete but has no threshold`;
-    if (!isNum(t.staircase_trials) || t.staircase_trials < MIN_COMPLETE_TRIALS) return `results.${name} is complete with too few trials`;
+    if (!isNum(t.staircase_trials) || t.staircase_trials < minCompleteTrials(testType)) return `results.${name} is complete with too few trials`;
   }
   return null;
 }
@@ -47,16 +54,26 @@ function checkTask(name: string, t: unknown): string | null {
 export function validateSession(body: unknown): Validation {
   if (!isObj(body)) return bad("body must be a JSON object");
   if (body.schema !== SCHEMA_NAME) return bad(`schema must be "${SCHEMA_NAME}"`);
-  if (body.schema_version !== SCHEMA_VERSION) return bad(`schema_version ${String(body.schema_version)} is not supported`);
-  // Only the current test is accepted, so every stored session can join the one set of groups.
+  if (!SCHEMA_VERSIONS.includes(body.schema_version as number)) return bad(`schema_version ${String(body.schema_version)} is not supported`);
+  if (body.schema_version === 1 ? body.test_type !== undefined : !(TEST_TYPES as readonly unknown[]).includes(body.test_type)) {
+    return bad(`test_type must be ${TEST_TYPES.join(" or ")} (from schema_version 2)`);
+  }
+  const testType = testTypeOf(body as { test_type?: TestType });
+  // Only the current test is accepted, so every stored session can join its test type's groups.
   if (body.test_version !== TEST_VERSION) return bad(`test_version must be ${TEST_VERSION}, the current test`);
 
   if (!isDate(body.started_at)) return bad("started_at must be a date");
-  if (body.finished_at !== null && !isDate(body.finished_at)) return bad("finished_at must be a date or null");
-  if (typeof body.finished_at === "string") {
-    const ms = Date.parse(body.finished_at) - Date.parse(body.started_at);
-    if (ms < MIN_RUN_MS || ms > MAX_RUN_MS) return bad("the run's duration isn't plausible");
+  let runMs: number | null;
+  if (body.schema_version === 1) {
+    if (body.finished_at !== null && !isDate(body.finished_at)) return bad("finished_at must be a date or null");
+    runMs = typeof body.finished_at === "string" ? Date.parse(body.finished_at) - Date.parse(body.started_at) : null;
+  } else {
+    if (body.duration_s !== null && !isNum(body.duration_s)) return bad("duration_s must be a number or null");
+    runMs = body.duration_s === null ? null : body.duration_s * 1000;
+    // Phones can't run the tasks; the page doesn't let them start.
+    if (!isObj(body.environment) || (body.environment.device !== "computer" && body.environment.device !== "tablet")) return bad("environment.device must be computer or tablet");
   }
+  if (runMs !== null && (runMs < MIN_RUN_MS || runMs > MAX_RUN_MS)) return bad("the run's duration isn't plausible");
 
   if (!isObj(body.contribution) || body.contribution.contribute !== true) return bad("only contributed sessions are accepted");
   const answers = body.contribution.answers;
@@ -74,7 +91,7 @@ export function validateSession(body: unknown): Validation {
 
   if (!isObj(body.results)) return bad("results must be an object");
   for (const task of ["motion", "form"] as const) {
-    const problem = checkTask(task, body.results[task]);
+    const problem = checkTask(task, body.results[task], testType);
     if (problem) return bad(problem);
   }
   const diff = body.results.motion_minus_form;
@@ -83,5 +100,5 @@ export function validateSession(body: unknown): Validation {
   if (!Array.isArray(body.trials)) return bad("trials must be an array");
   if (body.trials.length > MAX_TRIALS) return bad("too many trials");
 
-  return { ok: true, session: body as unknown as SessionExportV1 };
+  return { ok: true, session: body as unknown as AnySessionExport };
 }

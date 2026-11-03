@@ -31,10 +31,8 @@ export const fmt = {
   },
 };
 
-/** "Chrome 131 on macOS" from a user-agent string. */
-export function shortUA(ua: string): string {
+/** The browser and its major version, like "Chrome 131", from a user-agent string: no system or build. */
+export function browserName(ua: string): string {
   const pick = (re: RegExp, name: string): string | null => { const m = re.exec(ua); return m ? `${name} ${m[1]}` : null; };
-  const browser = pick(/Edg\/(\d+)/, "Edge") || pick(/Firefox\/(\d+)/, "Firefox") || pick(/Chrome\/(\d+)/, "Chrome") || pick(/Version\/(\d+)[\d.]* Safari/, "Safari") || "Unknown browser";
-  const os = /iPhone|iPad/.test(ua) ? "iOS" : /Android/.test(ua) ? "Android" : /Mac OS X/.test(ua) ? "macOS" : /Windows/.test(ua) ? "Windows" : /Linux/.test(ua) ? "Linux" : "unknown system";
-  return `${browser} on ${os}`;
+  return pick(/Edg\/(\d+)/, "Edge") || pick(/Firefox\/(\d+)/, "Firefox") || pick(/Chrome\/(\d+)/, "Chrome") || pick(/Version\/(\d+)[\d.]* .*Safari/, "Safari") || "Other";
 }

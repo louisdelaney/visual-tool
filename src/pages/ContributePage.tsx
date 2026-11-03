@@ -2,12 +2,12 @@
 // second page a few questions. Nothing is sent here: the answers are kept and sent with the
 // results when the tasks finish.
 import { useState, type FormEvent } from "react";
-import { freshPseudonym } from "../app/api";
+import { API_URL, fetchHistory, freshPseudonym } from "../app/api";
 import { normalizePseudonym } from "../app/history";
 import type { Condition, ContributionAnswers, ContributionChoice, FoundVia, YesNo } from "../app/types";
 import { getState, setState } from "../app/store";
+import { thisDevice } from "../app/device";
 import { show, showHistory } from "../app/flow";
-import { FunNotice } from "../components/FunNotice";
 import { ChipInput, NO_CHIPS, chipValues, type Chips } from "../components/ChipInput";
 
 interface Draft {
@@ -34,7 +34,10 @@ const EMPTY: Draft = { contribute: "", pseudonym: "", disorder: "", condition: "
 function fromChoice(c: ContributionChoice | null): Draft {
   if (!c) return EMPTY;
   if (!c.contribute) return { ...EMPTY, contribute: "no" };
-  const a = c.answers;
+  return fromAnswers(c.answers);
+}
+
+function fromAnswers(a: ContributionAnswers): Draft {
   return {
     contribute: "yes",
     pseudonym: a.pseudonym ?? "",
@@ -53,6 +56,8 @@ function fromChoice(c: ContributionChoice | null): Draft {
     foundViaOther: a.found_via_other ?? "",
   };
 }
+
+const date = (iso: string): string => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 const FOUND_VIA: [FoundVia, string][] = [["reddit", "Reddit"], ["forum", "Forum"], ["other", "Other"]];
 
@@ -146,10 +151,35 @@ function ClearAnswer({ onClear, focusId }: { onClear: () => void; focusId: strin
  * Step 1 is two pages: whether to contribute (and a pseudonym), then the questions. App renders
  * both with this one component in the same place, so React keeps the draft between them.
  */
+/** In place of the contribute form on a phone: the test can't start, but the rest of the site is open. */
+function PhoneNotice() {
+  return (
+    <>
+      <h2 id="contribute-h">The test can't run on this device</h2>
+      <p className="notice" id="device-phone">This screen is too small to show the tasks at the size they need from an arm's length away, so the test won't start here. To take it, open this page on a laptop or desktop computer, or on a large tablet propped up in a stand.</p>
+      <p>
+        Everything else works here. You can <button type="button" className="linkish" id="history-open" onClick={() => showHistory()}>see your previous results</button>,{" "}
+        <button type="button" className="linkish" onClick={() => show("data")}>download the data</button> or{" "}
+        <button type="button" className="linkish" onClick={() => show("privacy")}>read about privacy and the risks</button>.
+      </p>
+    </>
+  );
+}
+
+/** Above the contribute form on a tablet: it has to stand still for the tasks. */
+function TabletNotice() {
+  return (
+    <p className="notice" id="device-tablet">
+      <strong>On a tablet?</strong> You can take the test on one, but only if it stands still the whole time: in a stand or propped against something on a table, turned sideways, about an arm's length (50 cm) from your eyes. Don't hold it. The page measures your screen and how far away it is, and a tablet in your hands moves, so the dots wouldn't be shown at the size they're meant to be. This matters most if you contribute: please only send results from a tablet that stayed put. A laptop or desktop is easier if you have one.
+    </p>
+  );
+}
+
 export function ContributePage({ part }: { part: "contribute" | "questions" }) {
   const [d, setDraft] = useState<Draft>(() => fromChoice(getState().contribution));
   const [status, setStatus] = useState("");
   const [missing, setMissing] = useState<Missing | null>(null);
+  const device = thisDevice();
   /** Props that mark a question as needing an answer, after Continue. */
   const flag = (field: Missing["field"]) => (missing?.field === field ? { className: "invalid", "aria-describedby": `err-${field}` } : {});
   const [generating, setGenerating] = useState(false);
@@ -185,6 +215,28 @@ export function ContributePage({ part }: { part: "contribute" | "questions" }) {
     document.getElementById(m.focus)?.focus();
   };
 
+  /** After "Fill in last answers": what happened, for the line under the pseudonym. */
+  const [fillStatus, setFillStatus] = useState("");
+  const [filling, setFilling] = useState(false);
+  /** Fills the questions in from the newest session sent with this pseudonym. Notes are per test, so they're left as they are. */
+  const fillPrevious = async (pseudonym: string): Promise<void> => {
+    setFilling(true);
+    setFillStatus("");
+    try {
+      const last = (await fetchHistory(pseudonym)).sessions.filter(e => e.answers).pop();
+      if (!last?.answers) { setFillStatus(`No earlier answers were found for ${pseudonym}.`); return; }
+      const previous = fromAnswers({ ...last.answers, pseudonym, medications: last.medications, notes: null });
+      setDraft(prev => ({ ...previous, contribute: "yes", pseudonym: prev.pseudonym, notes: prev.notes }));
+      setMissing(null);
+      setStatus("");
+      setFillStatus(`Filled in from your test on ${date(last.started_at)}. Check each answer and change anything that's different now.`);
+    } catch {
+      setFillStatus("Your earlier answers couldn't be loaded. You can still fill them in yourself.");
+    } finally {
+      setFilling(false);
+    }
+  };
+
   /** Keeps what's been answered so far, so Back and the info pages don't lose it. */
   const keepDraft = (): void => setState({ contribution: { contribute: true, answers: toAnswers(d) } });
 
@@ -218,8 +270,14 @@ export function ContributePage({ part }: { part: "contribute" | "questions" }) {
       <section className="view panel" data-view="questions" aria-labelledby="questions-h">
         {pseudonym ? (
           <header className="as-pseudonym">
-            <h2 id="questions-h"><span className="visually-hidden">Questions for </span><span className="pseudonym">{pseudonym}</span></h2>
+            <div className="pseudonym-row">
+              <h2 id="questions-h"><span className="visually-hidden">Questions for </span><span className="pseudonym">{pseudonym}</span></h2>
+              {API_URL && (
+                <button type="button" className="btn secondary small" id="cq-fill" disabled={filling} onClick={() => void fillPrevious(pseudonym)}>{filling ? "Filling in…" : "Fill in last answers"}</button>
+              )}
+            </div>
             <p className="hint">Your answers and results are sent under this pseudonym.</p>
+            {API_URL && <p className="hint" id="cq-fill-status" role="status" aria-live="polite">{fillStatus}</p>}
           </header>
         ) : (
           <h2 id="questions-h">About you</h2>
@@ -325,52 +383,54 @@ export function ContributePage({ part }: { part: "contribute" | "questions" }) {
 
   return (
     <section className="view panel" data-view="contribute" aria-labelledby="contribute-h">
-      <FunNotice />
       <h2>What the test measures</h2>
       <p>Your visual system handles movement and shape partly along separate routes, so the test has one task for each. In the motion task, some dots drift together, up or down. In the form task, some line up into a starburst. Each task finds the smallest share of organised dots you can still pick out. The smaller that share, the higher your sensitivity for that task.</p>
       <p>Your results then compare the two. Motion minus form shows which one you picked out more easily, and by how much. People vary, and the dataset is here to show how much.</p>
       <p><strong>There are no good or bad results, and no wrong answers.</strong> Every result is just a number about how you saw the dots that day.</p>
       <p>The test works best when you're as you usually are: taking any medication you take regularly, and not under the influence of alcohol or other intoxicants.</p>
-      <h2 id="contribute-h">Contribute your results</h2>
-      <p>You can add your results to a public research dataset. If you say yes, they're sent with your answers below when you finish the test. Either way, you'll see your results at the end and can save them as a file.</p>
-      <ul className="key-points">
-        <li><strong>All data you enter will be public but anonymous.</strong></li>
-        <li><strong>Nothing extra is logged.</strong> Only your answers, results and the test's technical details are sent, and only if you say yes. Anyone can download the data, and no name, email or IP address is kept.</li>
-      </ul>
-      <p>
-        <button type="button" className="linkish" onClick={() => show("privacy")}>Read about privacy and the risks</button> before you decide.
-        Contributed before? <button type="button" className="linkish" id="history-open" onClick={() => showHistory()}>See your previous results</button>.
-      </p>
-      <form id="contrib-form" className="contrib-form" noValidate onSubmit={onSubmitChoice}>
-        <fieldset {...flag("contribute")}>
-          <legend>Contribute anonymous data?</legend>
-          <Radio name="contribute" value="yes" id="cq-contribute-yes" checked={d.contribute === "yes"} onPick={v => set("contribute", v)}>Yes, add my results and answers to the public dataset</Radio>
-          <Radio name="contribute" value="no" checked={d.contribute === "no"} onPick={v => set("contribute", v)}>No, send nothing</Radio>
-          <FieldError missing={missing} field="contribute" />
-        </fieldset>
-
-        {d.contribute === "yes" && (
-          <fieldset>
-            <legend><label htmlFor="cq-pseudonym">Pseudonym (optional)</label></legend>
-            <div className="inline">
-              <span className="with-action">
-                <input type="text" id="cq-pseudonym" maxLength={40} autoComplete="off" spellCheck={false} value={d.pseudonym} onChange={e => set("pseudonym", e.target.value)} />
-                <button type="button" className="icon-btn" id="cq-copy" disabled={!d.pseudonym.trim()} onClick={copyPseudonym} aria-label={copied === "copied" ? "Copied" : "Copy pseudonym"} title={copied === "copied" ? "Copied" : "Copy"}>
-                  {copied === "copied" ? <CheckIcon /> : <CopyIcon />}
-                </button>
-              </span>
-              <button type="button" className="btn secondary" id="cq-generate" disabled={generating} onClick={() => void generate()}>{generating ? "Generating…" : "Generate one"}</button>
-            </div>
-            <p className="hint" role="status" aria-live="polite">{copied === "copied" ? "Copied your pseudonym." : copied === "select" ? "Copying isn't allowed here. It's selected: press Ctrl+C, or ⌘C on a Mac." : ""}</p>
-            <p className="hint">Completely optional. Leave it blank and your results can't be looked up or linked together, which is the most private choice. If you use one, use the same one each time to see your results over time. It's public: anyone who enters it can see every result and answer sent with it, so don't use your name, a username you use elsewhere, or anything else that points to you. A generated one is safest; copy it somewhere or write it down.</p>
+      {device === "phone" ? <PhoneNotice /> : <>
+        {device === "tablet" && <TabletNotice />}
+        <h2 id="contribute-h">Contribute your results</h2>
+        <p>You can add your results to a public dataset. If you say yes, they're sent with your answers below when you finish the test. Either way, you'll see your results at the end and can save them as a file.</p>
+        <ul className="key-points">
+          <li><strong>All data you enter will be public but anonymous.</strong></li>
+          <li><strong>Nothing extra is logged.</strong> Only your answers, results and the test's technical details are sent, and only if you say yes. Anyone can download the data, and no name, email or IP address is kept.</li>
+        </ul>
+        <p>
+          <button type="button" className="linkish" onClick={() => show("privacy")}>Read about privacy and the risks</button> before you decide.
+          Contributed before? <button type="button" className="linkish" id="history-open" onClick={() => showHistory()}>See your previous results</button>.
+        </p>
+        <form id="contrib-form" className="contrib-form" noValidate onSubmit={onSubmitChoice}>
+          <fieldset {...flag("contribute")}>
+            <legend>Contribute anonymous data?</legend>
+            <Radio name="contribute" value="yes" id="cq-contribute-yes" checked={d.contribute === "yes"} onPick={v => set("contribute", v)}>Yes, add my results and answers to the public dataset</Radio>
+            <Radio name="contribute" value="no" checked={d.contribute === "no"} onPick={v => set("contribute", v)}>No, send nothing</Radio>
+            <FieldError missing={missing} field="contribute" />
           </fieldset>
-        )}
 
-        <div className="actions">
-          <button type="submit" className="btn" id="contrib-go">Continue</button>
-        </div>
-        <p className="status" id="contrib-status" role="status" aria-live="polite">{status}</p>
-      </form>
+          {d.contribute === "yes" && (
+            <fieldset>
+              <legend><label htmlFor="cq-pseudonym">Pseudonym (optional)</label></legend>
+              <div className="inline">
+                <span className="with-action">
+                  <input type="text" id="cq-pseudonym" maxLength={40} autoComplete="off" spellCheck={false} value={d.pseudonym} onChange={e => set("pseudonym", e.target.value)} />
+                  <button type="button" className="icon-btn" id="cq-copy" disabled={!d.pseudonym.trim()} onClick={copyPseudonym} aria-label={copied === "copied" ? "Copied" : "Copy pseudonym"} title={copied === "copied" ? "Copied" : "Copy"}>
+                    {copied === "copied" ? <CheckIcon /> : <CopyIcon />}
+                  </button>
+                </span>
+                <button type="button" className="btn secondary" id="cq-generate" disabled={generating} onClick={() => void generate()}>{generating ? "Generating…" : "Generate one"}</button>
+              </div>
+              <p className="hint" role="status" aria-live="polite">{copied === "copied" ? "Copied your pseudonym." : copied === "select" ? "Copying isn't allowed here. It's selected: press Ctrl+C, or ⌘C on a Mac." : ""}</p>
+              <p className="hint">Completely optional. Leave it blank and your results can't be looked up or linked together, which is the most private choice. If you use one, use the same one each time to see your results over time. It's public: anyone who enters it can see every result and answer sent with it, so don't use your name, a username you use elsewhere, or anything else that points to you. A generated one is safest; copy it somewhere or write it down.</p>
+            </fieldset>
+          )}
+
+          <div className="actions">
+            <button type="submit" className="btn" id="contrib-go">Continue</button>
+          </div>
+          <p className="status" id="contrib-status" role="status" aria-live="polite">{status}</p>
+        </form>
+      </>}
     </section>
   );
 }

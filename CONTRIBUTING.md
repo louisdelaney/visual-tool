@@ -4,7 +4,7 @@ Thanks for helping. Every change goes through a pull request and is approved by 
 
 ## Before you change anything
 
-Read [AGENTS.md](AGENTS.md). It lists the maintainer's rulings: no medical claims, what the graphs may show, the privacy promises, and the rule that everyone takes one fixed test. Every change has to keep them. If your change seems to need one of them to bend, say so in the pull request instead of working around it.
+Read [AGENTS.md](AGENTS.md). It lists the maintainer's rulings: no medical claims, what the graphs may show, the privacy promises, and the rule that there are exactly two fixed types of test, full and quick, never pooled. Every change has to keep them. If your change seems to need one of them to bend, say so in the pull request instead of working around it.
 
 ## Running the site
 
@@ -106,7 +106,7 @@ Run `npm run test:e2e` if you change anything in `src/core/` or `src/stage/`. Fo
 ## Test version and schema version
 
 - If you change what participants see or do (timings, sizes, dot counts, the staircase, instructions that could change answers), it is a different test. Bump `TEST_VERSION` in `src/core/protocol.ts`. A unit test pins the parameters, so forgetting fails.
-- If you change the shape of the exported JSON, bump `schema_version` in `src/app/schema.ts` and update the type and its test. Until the first deploy, don't bump it: version 1 is still being defined, so change it in place. Changes to the backend's validation or the Privacy and risks page usually follow.
+- If you change the shape of the exported JSON, bump `schema_version` in `src/app/schema.ts` and update the type and its test. The backend keeps accepting the previous version from pages that were open before a deploy. Changes to the backend's validation or the Privacy and risks page usually follow.
 - Never pool results across test versions.
 
 ## The backend shares code with the site

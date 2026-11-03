@@ -1,7 +1,8 @@
 "use strict";
 // Full runs with a simulated observer: drives the real page in headless Chromium through screen size,
 // blind-spot distance and both tasks, then checks the results, the data export and the stimulus
-// timing. Screenshots go to tests/output.
+// timing. Runs the full test, then the quick one, and checks the quick one is labelled and shorter.
+// Screenshots go to tests/output.
 // Usage: node tests/e2e/full.cjs [late]
 //   late: answer motion trials 300 ms after the dots appear, instead of the moment they appear.
 const fs = require("node:fs");
@@ -27,7 +28,8 @@ const OLD_KEY = "form-motion-coherence/v1";
     p.on("console", m => { if (m.type() === "error" && !/fonts\.(googleapis|gstatic)|net::|ERR_/.test(m.text())) errors.push(`${tag} console: ${m.text()}`); });
   };
 
-  async function fullRun(protocol, alphas) {
+  /** Runs the test once; resolves how long the two tasks took, in ms. */
+  async function fullRun(protocol, alphas, testType = "full") {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     // A browser that ran an older version may have test settings saved, from when there were options.
     // Seed that before the page loads: the page must ignore it.
@@ -39,10 +41,11 @@ const OLD_KEY = "form-motion-coherence/v1";
         }
       } catch (e) { /* storage blocked */ }
     }, OLD_KEY);
-    const p = await ctx.newPage(); watch(p, protocol);
+    const tag = testType === "quick" ? `${protocol}/quick` : protocol;
+    const p = await ctx.newPage(); watch(p, tag);
     await p.goto(PAGE_URL); await sleep(500);
     const seeded = await p.evaluate(key => localStorage.getItem(key) || "", OLD_KEY);
-    check(seeded.includes("until-answer"), `[${protocol}] could not seed the old saved setting, so that check didn't run`);
+    check(seeded.includes("until-answer"), `[${tag}] could not seed the old saved setting, so that check didn't run`);
     // Test hooks: record each trial's target (the first rng() draw) and coherence through Core.
     await p.evaluate(() => {
       const om = Core.mulberry32;
@@ -53,13 +56,15 @@ const OLD_KEY = "form-motion-coherence/v1";
     await p.check('#contrib-form input[name="contribute"][value="no"]');
     await p.click("#contrib-go"); await sleep(150);
     check(!(await p.$("#settings")) && !(await p.$('input[name="protocol"]')), "[clinic] setup still offers test settings");
-    await p.screenshot({ path: path.join(OUT, `full-setup-${protocol}.png`), fullPage: true });
+    check(await p.$eval("#test-type-full", el => el.checked), "[clinic] the full test isn't chosen by default");
+    if (testType === "quick") await p.check("#test-type-quick");
+    await p.screenshot({ path: path.join(OUT, `full-setup-${tag}.png`), fullPage: true });
     await p.click("#start"); await sleep(150);
     await p.click("#screen-next"); await sleep(150);
     await runBlindSpot(p, 50, 0, sleep);
-    log(`[${protocol}]`, await p.$eval("#distance-result", el => el.textContent), "|", await p.$eval("#fit", el => el.textContent));
+    log(`[${tag}]`, await p.$eval("#distance-result", el => el.textContent), "|", await p.$eval("#fit", el => el.textContent));
     await p.click("#distance-next"); await sleep(300);
-    await p.screenshot({ path: path.join(OUT, `full-intro-motion-${protocol}.png`), fullPage: true });
+    await p.screenshot({ path: path.join(OUT, `full-intro-motion-${tag}.png`), fullPage: true });
 
     // Simulated observer: 2AFC Weibull with lapses; alphas are in coherence %.
     const pc = (c, a) => 0.5 + 0.48 * (1 - Math.exp(-Math.pow(c / a, 2.2)));
@@ -93,18 +98,18 @@ const OLD_KEY = "form-motion-coherence/v1";
         if (!st.open) break;
         if (st.msg) {
           await p.keyboard.press("Space"); await sleep(60);
-          if (protocol === "clinic" && name === "form" && !flashShot) { flashShot = true; log(`  [${protocol}/form] lit pixels in captured flash: ${await catchFlash("full-flash-clinic.png")}`); }
+          if (protocol === "clinic" && testType === "full" && name === "form" && !flashShot) { flashShot = true; log(`  [${tag}/form] lit pixels in captured flash: ${await catchFlash("full-flash-clinic.png")}`); }
           continue;
         }
         const kind = KINDS.find(k => st.hud.startsWith(k.prefix));
         if (kind) {
-          if (!shot && trials === 12) { await p.screenshot({ path: path.join(OUT, `full-trial-${name}-${protocol}.png`) }); shot = true; }
+          if (!shot && trials === 12) { await p.screenshot({ path: path.join(OUT, `full-trial-${name}-${tag}.png`) }); shot = true; }
           if (!paused && trials === 15) {
             paused = true;
             await p.keyboard.press("Escape"); await sleep(250);
             const shown = await p.$eval("#pause", el => !el.hidden);
-            log(`  [${protocol}/${name}] pause shown: ${shown}`);
-            check(shown, `[${protocol}/${name}] Esc didn't pause`);
+            log(`  [${tag}/${name}] pause shown: ${shown}`);
+            check(shown, `[${tag}/${name}] Esc didn't pause`);
             await p.click("#pause-resume"); await sleep(150);
             continue;
           }
@@ -118,39 +123,53 @@ const OLD_KEY = "form-motion-coherence/v1";
         }
         await sleep(30);
       }
-      log(`  [${protocol}/${name}] responses: ${trials}`);
+      log(`  [${tag}/${name}] responses: ${trials}`);
     }
 
     const t0 = Date.now();
     await runTask("motion");
-    await p.screenshot({ path: path.join(OUT, `full-intro-form-${protocol}.png`), fullPage: true });
+    await p.screenshot({ path: path.join(OUT, `full-intro-form-${tag}.png`), fullPage: true });
     await runTask("form");
-    log(`  [${protocol}] tasks took ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+    const taskMs = Date.now() - t0;
+    log(`  [${tag}] tasks took ${(taskMs / 1000).toFixed(0)} s`);
     await sleep(300);
-    check(await p.$eval('[data-view="results"]', el => !el.hidden), `[${protocol}] results didn't follow the tasks`);
-    await p.screenshot({ path: path.join(OUT, `full-results-${protocol}.png`), fullPage: true });
+    check(await p.$eval('[data-view="results"]', el => !el.hidden), `[${tag}] results didn't follow the tasks`);
+    await p.screenshot({ path: path.join(OUT, `full-results-${tag}.png`), fullPage: true });
     log("  tiles:", await p.$$eval(".tile", els => els.map(e => e.innerText.replace(/\n+/g, " | "))));
     log("  meta:", (await p.$$eval("#meta dt, #meta dd", els => els.map(e => e.textContent))).join(" ; "));
     // The results at phone width: no horizontal scrolling. Leave full screen first, or the window can't resize.
     await p.evaluate(() => document.fullscreenElement ? document.exitFullscreen() : null); await sleep(300);
     await p.setViewportSize({ width: 360, height: 860 }); await sleep(300);
-    check(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `[${protocol}] results scroll horizontally at 360px`);
-    await p.screenshot({ path: path.join(OUT, `full-results-360-${protocol}.png`), fullPage: true });
+    check(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `[${tag}] results scroll horizontally at 360px`);
+    await p.screenshot({ path: path.join(OUT, `full-results-360-${tag}.png`), fullPage: true });
     await p.setViewportSize({ width: 1440, height: 900 }); await sleep(300);
 
-    await p.click("#raw > summary"); await sleep(250);
-    const data = JSON.parse(await p.$eval("#raw-json", el => el.value));
-    check(data.contribution && data.contribution.contribute === false && !data.contribution.answers, `[${protocol}] choosing No should record no answers`);
+    // The PDF summary is made in the page under the built site's security policy, with its own fonts.
+    await p.click("#save-menu");
+    const [pdf] = await Promise.all([p.waitForEvent("download", { timeout: 20000 }), p.click("#save-pdf")]);
+    const pdfBytes = fs.readFileSync(await pdf.path());
+    check(pdf.suggestedFilename().endsWith("-summary.pdf") && pdfBytes.subarray(0, 5).toString() === "%PDF-" && pdfBytes.length > 20000, `[${tag}] the PDF summary didn't save: ${pdf.suggestedFilename()}, ${pdfBytes.length} bytes`);
+
+    await p.click("#save-menu");
+    const [saved] = await Promise.all([p.waitForEvent("download"), p.click("#save-json")]);
+    const data = JSON.parse(fs.readFileSync(await saved.path(), "utf8"));
+    check(data.contribution && data.contribution.contribute === false && !data.contribution.answers, `[${tag}] choosing No should record no answers`);
     const by = {};
     for (const t of data.trials) { const k = t.task + ":" + t.phase; by[k] = (by[k] || 0) + 1; }
     log("  phases:", JSON.stringify(by), "| unique seeds", new Set(data.trials.map(t => t.seed)).size, "of", data.trials.length);
     log("  results:", JSON.stringify({ motion: data.results.motion && { thr: data.results.motion.threshold_pct, sens: data.results.motion.sensitivity }, form: data.results.form && { thr: data.results.form.threshold_pct, sens: data.results.form.sensitivity }, diff: data.results.motion_minus_form }));
     for (const task of ["motion", "form"]) {
       const r = data.results[task];
-      check(r && r.status === "complete" && Number.isFinite(r.threshold_pct), `[${protocol}] no complete ${task} threshold`);
+      check(r && r.status === "complete" && Number.isFinite(r.threshold_pct), `[${tag}] no complete ${task} threshold`);
     }
-    check(data.trials.every(t => t.correct === (t.target === t.response)), `[${protocol}] a trial's "correct" field disagrees with its target and response`);
-    check(data.settings.protocol === protocol, `[${protocol}] export says protocol ${data.settings.protocol}`);
+    check(data.trials.every(t => t.correct === (t.target === t.response)), `[${tag}] a trial's "correct" field disagrees with its target and response`);
+    check(data.settings.protocol === protocol, `[${tag}] export says protocol ${data.settings.protocol}`);
+    // The test type, in the export and on the page.
+    const stop = testType === "quick" ? 8 : 16;
+    check(data.test_type === testType && data.settings.run === (testType === "quick" ? "quick" : "published"), `[${tag}] export says test type ${data.test_type}, run ${data.settings.run}`);
+    check(data.protocol.parameters.run.stopReversals === stop, `[${tag}] export's protocol stops at ${data.protocol.parameters.run.stopReversals} reversals`);
+    for (const task of ["motion", "form"]) check(data.results[task].reversals_pct.length === stop, `[${tag}] ${task} has ${data.results[task].reversals_pct.length} reversals, not ${stop}`);
+    check((await p.$("#type-pill")) !== null === (testType === "quick"), `[${tag}] the quick label is ${testType === "quick" ? "missing" : "shown on a full test"}`);
 
     if (protocol === "clinic") {
       const fl = data.trials.flatMap(t => [t.flash1_ms, t.flash2_ms]).filter(Number.isFinite);
@@ -159,7 +178,7 @@ const OLD_KEY = "form-motion-coherence/v1";
       log("  form flash ms: n", fl.length, "min", Math.min(...fl), "max", Math.max(...fl));
       log("  motion display ms: n", md.length, "min", md[0], "median", md[md.length >> 1], "max", md[md.length - 1], "| median rt", motion.map(t => t.rt_ms).sort((a, b) => a - b)[motion.length >> 1]);
       log("  export settings:", JSON.stringify(data.settings), "| test_version:", data.test_version, "| schema_version:", data.schema_version);
-      check(data.schema === "visual-tool/session" && data.schema_version === 1 && data.test_version === 2, `[clinic] export versions wrong: ${data.schema} ${data.schema_version} ${data.test_version}`);
+      check(data.schema === "visual-tool/session" && data.schema_version === 2 && data.test_version === 2, `[clinic] export versions wrong: ${data.schema} ${data.schema_version} ${data.test_version}`);
       // 200 ms targets, allowing one late frame from a busy headless machine
       check(fl.length > 0 && Math.min(...fl) >= 195 && Math.max(...fl) <= 240, `[clinic] form flashes ran ${Math.min(...fl)}-${Math.max(...fl)} ms`);
       check(md.length === motion.length && md[0] >= 195 && md[md.length - 1] <= 240, `[clinic] motion displays ran ${md[0]}-${md[md.length - 1]} ms`);
@@ -167,9 +186,15 @@ const OLD_KEY = "form-motion-coherence/v1";
       check(!(await p.evaluate(() => !!document.querySelector('input[name="motionDisplay"]'))), "[clinic] setup still offers a motion display option");
     }
     await ctx.close();
+    return taskMs;
   }
 
-  await fullRun("clinic", { motion: 8, form: 20 });
+  const fullMs = await fullRun("clinic", { motion: 8, form: 20 });
+  const quickMs = await fullRun("clinic", { motion: 8, form: 20 }, "quick");
+  log(`\nquick tasks took ${(100 * quickMs / fullMs).toFixed(0)}% of the full test's (${(quickMs / 1000).toFixed(0)} s against ${(fullMs / 1000).toFixed(0)} s)`);
+  // One run of each is noisy: for this observer, simulated pairs average 54%, with 10% of them over
+  // 67% and 2.5% over 75%. This catches a quick test that isn't much shorter.
+  check(quickMs < 0.8 * fullMs, `the quick test took ${(100 * quickMs / fullMs).toFixed(0)}% of the full test's time`);
   log("\nERRORS:", errors.length ? errors : "none", "\nFAILURES:", failures.length ? failures : "none");
   await browser.close();
   await server.close();

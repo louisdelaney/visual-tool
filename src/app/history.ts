@@ -2,9 +2,11 @@
 // is the only key, so anyone who enters a pseudonym sees what was sent with it. That's by design:
 // anonymity depends on people not putting anything identifying in the pseudonym or text answers.
 import type { MeasureKey } from "./comparison";
-import { TEST_VERSION } from "../core/protocol";
-import type { TaskName, Trial } from "./types";
+import { TEST_TYPES, TEST_VERSION, type TestType } from "../core/protocol";
+import type { Condition, ContributionAnswers, DeviceKind, FoundVia, PsychedelicUse, TaskName, TaskResult, Trial, YesNo } from "./types";
+import type { AnySessionExport } from "./schema";
 import { ADJECTIVES, NOUNS } from "./words";
+import { fmt } from "./format";
 
 /** One scored trial on a staircase chart. */
 export interface StaircasePoint {
@@ -23,17 +25,69 @@ export const staircasePoints = (trials: readonly Trial[], task: TaskName): Stair
   trials.filter(t => t.task === task && t.phase === "test")
     .map(t => ({ coherence_pct: Math.round(t.effective_level_pct * 100) / 100, correct: t.correct, reversal: t.reversal }));
 
+/** How a run went and how it was taken: what helps someone tell whether two runs can be read alike. */
+export interface RunInfo {
+  /** Each task's status, or null where it wasn't run. */
+  status: Record<TaskName, TaskResult["status"] | null>;
+  /** Easy check trials answered wrongly, across both tasks. */
+  checks_missed: number;
+  /** A computer, or a tablet standing in for one. */
+  device: Exclude<DeviceKind, "phone">;
+  /** Viewing distance, or null if it wasn't measured. */
+  distance_cm: number | null;
+  /** Whether the tasks ran full screen, or null if that wasn't recorded. */
+  fullscreen: boolean | null;
+}
+
+/** A session's run info. Sessions from before the device type was recorded all came from computers. */
+export function runInfoOf(s: AnySessionExport): RunInfo {
+  const r = s.results;
+  const missed = [r?.motion, r?.form].reduce((n, t) => n + (t ? t.catch_total - t.catch_correct : 0), 0);
+  const device = s.environment?.device === "tablet" ? "tablet" : "computer";
+  return { status: { motion: r?.motion?.status ?? null, form: r?.form?.status ?? null }, checks_missed: missed, device, distance_cm: s.viewing_distance?.cm ?? null, fullscreen: s.display?.fullscreen ?? null };
+}
+
+/** The sentence both results pages show when easy check trials were answered wrongly. */
+export const missedChecksText = (missed: number): string =>
+  `${missed === 1 ? "One" : missed} of the easy check trials ${missed === 1 ? "was" : "were"} answered wrongly. That can mean lapses of attention or a display problem, so treat these thresholds with caution.`;
+
+/** "Computer · 55 cm away · full screen", leaving out what wasn't recorded. */
+export function takenOn(run: RunInfo): string {
+  const parts = [run.device === "tablet" ? "Tablet" : "Computer"];
+  if (run.distance_cm != null) parts.push(`${fmt.fixed(run.distance_cm, 0)} cm away`);
+  if (run.fullscreen != null) parts.push(run.fullscreen ? "full screen" : "not full screen");
+  return parts.join(" · ");
+}
+
+/** The answers sent with a past session, for filling the questions in again. Medications and notes are the entry's own fields. */
+export type PreviousAnswers = Omit<ContributionAnswers, "pseudonym" | "medications" | "notes">;
+
 /** One past session, as GET /history returns it. */
 export interface HistoryEntry {
   submission_id: string;
   started_at: string;
   test_version: number;
+  /** Full or quick. Sessions from before the quick test are all full. */
+  test_type: TestType;
   /** Null where that session didn't reach a value. */
   values: Record<MeasureKey, number | null>;
   medications: string[] | null;
   notes: string | null;
   /** Null for a session that has none to show. */
   staircases: Staircases | null;
+  /** Null from a backend that doesn't send them. */
+  answers: PreviousAnswers | null;
+  /** Null from a backend that doesn't send it. */
+  run: RunInfo | null;
+}
+
+/** One past session in full, as GET /history/sessions returns it: the same as in the public export. */
+export type RawSession = AnySessionExport & { submission_id: string };
+
+/** GET /history/sessions: every session sent with a pseudonym, in full, oldest first. */
+export interface RawHistory {
+  pseudonym: string;
+  sessions: RawSession[];
 }
 
 export interface HistoryResponse {
@@ -80,6 +134,56 @@ function parseStaircases(v: unknown): Staircases | null | undefined {
   return motion && form ? { motion, form } : undefined;
 }
 
+const oneOf = <T extends string>(v: unknown, allowed: readonly T[]): T | null | undefined =>
+  v === null || v === undefined ? null : (allowed as readonly unknown[]).includes(v) ? (v as T) : undefined;
+
+const YES_NO: readonly YesNo[] = ["yes", "no"];
+
+const STATUSES: readonly TaskResult["status"][] = ["complete", "incomplete", "not reached"];
+
+/** The run info, or null if it's missing or anything in it isn't valid: the page then just leaves it out. */
+function parseRun(v: unknown): RunInfo | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const st = (o.status && typeof o.status === "object" ? o.status : {}) as Record<string, unknown>;
+  const motion = oneOf(st.motion, STATUSES), form = oneOf(st.form, STATUSES);
+  const device = oneOf(o.device, ["computer", "tablet"] as const), distance = numOrNull(o.distance_cm ?? null);
+  const fullscreen = o.fullscreen === null || o.fullscreen === undefined ? null : typeof o.fullscreen === "boolean" ? o.fullscreen : undefined;
+  if (motion === undefined || form === undefined || !device || distance === undefined || fullscreen === undefined) return null;
+  if (!isNum(o.checks_missed) || !Number.isInteger(o.checks_missed) || o.checks_missed < 0) return null;
+  return { status: { motion, form }, checks_missed: o.checks_missed, device, distance_cm: distance, fullscreen };
+}
+
+/** Checks a /history/sessions response just enough to save it and build summaries from it; null if it isn't valid. */
+export function parseRawHistory(v: unknown): RawHistory | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  if (typeof o.pseudonym !== "string" || !Array.isArray(o.sessions)) return null;
+  const ok = o.sessions.every(s => !!s && typeof s === "object" && typeof (s as Record<string, unknown>).submission_id === "string"
+    && typeof (s as Record<string, unknown>).started_at === "string" && Array.isArray((s as Record<string, unknown>).trials));
+  return ok ? { pseudonym: o.pseudonym, sessions: o.sessions as RawSession[] } : null;
+}
+
+/** The answers, or null if they're missing or anything in them isn't valid: they only ever fill a form in. */
+function parseAnswers(v: unknown): PreviousAnswers | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const uses = numOrNull(o.psychedelic_uses ?? null);
+  const a = {
+    perceptual_disorder: oneOf<YesNo>(o.perceptual_disorder, YES_NO),
+    condition: oneOf<Condition>(o.condition, ["vss", "hppd", "other"]),
+    other_condition: strOrNull(o.other_condition ?? null),
+    diagnosed: oneOf<YesNo>(o.diagnosed, YES_NO),
+    psychedelics: oneOf<PsychedelicUse>(o.psychedelics, ["yes", "no", "prefer-not-to-say"]),
+    psychedelic_uses: uses === undefined || (uses !== null && !Number.isInteger(uses)) ? undefined : uses,
+    psychedelics_used: strsOrNull(o.psychedelics_used ?? null),
+    takes_medication: oneOf<YesNo>(o.takes_medication, YES_NO),
+    found_via: oneOf<FoundVia>(o.found_via, ["reddit", "forum", "other"]),
+    found_via_other: strOrNull(o.found_via_other ?? null),
+  };
+  return Object.values(a).includes(undefined) ? null : (a as PreviousAnswers);
+}
+
 function parseEntry(v: unknown): HistoryEntry | null {
   if (!v || typeof v !== "object") return null;
   const o = v as Record<string, unknown>;
@@ -89,7 +193,10 @@ function parseEntry(v: unknown): HistoryEntry | null {
   const m = numOrNull(vals.motion_threshold_pct), f = numOrNull(vals.form_threshold_pct), d = numOrNull(vals.motion_minus_form);
   const medications = strsOrNull(o.medications), notes = strOrNull(o.notes), staircases = parseStaircases(o.staircases);
   if (m === undefined || f === undefined || d === undefined || medications === undefined || notes === undefined || staircases === undefined) return null;
-  return { submission_id: o.submission_id, started_at: o.started_at, test_version: o.test_version, values: { motion_threshold_pct: m, form_threshold_pct: f, motion_minus_form: d }, medications, notes, staircases };
+  // A backend from before the quick test sends no test type: every session it has is full.
+  const testType = o.test_type ?? "full";
+  if (!(TEST_TYPES as readonly unknown[]).includes(testType)) return null;
+  return { submission_id: o.submission_id, started_at: o.started_at, test_version: o.test_version, test_type: testType as TestType, values: { motion_threshold_pct: m, form_threshold_pct: f, motion_minus_form: d }, medications, notes, staircases, answers: parseAnswers(o.answers), run: parseRun(o.run) };
 }
 
 /** Checks a /history response; null if it isn't valid. Server data is untrusted. Sorts oldest first. */
@@ -136,10 +243,12 @@ export function sampleHistory(pseudonym: string): HistoryResponse {
   return {
     pseudonym,
     sessions: rows.map(([at, m, f, medications, notes], i) => ({
-      submission_id: `sample-${i + 1}`, started_at: at, test_version: TEST_VERSION,
+      submission_id: `sample-${i + 1}`, started_at: at, test_version: TEST_VERSION, test_type: i === 3 ? "quick" : "full",
       values: { motion_threshold_pct: m, form_threshold_pct: f, motion_minus_form: Math.round((1 / m - 1 / f) * 1e5) / 1e5 },
       medications, notes,
       staircases: { motion: sampleStaircase(m, 7 + i * 31), form: sampleStaircase(f, 11 + i * 17) },
+      answers: null,
+      run: { status: { motion: "complete", form: i === 2 ? "incomplete" : "complete" }, checks_missed: i === 1 ? 1 : 0, device: i === 3 ? "tablet" : "computer", distance_cm: 52 + i, fullscreen: i !== 4 },
     })),
   };
 }

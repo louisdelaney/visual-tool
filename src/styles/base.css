@@ -364,10 +364,10 @@ th {
 .site-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 22px;
-  font-size: var(--t-sm);
-  padding-bottom: 14px;
-  margin-bottom: 14px;
+  gap: 4px 0;
+  font-size: var(--t-base);
+  padding-bottom: 16px;
+  margin-bottom: 24px;
   border-bottom: 1px solid var(--rule);
 }
 
@@ -376,14 +376,27 @@ th {
   outline-offset: 2px;
 }
 
+/* A thin divider between links; underlined only on hover. */
 .site-nav a {
+  padding: 0 18px;
   color: var(--accent);
+  text-decoration: none;
+  border-left: 1px solid var(--rule);
+}
+
+.site-nav a:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.site-nav a:hover {
+  text-decoration: underline;
+  text-underline-offset: 5px;
 }
 
 .site-nav a[aria-current="page"] {
   color: var(--ink);
   font-weight: 700;
-  text-decoration: none;
 }
 
 /* Long-form pages: privacy, references. */
@@ -433,8 +446,23 @@ th {
   color: var(--ink);
 }
 
-.fun-notice strong {
+.fun-notice > strong,
+.fun-notice > p:first-child strong {
   color: var(--accent);
+}
+
+/* With more in it (the Results page's Your data), each part gets some room. */
+.fun-notice > * + * {
+  margin-top: 14px;
+}
+
+.fun-notice section {
+  display: grid;
+  gap: 6px;
+}
+
+.fun-notice section:empty {
+  display: none;
 }
 
 /* Back buttons sit at the right-hand end of their row of buttons. */

@@ -5,6 +5,7 @@
 import { useRef } from "react";
 import { GROUP_INFO, groupSensitivities, type GroupKey, type MeasureKey, type Quantiles, type Sensitivities, type SensitivityRange } from "../app/comparison";
 import { fmt } from "../app/format";
+import { roundTicks, tickDecimals } from "../app/scales";
 import { useElementWidth } from "../hooks";
 
 type Series = keyof Sensitivities;
@@ -34,21 +35,12 @@ interface SensitivityBarsProps {
 const H = 280;
 const M = { l: 62, r: 12, t: 14, b: 46 };
 
-/** Round ticks (1, 2 or 5 × 10^k) covering lo to hi, at most seven. */
-function ticksFor(lo: number, hi: number): number[] {
-  const base = Math.pow(10, Math.floor(Math.log10(hi - lo || 0.1)) - 1);
-  const step = [1, 2, 5, 10, 20, 50].map(m => m * base).find(st => Math.ceil(hi / st - 1e-9) - Math.floor(lo / st + 1e-9) + 1 <= 7) ?? 100 * base;
-  const out: number[] = [];
-  for (let k = Math.floor(lo / step + 1e-9); k <= Math.ceil(hi / step - 1e-9); k++) out.push(Number((k * step).toPrecision(6)));
-  return out;
-}
-
 export function SensitivityBars({ own, groups, ownSub }: SensitivityBarsProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const W = Math.max(320, Math.round(useElementWidth(hostRef, 640)));
 
   const clusters: Cluster[] = [
-    { key: "you", label: "You", sub: ownSub ?? "", bars: { motion: { value: own.motion }, form: { value: own.form }, diff: { value: own.diff } } },
+    { key: "you", label: "This run", sub: ownSub ?? "", bars: { motion: { value: own.motion }, form: { value: own.form }, diff: { value: own.diff } } },
     ...groups.map(({ group, n, measures }) => {
       const s = groupSensitivities(measures);
       return {
@@ -63,13 +55,13 @@ export function SensitivityBars({ own, groups, ownSub }: SensitivityBarsProps) {
   const all = clusters.flatMap(c => SERIES.flatMap(({ key }) => { const b = c.bars[key]; return [b.value, b.range?.p25, b.range?.p75]; })).filter((v): v is number => v != null);
   if (!all.length) return null;
   const lo = Math.min(0, ...all), hi = Math.max(0.01, ...all);
-  const ticks = ticksFor(lo, hi);
+  const ticks = roundTicks(lo, hi);
   const yLo = ticks[0]!, yHi = ticks[ticks.length - 1]!;
   const iw = W - M.l - M.r, ih = H - M.t - M.b;
   const y = (v: number): number => M.t + (1 - (v - yLo) / (yHi - yLo)) * ih;
   const cw = iw / clusters.length;
   const bw = Math.min(34, cw * 0.2);
-  const decimals = ticks.length > 1 ? Math.max(2, -Math.floor(Math.log10(ticks[1]! - ticks[0]!) + 1e-9)) : 2;
+  const decimals = tickDecimals(ticks, 2);
 
   const describe = (c: Cluster): string => `${c.label}: ` + SERIES.map(({ key, label }) => {
     const b = c.bars[key];

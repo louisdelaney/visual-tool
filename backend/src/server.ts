@@ -21,21 +21,27 @@ export interface ServerOptions {
   db: Store;
   /** Without an exportUrl, build the export on each GET /export (local copies only). */
   liveExport?: boolean;
-  /** Per instance, per minute; removals share the posts' limit. History has its own limit because each lookup reads up to 50 rows. */
+  /**
+   * Per instance, per minute; removals share the posts' limit. History has its own limit because
+   * each lookup reads up to 50 rows. History sessions has a lower one of its own: each lookup reads
+   * up to 50 whole sessions and can send several MB, and the page asks only when someone saves.
+   */
   postsPerMinute?: number;
   getsPerMinute?: number;
   historyPerMinute?: number;
+  historySessionsPerMinute?: number;
 }
 
-export function createApp({ allowedOrigin, exportUrl, db, liveExport = false, postsPerMinute = 10, getsPerMinute = 600, historyPerMinute = 60 }: ServerOptions) {
+export function createApp({ allowedOrigin, exportUrl, db, liveExport = false, postsPerMinute = 10, getsPerMinute = 600, historyPerMinute = 60, historySessionsPerMinute = 10 }: ServerOptions) {
   const routes = new Routes(db, exportUrl, liveExport);
   const posts = new TokenBucket(postsPerMinute);
   const gets = new TokenBucket(getsPerMinute);
   const histories = new TokenBucket(historyPerMinute);
+  const historySessions = new TokenBucket(historySessionsPerMinute);
 
   /** The name of the route a path belongs to, or "unmatched". Never the path itself. */
   function routeOf(pathname: string): string {
-    if (pathname === "/sessions" || pathname === "/healthz" || pathname === "/groups" || pathname === "/history" || pathname === "/export") return pathname;
+    if (pathname === "/sessions" || pathname === "/healthz" || pathname === "/groups" || pathname === "/history" || pathname === "/history/sessions" || pathname === "/export") return pathname;
     return "unmatched";
   }
 
@@ -55,8 +61,12 @@ export function createApp({ allowedOrigin, exportUrl, db, liveExport = false, po
         if (!histories.take()) throw new HttpError(429, "too many requests");
         return routes.getHistory(url);
       }
+      if (url.pathname === "/history/sessions") {
+        if (!historySessions.take()) throw new HttpError(429, "too many requests");
+        return routes.getHistorySessions(url);
+      }
       if (!gets.take()) throw new HttpError(429, "too many requests");
-      if (url.pathname === "/groups") return routes.getGroups();
+      if (url.pathname === "/groups") return routes.getGroups(url);
       if (url.pathname === "/export") return routes.getExport();
     }
     throw new HttpError(404, "not found");

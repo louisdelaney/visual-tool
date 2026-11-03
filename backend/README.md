@@ -1,6 +1,6 @@
 # Backend
 
-The service behind the site's Contribute step, group comparison, User results page and public download. Node 22 and TypeScript, on `node:http`. The endpoints and the privacy rules it keeps are in the root README ("Backend API" and "Privacy rules the backend must keep"). The hosting is in `../infra/`.
+The service behind the site's Contribute step, group comparison, Results by pseudonym page and public download. Node 22 and TypeScript, on `node:http`. The endpoints and the privacy rules it keeps are in the root README ("Backend API" and "Privacy rules the backend must keep"). The hosting is in `../infra/`.
 
 ## What's in `src/`
 
@@ -8,7 +8,7 @@ The service behind the site's Contribute step, group comparison, User results pa
 - `summary.ts`: the small row `/history` reads, and which comparison group a session joins.
 - `stats.ts`: percentiles from the per-group value arrays; the `/groups` response.
 - `store.ts`: what a store does, so the server and the export job don't care which one is in use.
-- `db.ts`: the Firestore store: sessions (gzipped as sent), summaries (every answer and the three measures, one row per session), `groups/{test_version}`.
+- `db.ts`: the Firestore store: sessions (gzipped as sent), summaries (every answer and the three measures, one row per session), `groups/{test_version}` for the full test and `groups/{test_version}-quick` for the quick one.
 - `routes.ts`: the endpoints. `server.ts`: CORS, limits, errors, the server.
 - `http.ts`, `ratelimit.ts`, `log.ts`: response and CORS helpers, the per-instance token bucket, error-only logging.
 - `jobs/export.ts`: the export job: one gzipped JSON file, `visual-data.json`.

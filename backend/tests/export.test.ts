@@ -5,7 +5,7 @@ import { gunzipSync } from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
 import { MemoryStore } from "../src/db-memory";
 import { coarsen, dirSink, runExport, toHour, type ExportFile, type ExportSink } from "../src/jobs/export";
-import { makeSession } from "./fixture";
+import { asSchemaV1, makeSession } from "./fixture";
 
 /** A sink that keeps what's written to it. */
 function memorySink() {
@@ -41,33 +41,26 @@ describe("coarsen", () => {
   const s = makeSession();
   const out = coarsen("id-1", "2026-10-18T19:45:30.000Z", s);
 
-  it("drops `at` from every trial and keeps the rest", () => {
-    expect(out.trials).toHaveLength(s.trials.length);
-    for (const [i, t] of out.trials.entries()) {
-      expect(t).not.toHaveProperty("at");
-      const { at: _at, ...rest } = s.trials[i]!;
-      expect(t).toEqual(rest);
-    }
-  });
-
-  it("rounds started_at, finished_at and received_at to the hour", () => {
-    expect(out.started_at).toBe("2026-10-18T19:00:00.000Z");
-    expect(out.finished_at).toBe("2026-10-18T19:00:00.000Z");
+  it("rounds received_at to the hour and adds the id", () => {
     expect(out.received_at).toBe("2026-10-18T19:00:00.000Z");
     expect(out.submission_id).toBe("id-1");
   });
 
-  it("keeps a null finished_at", () => expect(coarsen("id", "2026-10-18T19:45:30.000Z", makeSession({ finished_at: null })).finished_at).toBeNull());
-
-  it("leaves the rest of the session as it was", () => {
-    const { trials: _t, started_at: _s, finished_at: _f, ...before } = s;
-    const { trials: _t2, started_at: _s2, finished_at: _f2, submission_id: _i, received_at: _r, ...after } = out;
-    expect(after).toEqual(before);
+  it("leaves a current session as it was sent", () => {
+    const { submission_id: _i, received_at: _r, ...after } = out;
+    expect(after).toEqual(s);
   });
 
-  it("doesn't change the session it was given", () => {
-    expect(s.trials[0]).toHaveProperty("at");
-    expect(s.started_at).toBe("2026-10-18T19:30:00.000Z");
+  it("scrubs a session stored by an older page, without changing what it was given", () => {
+    const old = asSchemaV1(s);
+    const before = JSON.stringify(old);
+    const o = coarsen("id-2", "2026-10-18T19:45:30.000Z", old) as Record<string, unknown>;
+    expect(o.started_at).toBe("2026-10-18T19:00:00.000Z");
+    expect(o).not.toHaveProperty("finished_at");
+    expect(o.duration_s).toBe(s.duration_s);
+    expect(o.contribution).toEqual(s.contribution);
+    expect(JSON.stringify(o)).not.toMatch(/"at"|"language"|"screen"|measuredAt|sent_at|macOS/);
+    expect(JSON.stringify(old)).toBe(before);
   });
 });
 

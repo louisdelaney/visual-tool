@@ -1,7 +1,7 @@
 "use strict";
 // Layout: no horizontal scrolling at phone and desktop widths, in light and dark, on step 1 with
 // every question open, on the set-up step and on the info pages (the results page is checked by
-// full.cjs after a real run); no page
+// full.cjs after a real run); phones kept from the test and tablets warned; no page
 // errors; and no request to any server but the site itself. Screenshots go to tests/output.
 const fs = require("node:fs");
 const path = require("node:path");
@@ -49,6 +49,44 @@ fs.mkdirSync(OUT, { recursive: true });
       await ctx.close();
     }
   }
+  // Touch-only devices: a phone can't start the test but can open the other pages; a large tablet
+  // can, with a warning to stand it still. A desktop window at phone width is still a computer.
+  const devices = [
+    { name: "phone", viewport: { width: 390, height: 844 }, kind: "phone" },
+    { name: "small tablet", viewport: { width: 960, height: 600 }, kind: "phone" },
+    { name: "tablet", viewport: { width: 1180, height: 820 }, kind: "tablet" },
+  ];
+  for (const dv of devices) {
+    const ctx = await browser.newContext({ viewport: dv.viewport, screen: dv.viewport, hasTouch: true, isMobile: true });
+    const p = await ctx.newPage();
+    p.on("pageerror", e => errors.push(`${dv.name}: ${e.message}`));
+    await p.goto(PAGE_URL); await p.waitForTimeout(400);
+    const seen = await p.evaluate(() => ({ phone: !!document.querySelector("#device-phone"), tablet: !!document.querySelector("#device-tablet"), form: !!document.querySelector("#contrib-form") }));
+    await p.screenshot({ path: path.join(OUT, `layout-device-${dv.name.replace(" ", "-")}.png`), fullPage: true });
+    if (dv.kind === "phone") {
+      if (!seen.phone || seen.form) failures.push(`${dv.name}: the home page offers the test`);
+      await p.click("#history-open"); await p.waitForTimeout(200);
+      if (!(await p.$('[data-view="history"]'))) failures.push(`${dv.name}: previous results didn't open`);
+    } else {
+      if (!seen.tablet || !seen.form || seen.phone) failures.push(`${dv.name}: no tablet warning, or no form`);
+      await p.check('#contrib-form input[name="contribute"][value="no"]');
+      await p.click("#contrib-go"); await p.waitForTimeout(300);
+      if (await p.$eval("#start", b => b.disabled)) failures.push(`${dv.name}: Start is disabled on a sideways tablet`);
+    }
+    console.log(`${dv.name}: ${JSON.stringify(seen)}`);
+    await ctx.close();
+  }
+  {
+    const ctx = await browser.newContext({ viewport: { width: 360, height: 860 } });
+    const p = await ctx.newPage();
+    await p.goto(PAGE_URL); await p.waitForTimeout(400);
+    if (await p.$("#device-phone, #device-tablet")) failures.push("narrow desktop window: shown a device notice");
+    await p.check('#contrib-form input[name="contribute"][value="no"]');
+    await p.click("#contrib-go"); await p.waitForTimeout(300);
+    if (!(await p.$eval("#start", b => b.disabled))) failures.push("narrow desktop window: Start is enabled");
+    await ctx.close();
+  }
+
   console.log("\nERRORS:", errors.length ? errors : "none", "\nFAILURES:", failures.length ? failures : "none");
   await browser.close();
   await server.close();

@@ -24,7 +24,7 @@ export function DataPage() {
         <h3>What's in it</h3>
         <ul>
           <li>Every contributed session, from every version of the test, with every trial, the screen calibration, the test's settings and the answers from the first step.</li>
-          <li>Times are rounded to the hour, and the time of each trial is left out.</li>
+          <li>Only what's needed to read the results. Each session has the hour it started and how long it took, never exact times, and its trials have no times at all. Sessions sent before this was tightened are trimmed the same way.</li>
           <li>It's refreshed once a day, so the latest results may take a day to appear.</li>
         </ul>
 
@@ -32,6 +32,7 @@ export function DataPage() {
         <p>
           The download is one gzipped JSON file, <code>visual-data.json.gz</code>, hosted on GitHub. It holds every session in order of arrival, in the same format as the file you can save from your own results, plus the date each was received.
           {" "}Each session records its <code>test_version</code>; only compare sessions from the same version, since a new version means the test itself changed.
+          {" "}Sessions also record <code>test_type</code>, <code>"full"</code> or <code>"quick"</code> (none means full). The quick test is a separate, shorter test with less precise results: keep it apart from the full test.
         </p>
         <p>The results come from people taking a casual online test on their own screens, unsupervised, so screens, viewing distances and attention vary.</p>
       </div>

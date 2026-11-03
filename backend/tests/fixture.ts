@@ -1,13 +1,13 @@
 // A complete, realistic session as the page would send it, for the tests to start from.
-import { CALIBRATION, PROTOCOL, TEST_VERSION } from "../../src/core/protocol";
-import type { SessionExportV1 } from "../../src/app/schema";
+import { CALIBRATION, PROTOCOL, QUICK_PROTOCOL, TEST_VERSION } from "../../src/core/protocol";
+import type { SessionExportV1, SessionExportV2 } from "../../src/app/schema";
 import type { ContributionAnswers, Results, TaskResult, Trial } from "../../src/app/types";
 
-const STARTED = "2026-10-18T19:30:00.000Z";
-const FINISHED = "2026-10-18T19:39:12.000Z";
+/** The page sends the hour it started and how long it took, never the exact times. */
+const STARTED = "2026-10-18T19:00:00.000Z";
+const DURATION_S = 552;
 
 function makeTrials(count: number): Trial[] {
-  const start = Date.parse(STARTED);
   return Array.from({ length: count }, (_, i): Trial => {
     const task = i < count / 2 ? "motion" : "form";
     const correct = i % 4 !== 3;
@@ -33,7 +33,6 @@ function makeTrials(count: number): Trial[] {
       scale: 1,
       px_per_deg: 38.2,
       seed: 1000 + i,
-      at: new Date(start + (i + 1) * 4_300).toISOString(),
     };
   });
 }
@@ -51,22 +50,23 @@ const task = (threshold: number): TaskResult => ({
 });
 
 /** Overrides: any top-level field, with `answers` and `results` merged into the defaults. */
-export type SessionOverrides = Partial<Omit<SessionExportV1, "contribution" | "results">> & {
+export type SessionOverrides = Partial<Omit<SessionExportV2, "contribution" | "results">> & {
   answers?: Partial<ContributionAnswers>;
   results?: Partial<Results>;
   /** Replaces the whole contribution (e.g. `{ contribute: false }`). */
-  contribution?: SessionExportV1["contribution"];
+  contribution?: SessionExportV2["contribution"];
 };
 
-export function makeSession(overrides: SessionOverrides = {}): SessionExportV1 {
+export function makeSession(overrides: SessionOverrides = {}): SessionExportV2 {
   const { answers, results, contribution, ...rest } = overrides;
-  const base: SessionExportV1 = {
+  const base: SessionExportV2 = {
     schema: "visual-tool/session",
-    schema_version: 1,
+    schema_version: 2,
     test_version: TEST_VERSION,
+    test_type: "full",
     page: "https://example.org/visual-tool/",
     started_at: STARTED,
-    finished_at: FINISHED,
+    duration_s: DURATION_S,
     ended_early: false,
     seed: 20261018,
     settings: { protocol: "clinic", motionDisplay: "brief", spiralDots: "flicker", order: "motion-first", run: "published" },
@@ -76,14 +76,13 @@ export function makeSession(overrides: SessionOverrides = {}): SessionExportV1 {
       calibration: { card_mm: CALIBRATION.cardMm, blind_spot_deg: CALIBRATION.blindSpotDeg, ipd_cm: CALIBRATION.ipdCm },
     },
     sensitivity_units: "1 / threshold in %",
-    calibration: { cardPx: 324.5, pxPerMm: 3.791, dpr: 2, measuredAt: "2026-10-18T19:31:00.000Z" },
+    calibration: { cardPx: 324.5, pxPerMm: 3.791, dpr: 2 },
     viewing_distance: { cm: 62, method: "manual", readings: [61, 62, 63] },
     display: { ppd0: 38.2, scale: 1, viewport: [1440, 900], fullscreen: true, refresh_hz: 60, median_frame_ms: 16.7 },
-    environment: { browser: "Chrome 131 on macOS", language: "en-GB", screen: [1512, 982], viewport: [1440, 900], devicePixelRatio: 2 },
+    environment: { browser: "Chrome 131", device: "computer", viewport: [1440, 900], devicePixelRatio: 2 },
     contribution: {
       contribute: true,
       submission_id: "00000000-0000-4000-8000-000000000000",
-      sent_at: null,
       answers: {
         pseudonym: "Quiet Heron",
         perceptual_disorder: "no",
@@ -103,15 +102,40 @@ export function makeSession(overrides: SessionOverrides = {}): SessionExportV1 {
     trials: makeTrials(120),
   };
 
-  let merged: SessionExportV1 = { ...base, ...rest };
+  let merged: SessionExportV2 = { ...base, ...rest };
   if (contribution !== undefined) merged = { ...merged, contribution };
   else if (answers && base.contribution?.contribute) merged = { ...merged, contribution: { ...base.contribution, answers: { ...base.contribution.answers, ...answers } } };
   if (results) merged = { ...merged, results: { ...base.results!, ...results } };
   return merged;
 }
 
+/**
+ * The same session as a page from before the quick test sent it: schema 1, no test type, the full
+ * test, and the exact times and extra details pages sent then.
+ */
+export function asSchemaV1(s: SessionExportV2): SessionExportV1 {
+  const { test_type: _type, schema_version: _version, duration_s, ...rest } = s;
+  const started = Date.parse(s.started_at) + 31 * 60_000 + 7_000;
+  const old = {
+    ...rest, schema_version: 1 as const,
+    started_at: new Date(started).toISOString(),
+    finished_at: duration_s === null ? null : new Date(started + duration_s * 1000).toISOString(),
+    calibration: s.calibration && { ...s.calibration, measuredAt: "2026-10-16T08:12:44.000Z" },
+    environment: { browser: "Chrome 131 on macOS", language: "en-GB", screen: [1512, 982], viewport: s.environment.viewport, devicePixelRatio: s.environment.devicePixelRatio },
+    contribution: s.contribution?.contribute ? { ...s.contribution, sent_at: null, answers: s.contribution.answers } : s.contribution,
+    trials: s.trials.map((t, i) => ({ ...t, at: new Date(started + (i + 1) * 4_300).toISOString() })),
+  };
+  return old as SessionExportV1;
+}
+
+/** A quick-test session: its own protocol and run, and fewer trials. */
+export function makeQuickSession(overrides: SessionOverrides = {}): SessionExportV2 {
+  const s = makeSession({ test_type: "quick", settings: { protocol: "clinic", motionDisplay: "brief", spiralDots: "flicker", order: "motion-first", run: "quick" }, trials: makeTrials(60), ...overrides });
+  return { ...s, protocol: { ...s.protocol, parameters: QUICK_PROTOCOL } };
+}
+
 /** Shorthand for a session whose two tasks and difference are set to these numbers. */
-export function withThresholds(motion: number, form: number, overrides: SessionOverrides = {}): SessionExportV1 {
+export function withThresholds(motion: number, form: number, overrides: SessionOverrides = {}): SessionExportV2 {
   return makeSession({
     ...overrides,
     results: { motion: task(motion), form: task(form), motion_minus_form: { sensitivity: Math.round((1 / motion - 1 / form) * 1e5) / 1e5, threshold_ratio: motion / form } },

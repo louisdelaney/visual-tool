@@ -2,8 +2,9 @@
 // suspect a visual perceptual disorder: the control group, who have never used psychedelic drugs,
 // and those who have. The backend sends only summary numbers (a count and percentiles), never
 // anyone's individual results.
-import { TEST_VERSION } from "../core/protocol";
+import { TEST_TYPES, TEST_VERSION, type TestType } from "../core/protocol";
 import type { Results } from "./types";
+import { fmt } from "./format";
 
 /** A group isn't shown below this many people: too few to mean much, and too few to keep individuals hidden. */
 export const MIN_GROUP = 5;
@@ -30,6 +31,43 @@ export const GROUP_INFO: Record<GroupKey, { name: string; who: string }> = {
   psychedelics: { name: "Used psychedelics", who: "no visual perceptual disorder, have used psychedelic drugs" },
 };
 
+/** How each measure is named and written, on the page and in the PDF summaries. */
+export interface MeasureInfo {
+  title: string;
+  /** Series colour, matching the staircase charts. */
+  series: "motion" | "form" | "diff";
+  log: boolean;
+  format: (v: number) => string;
+  /** What higher or lower means. */
+  reading: string;
+}
+
+export const MEASURE_INFO: Record<MeasureKey, MeasureInfo> = {
+  motion_threshold_pct: { title: "Motion threshold", series: "motion", log: true, format: v => fmt.pct(v), reading: "Lower means less organised motion was needed to see it." },
+  form_threshold_pct: { title: "Form threshold", series: "form", log: true, format: v => fmt.pct(v), reading: "Lower means less organised form was needed to see it." },
+  motion_minus_form: { title: "Motion minus form sensitivity", series: "diff", log: false, format: v => fmt.signed(v, 3), reading: "Above zero means motion sensitivity was higher than form sensitivity." },
+};
+
+/** A group's numbers for one measure, in words. */
+export const describeQuantiles = (info: MeasureInfo, q: Quantiles): string =>
+  `median ${info.format(q.p50)}, middle half ${info.format(q.p25)} to ${info.format(q.p75)}, middle 80% ${info.format(q.p10)} to ${info.format(q.p90)}`;
+
+/** What opens the groups section, before the list of groups. */
+export const groupsIntro = (testType: TestType): string => testType === "quick"
+  ? "This was the quick test, so these results are shown beside people who took the quick test on this version of it, never the full test's results. The groups, as people described themselves:"
+  : "These results are shown beside two groups of people who contributed full-test results on this version of the test, as they described themselves:";
+
+/** One line per group in the list: who's in it and how many. */
+export const groupLine = (g: GroupKey, n: number): { name: string; rest: string } =>
+  ({ name: `${GROUP_INFO[g].name}:`, rest: `${GROUP_INFO[g].who}. ${n} ${n === 1 ? "person" : "people"} so far.` });
+
+/** Above the sensitivity bars. */
+export const sensitivityNote = (anyShown: boolean): string =>
+  `Sensitivity is 1 ÷ threshold in percent: higher means less organised signal was needed.${anyShown ? " Each group's bars are its median, and the line across a bar covers the middle half of its results." : ""}`;
+
+/** Above the threshold charts. */
+export const THRESHOLD_CHARTS_NOTE = "The same results as thresholds. For each group, the lighter bar covers the middle 80% of results, the darker bar the middle half, and the line is the median. The dot is this run. This is information only: nothing is concluded from where a result falls.";
+
 /** One group's summary. measures is null while n < MIN_GROUP. */
 export interface GroupStats {
   /** People in the group with complete sessions on this test version. */
@@ -37,9 +75,10 @@ export interface GroupStats {
   measures: Record<MeasureKey, Quantiles> | null;
 }
 
-/** GET /groups: summary statistics for each group on one test version. */
+/** GET /groups: summary statistics for each group on one test version and test type. */
 export interface GroupsResponse {
   test_version: number;
+  test_type: TestType;
   groups: Record<GroupKey, GroupStats>;
 }
 
@@ -71,11 +110,16 @@ function parseGroup(v: unknown): GroupStats | null {
   return { n: o.n, measures };
 }
 
-/** Checks a /groups response. Returns null if it isn't valid: server data is untrusted. */
+/**
+ * Checks a /groups response. Returns null if it isn't valid: server data is untrusted. A backend
+ * from before the quick test sends no test_type: its groups are the full test's.
+ */
 export function parseGroups(v: unknown): GroupsResponse | null {
   if (!v || typeof v !== "object") return null;
   const o = v as Record<string, unknown>;
   if (!isNum(o.test_version) || !o.groups || typeof o.groups !== "object") return null;
+  const testType = o.test_type ?? "full";
+  if (!(TEST_TYPES as readonly unknown[]).includes(testType)) return null;
   const g = o.groups as Record<string, unknown>;
   const groups = {} as Record<GroupKey, GroupStats>;
   for (const key of GROUPS) {
@@ -83,12 +127,23 @@ export function parseGroups(v: unknown): GroupsResponse | null {
     if (!stats) return null;
     groups[key] = stats;
   }
-  return { test_version: o.test_version, groups };
+  return { test_version: o.test_version, test_type: testType as TestType, groups };
 }
 
 /** A group's measures if it's big enough to show, otherwise null. */
 export const shownMeasures = (g: GroupStats): Record<MeasureKey, Quantiles> | null =>
   g.n >= MIN_GROUP ? g.measures : null;
+
+/** A group big enough to show: who, how many, and its numbers. */
+export interface ShownGroup {
+  group: GroupKey;
+  n: number;
+  measures: Record<MeasureKey, Quantiles>;
+}
+
+/** The groups big enough to show, in order. */
+export const shownGroups = (stats: GroupsResponse): ShownGroup[] =>
+  GROUPS.flatMap(g => { const m = shownMeasures(stats.groups[g]); return m ? [{ group: g, n: stats.groups[g].n, measures: m }] : []; });
 
 /** The person's value for each measure, or null where their run didn't reach a threshold. */
 export function ownValues(r: Results): Record<MeasureKey, number | null> {
@@ -135,6 +190,7 @@ export function groupSensitivities(m: Record<MeasureKey, Quantiles>): Record<key
 /** Made-up numbers for developing the charts before the backend exists. Never shown in a production build. */
 export const SAMPLE_GROUPS: GroupsResponse = {
   test_version: TEST_VERSION,
+  test_type: "full",
   groups: {
     control: {
       n: 64,

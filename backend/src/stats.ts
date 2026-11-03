@@ -1,7 +1,8 @@
-// Group statistics from the flat value arrays in the `groups/{test_version}` document. The page
-// checks that percentiles are in order and that measures is null under MIN_GROUP, so this
-// produces exactly that shape.
+// Group statistics from the flat value arrays in the groups document for one test version and
+// test type. The page checks that percentiles are in order and that measures is null under
+// MIN_GROUP, so this produces exactly that shape.
 import { GROUPS, MEASURES, MIN_GROUP, type GroupKey, type GroupStats, type GroupsResponse, type MeasureKey, type Quantiles } from "../../src/app/comparison";
+import type { TestType } from "../../src/core/protocol";
 
 /** The three value arrays stored per group, in the order sessions arrived. */
 export interface GroupValues {
@@ -10,8 +11,15 @@ export interface GroupValues {
   diff: number[];
 }
 
-/** The `groups/{test_version}` document. */
+/** The groups document for one test version and test type (see groupsDocId). */
 export type GroupsDoc = Partial<Record<GroupKey, GroupValues>>;
+
+/**
+ * Where a test version and test type's groups are kept: `groups/2` for the full test (the id it had
+ * before the quick test existed), `groups/2-quick` for the quick one. Never pooled.
+ */
+export const groupsDocId = (testVersion: number, testType: TestType): string =>
+  testType === "full" ? String(testVersion) : `${testVersion}-${testType}`;
 
 export const emptyGroupValues = (): GroupValues => ({ motion: [], form: [], diff: [] });
 
@@ -49,8 +57,8 @@ export function groupStats(g: GroupValues | undefined): GroupStats {
   return { n, measures };
 }
 
-export function groupsResponse(testVersion: number, doc: GroupsDoc | undefined): GroupsResponse {
+export function groupsResponse(testVersion: number, testType: TestType, doc: GroupsDoc | undefined): GroupsResponse {
   const groups = {} as Record<GroupKey, GroupStats>;
   for (const key of GROUPS) groups[key] = groupStats(doc?.[key]);
-  return { test_version: testVersion, groups };
+  return { test_version: testVersion, test_type: testType, groups };
 }

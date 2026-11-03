@@ -7,6 +7,7 @@ import { TASK_ORDER } from "../app/protocol";
 import { setState } from "../app/store";
 import { measureDistance, show } from "../app/flow";
 import { createSession } from "../app/session";
+import { thisDevice } from "../app/device";
 import { goFullscreen } from "../stage/fullscreen";
 import { useFullscreen, useWindowSize } from "../hooks";
 
@@ -73,6 +74,7 @@ export function DistancePage({ calib, distance }: DistancePageProps) {
       <p>The tasks are specified in degrees of visual angle, so the page needs to know how far your eyes are from the screen. It works this out from your blind spot, which sits about 13.5° from wherever you look. Sit centred in front of the screen, as you will for the tasks: the maths assumes it.</p>
       <p className="notice" id="window-note" hidden={!partial}>{windowNote}</p>
       <div className="actions"><button type="button" className="btn" id="bs-start" onClick={() => void measureDistance()}>Start blind-spot check</button></div>
+      {thisDevice() === "tablet" && <p className="small-note" id="bs-tablet">The blind-spot check needs a keyboard's space bar. Without one, measure from your eyes to the screen with a tape measure while you sit as you will for the tasks, and enter it below.</p>}
       <p className="result" id="distance-result"><DistanceResult distance={distance} /></p>
       <div className="manual">
         <label htmlFor="manual-cm">Or enter a distance you've measured, eye to screen</label>
