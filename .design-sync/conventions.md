@@ -48,8 +48,8 @@ paints `html`/`body` with `var(--bg)`. A light surface, or a background of your 
 `--ink` is `#E8EDEA` and vanishes on white.
 
 **One column.** Page content goes in a single `.wrap` — 780px max-width, centred, `display:flex`,
-`flex-direction:column`, `gap:40px`. The page shape is `Masthead` → `<main class="view-stack">` →
-`Footer`, all inside that one `.wrap`.
+`flex-direction:column`, `gap:40px`. The page shape is `Masthead` then `<main class="view-stack">`,
+both inside that one `.wrap`.
 
 ## The styling idiom
 
@@ -98,8 +98,7 @@ Read these before styling anything; they beat this summary:
 ## Components
 
 `Masthead` (nav + title + progress, `view` prop) · `Stepper` (progress alone, `view` prop) ·
-`Footer` (fixed content) · `FunNotice` (the "just for fun" banner) · `ChipInput` (controlled
-list-entry field).
+`FunNotice` (the "just for fun" banner) · `ChipInput` (controlled list-entry field).
 
 `ChipInput` is controlled and ships its companions as exports: `NO_CHIPS` (the empty value),
 `chipValues(value)`, `MAX_CHIPS`, `MAX_CHIP_LENGTH`.
@@ -126,6 +125,5 @@ const [meds, setMeds] = useState(NO_CHIPS);
       </div>
     </section>
   </main>
-  <Footer />
 </div>
 ```

@@ -1,10 +1,9 @@
-// The page: title and steps, the current step's page, and the footer.
+// The page: title and steps, and the current step's page.
 import { useAppState } from "./app/store";
 import type { View } from "./app/types";
 import { thisDevice } from "./app/device";
 import { Masthead } from "./components/Masthead";
 import { FunNotice } from "./components/FunNotice";
-import { Footer } from "./components/Footer";
 import { ContributePage } from "./pages/ContributePage";
 import { SetupPage } from "./pages/SetupPage";
 import { ScreenPage } from "./pages/ScreenPage";
@@ -51,7 +50,6 @@ export function App() {
         {flash && <p className="flash" id="flash" role="status">{flash}</p>}
         <CurrentPage />
       </main>
-      <Footer />
     </>
   );
 }
