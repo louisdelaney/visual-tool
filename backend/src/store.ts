@@ -42,7 +42,10 @@ export interface Store {
    */
   deleteSession(id: string, deleteHash: string): Promise<boolean>;
   readGroups(testVersion: number, testType: TestType): Promise<GroupsDoc | undefined>;
-  /** Every row stored with this (already normalised) pseudonym, oldest first. */
+  /**
+   * The newest `limit` rows stored with this (already normalised) pseudonym, oldest first. Past
+   * the limit the oldest are left out, so a new session always shows.
+   */
   historyFor(pseudonym: string, limit?: number): Promise<SummaryRow[]>;
   /** One stored session, or undefined if there's none with this id. */
   readSession(id: string): Promise<AnySessionExport | undefined>;

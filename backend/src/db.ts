@@ -73,8 +73,9 @@ export class Db implements Store {
   }
 
   async historyFor(pseudonym: string, limit = 500): Promise<SummaryRow[]> {
-    const q = await this.fs.collection("summaries").where("pseudonym", "==", pseudonym).orderBy("started_at").limit(limit).get();
-    return q.docs.map(d => d.data() as SummaryRow);
+    // Newest first so the limit drops the oldest, then turned back to oldest first.
+    const q = await this.fs.collection("summaries").where("pseudonym", "==", pseudonym).orderBy("started_at", "desc").limit(limit).get();
+    return q.docs.map(d => d.data() as SummaryRow).reverse();
   }
 
   async readSession(id: string): Promise<AnySessionExport | undefined> {

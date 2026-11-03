@@ -8,7 +8,8 @@ resource "google_firestore_database" "default" {
   depends_on = [google_project_service.apis]
 }
 
-# Lets the API list one person's sessions in the order they were started.
+# What backends deployed before summaries_by_pseudonym_newest query with. Remove it once the
+# backend that uses the newest-first index is deployed.
 resource "google_firestore_index" "summaries_by_pseudonym" {
   database    = google_firestore_database.default.name
   collection  = "summaries"
@@ -22,5 +23,23 @@ resource "google_firestore_index" "summaries_by_pseudonym" {
   fields {
     field_path = "started_at"
     order      = "ASCENDING"
+  }
+}
+
+# Lets the API list one person's newest sessions, so the 50-session limit leaves out the oldest.
+# Apply this before deploying the backend that uses it: until it's built, /history fails.
+resource "google_firestore_index" "summaries_by_pseudonym_newest" {
+  database    = google_firestore_database.default.name
+  collection  = "summaries"
+  query_scope = "COLLECTION"
+
+  fields {
+    field_path = "pseudonym"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "started_at"
+    order      = "DESCENDING"
   }
 }

@@ -75,7 +75,7 @@ export class MemoryStore implements Store {
     return [...this.summaries.values()]
       .filter(r => r.pseudonym === pseudonym)
       .sort((a, b) => a.started_at.localeCompare(b.started_at))
-      .slice(0, limit)
+      .slice(-limit)
       .map(r => structuredClone(r));
   }
 
