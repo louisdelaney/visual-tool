@@ -384,6 +384,17 @@ th {
   font-weight: 700;
 }
 
+/* Phones: the links wrap, so a plain gap replaces the dividers, which would start each new line. */
+@media (max-width:560px){
+  .site-nav {
+    gap: 8px 18px;
+  }
+  .site-nav a {
+    padding: 0;
+    border-left: 0;
+  }
+}
+
 /* Long-form pages: privacy, references. */
 .prose ul {
   margin: 0;
