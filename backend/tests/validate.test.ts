@@ -3,8 +3,6 @@ import { TEST_VERSION } from "../../src/core/protocol";
 import { validateSession } from "../src/validate";
 import { asSchemaV1, makeQuickSession, makeSession } from "./fixture";
 
-const finishedAfter = (startedAt: string, millis: number) => new Date(Date.parse(startedAt) + millis).toISOString();
-
 function rejects(body: unknown, reason?: RegExp) {
   const v = validateSession(body);
   expect(v.ok).toBe(false);
@@ -52,14 +50,31 @@ describe("validateSession", () => {
   });
 
   describe("run length", () => {
-    const s = makeSession();
-    it("rejects a run of 20 seconds", () => rejects(makeSession({ finished_at: finishedAfter(s.started_at, 20_000) }), /duration/));
-    it("rejects a run of 3 hours", () => rejects(makeSession({ finished_at: finishedAfter(s.started_at, 3 * 3_600_000) }), /duration/));
-    it("accepts a session that hasn't finished", () => expect(validateSession(makeSession({ finished_at: null })).ok).toBe(true));
-    it("rejects a finish before the start", () => rejects(makeSession({ finished_at: finishedAfter(s.started_at, -60_000) }), /duration/));
+    it("rejects a run of 20 seconds", () => rejects(makeSession({ duration_s: 20 }), /duration/));
+    it("rejects a run of 3 hours", () => rejects(makeSession({ duration_s: 3 * 3600 }), /duration/));
+    it("accepts a session that hasn't finished", () => expect(validateSession(makeSession({ duration_s: null })).ok).toBe(true));
+    it("rejects a negative duration", () => rejects(makeSession({ duration_s: -60 }), /duration/));
+    it("rejects a duration that isn't a number", () => rejects(makeSession({ duration_s: "9 minutes" as unknown as number }), /duration_s/));
     it("rejects dates that aren't dates", () => {
       rejects(makeSession({ started_at: "yesterday-ish" }), /started_at/);
-      rejects(makeSession({ finished_at: "later" }), /finished_at/);
+      const old = asSchemaV1(makeSession());
+      rejects({ ...old, finished_at: "later" }, /finished_at/);
+    });
+    it("still checks a version 1 run's length from its exact times", () => {
+      const old = asSchemaV1(makeSession());
+      expect(validateSession(old).ok).toBe(true);
+      rejects({ ...old, finished_at: new Date(Date.parse(old.started_at) + 20_000).toISOString() }, /duration/);
+    });
+  });
+
+  describe("device", () => {
+    it("accepts a computer or a tablet", () => {
+      for (const device of ["computer", "tablet"] as const) expect(validateSession(makeSession({ environment: { ...makeSession().environment, device } })).ok).toBe(true);
+    });
+    it("rejects a phone, or no device", () => {
+      rejects(makeSession({ environment: { ...makeSession().environment, device: "phone" } }), /device/);
+      const { device: _, ...env } = makeSession().environment;
+      rejects({ ...makeSession(), environment: env }, /device/);
     });
   });
 

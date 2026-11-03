@@ -4,8 +4,8 @@
 // Anyone else is in neither. People who reported a disorder are never grouped (AGENTS.md).
 import type { GroupKey, MeasureKey } from "../../src/app/comparison";
 import type { HistoryEntry, Staircases } from "../../src/app/history";
-import { normalizePseudonym, staircasePoints } from "../../src/app/history";
-import { testTypeOf, type AnySessionExport } from "../../src/app/schema";
+import { normalizePseudonym, runInfoOf, staircasePoints, type RunInfo } from "../../src/app/history";
+import { testTypeOf, toHour, type AnySessionExport } from "../../src/app/schema";
 import type { ContributionAnswers } from "../../src/app/types";
 import type { TestType } from "../../src/core/protocol";
 
@@ -14,8 +14,10 @@ import type { TestType } from "../../src/core/protocol";
  * perceptual_disorder is stored as `disorder`, the name rows have had from the start. Rows from
  * before the quick test have no test_type.
  */
-export interface SummaryRow extends Omit<HistoryEntry, "test_type" | "answers">, Omit<ContributionAnswers, "pseudonym" | "perceptual_disorder" | "medications" | "notes"> {
+export interface SummaryRow extends Omit<HistoryEntry, "test_type" | "answers" | "run">, Omit<ContributionAnswers, "pseudonym" | "perceptual_disorder" | "medications" | "notes"> {
   test_type?: TestType;
+  /** Rows from before it was kept have none. */
+  run?: RunInfo;
   pseudonym: string | null;
   disorder: ContributionAnswers["perceptual_disorder"];
 }
@@ -55,12 +57,13 @@ export function summaryRow(s: AnySessionExport, submissionId: string): SummaryRo
     psychedelic_uses: a?.psychedelic_uses ?? null,
     psychedelics_used: a?.psychedelics_used ?? null,
     takes_medication: a?.takes_medication ?? null,
+    found_via: a?.found_via ?? null,
+    found_via_other: a?.found_via_other ?? null,
     values: measuresOf(s),
     medications: a?.medications ?? null,
     notes: a?.notes ?? null,
-    found_via: a?.found_via ?? null,
-    found_via_other: a?.found_via_other ?? null,
     staircases: staircasesOf(s),
+    run: runInfoOf(s),
   };
 }
 
@@ -85,10 +88,12 @@ export function groupValuesOf(s: AnySessionExport): { motion: number; form: numb
 /**
  * Strips a stored row down to a `HistoryEntry`: what GET /history returns, with the answers so the
  * questions page can fill them in again. Everything but the pseudonym is already public in the
- * export. Rows stored before staircases were kept have none; the caller passes them in from the
- * stored session. Rows stored before the quick test have no test type: they're all the full test.
+ * export. Rows stored before staircases or run info were kept send them as null. Rows stored
+ * before the quick test have no test type: they're all the full test.
  */
-export function historyEntry(row: SummaryRow, staircases: Staircases | null = row.staircases ?? null): HistoryEntry {
+export function historyEntry(row: SummaryRow): HistoryEntry {
+  const staircases: Staircases | null = row.staircases ?? null;
+  const run = row.run ?? null;
   const answers = {
     perceptual_disorder: row.disorder ?? null,
     condition: row.condition ?? null,
@@ -101,5 +106,6 @@ export function historyEntry(row: SummaryRow, staircases: Staircases | null = ro
     found_via: row.found_via ?? null,
     found_via_other: row.found_via_other ?? null,
   };
-  return { submission_id: row.submission_id, started_at: row.started_at, test_version: row.test_version, test_type: testTypeOf(row), values: row.values, medications: row.medications, notes: row.notes, staircases, answers };
+  // Rows stored before times were cut to the hour have the exact time: never send it.
+  return { submission_id: row.submission_id, started_at: toHour(row.started_at), test_version: row.test_version, test_type: testTypeOf(row), values: row.values, medications: row.medications, notes: row.notes, staircases, answers, run };
 }

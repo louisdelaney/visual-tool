@@ -1,6 +1,6 @@
 # Backend
 
-The service behind the site's Contribute step, group comparison, User results page and public download. Node 22 and TypeScript, on `node:http`. The endpoints and the privacy rules it keeps are in the root README ("Backend API" and "Privacy rules the backend must keep"). The hosting is in `../infra/`.
+The service behind the site's Contribute step, group comparison, Results by pseudonym page and public download. Node 22 and TypeScript, on `node:http`. The endpoints and the privacy rules it keeps are in the root README ("Backend API" and "Privacy rules the backend must keep"). The hosting is in `../infra/`.
 
 ## What's in `src/`
 

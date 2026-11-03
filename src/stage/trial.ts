@@ -221,7 +221,6 @@ export async function runTrial(s: Session, task: TaskName, level: number, phase:
     scale: round(out.g.scale, 4),
     px_per_deg: round(out.g.ppd, 3),
     seed,
-    at: new Date().toISOString(),
     ...out.extra,
   };
 }

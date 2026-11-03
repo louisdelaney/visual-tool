@@ -126,8 +126,8 @@ describe("readGroups", () => {
 describe("historyFor", () => {
   it("returns one pseudonym's rows, oldest started first, and ignores others", async () => {
     const store = new MemoryStore();
-    const late = await store.storeSession(makeSession({ started_at: "2026-10-19T08:00:00.000Z", finished_at: null }));
-    const early = await store.storeSession(makeSession({ started_at: "2026-08-02T20:00:00.000Z", finished_at: null }));
+    const late = await store.storeSession(makeSession({ started_at: "2026-10-19T08:00:00.000Z", duration_s: null }));
+    const early = await store.storeSession(makeSession({ started_at: "2026-08-02T20:00:00.000Z", duration_s: null }));
     await store.storeSession(makeSession({ answers: { pseudonym: "someone else" } }));
     await store.storeSession(makeSession({ answers: { pseudonym: null } }));
 
@@ -139,7 +139,7 @@ describe("historyFor", () => {
 
   it("stops at the limit", async () => {
     const store = new MemoryStore();
-    for (let i = 0; i < 3; i++) await store.storeSession(makeSession({ started_at: `2026-10-0${i + 1}T10:00:00.000Z`, finished_at: null }));
+    for (let i = 0; i < 3; i++) await store.storeSession(makeSession({ started_at: `2026-10-0${i + 1}T10:00:00.000Z`, duration_s: null }));
     const rows = await store.historyFor("quiet heron", 2);
     expect(rows.map(r => r.started_at)).toEqual(["2026-10-01T10:00:00.000Z", "2026-10-02T10:00:00.000Z"]);
   });
@@ -166,7 +166,7 @@ describe("persistence", () => {
     const file = join(tempDir(), "data", "sessions.json"); // the folder doesn't exist yet
     const first = new MemoryStore(file);
     const a = await first.storeSession(withThresholds(10, 20), at(1));
-    const b = await first.storeSession(withThresholds(9, 18, { answers: { psychedelics: "yes" }, started_at: "2026-08-02T20:00:00.000Z", finished_at: null }), at(2));
+    const b = await first.storeSession(withThresholds(9, 18, { answers: { psychedelics: "yes" }, started_at: "2026-08-02T20:00:00.000Z", duration_s: null }), at(2));
 
     const second = new MemoryStore(file);
     expect(second.size).toBe(2);

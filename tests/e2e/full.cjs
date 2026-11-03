@@ -144,8 +144,15 @@ const OLD_KEY = "form-motion-coherence/v1";
     await p.screenshot({ path: path.join(OUT, `full-results-360-${tag}.png`), fullPage: true });
     await p.setViewportSize({ width: 1440, height: 900 }); await sleep(300);
 
-    await p.click("#raw > summary"); await sleep(250);
-    const data = JSON.parse(await p.$eval("#raw-json", el => el.value));
+    // The PDF summary is made in the page under the built site's security policy, with its own fonts.
+    await p.click("#save-menu");
+    const [pdf] = await Promise.all([p.waitForEvent("download", { timeout: 20000 }), p.click("#save-pdf")]);
+    const pdfBytes = fs.readFileSync(await pdf.path());
+    check(pdf.suggestedFilename().endsWith("-summary.pdf") && pdfBytes.subarray(0, 5).toString() === "%PDF-" && pdfBytes.length > 20000, `[${tag}] the PDF summary didn't save: ${pdf.suggestedFilename()}, ${pdfBytes.length} bytes`);
+
+    await p.click("#save-menu");
+    const [saved] = await Promise.all([p.waitForEvent("download"), p.click("#save-json")]);
+    const data = JSON.parse(fs.readFileSync(await saved.path(), "utf8"));
     check(data.contribution && data.contribution.contribute === false && !data.contribution.answers, `[${tag}] choosing No should record no answers`);
     const by = {};
     for (const t of data.trials) { const k = t.task + ":" + t.phase; by[k] = (by[k] || 0) + 1; }

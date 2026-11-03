@@ -14,7 +14,7 @@ describe("summaryRow", () => {
     expect(summaryRow(makeSession({ answers: { pseudonym: null } }), "id").pseudonym).toBeNull();
   });
 
-  it("copies the id, start, version, every answer, the measures and the staircases", () => {
+  it("copies the id, start, version, every answer, the measures, the staircases and the run info", () => {
     const s = makeSession({ answers: { medications: ["Lamotrigine"], notes: "Tired today.", psychedelics: "yes" } });
     expect(summaryRow(s, "abc")).toEqual({
       submission_id: "abc",
@@ -36,7 +36,23 @@ describe("summaryRow", () => {
       found_via: "forum",
       found_via_other: null,
       staircases: staircasesOf(s),
+      run: { status: { motion: "complete", form: "complete" }, checks_missed: 0, device: "computer", distance_cm: 62, fullscreen: true },
     });
+  });
+
+  it("counts missed easy checks, unfinished tasks and a tablet", () => {
+    const base = makeSession();
+    const s = makeSession({
+      results: { motion: { ...base.results!.motion!, catch_correct: 8 }, form: { ...base.results!.form!, status: "incomplete", catch_correct: 9 } },
+      environment: { ...base.environment, device: "tablet" }, display: { ...base.display, fullscreen: false }, viewing_distance: null,
+    });
+    expect(summaryRow(s, "id").run).toEqual({ status: { motion: "complete", form: "incomplete" }, checks_missed: 3, device: "tablet", distance_cm: null, fullscreen: false });
+  });
+
+  it("reads a session from before the device type as a computer", () => {
+    const s = makeSession();
+    delete (s.environment as Partial<typeof s.environment>).device;
+    expect(summaryRow(s, "id").run?.device).toBe("computer");
   });
 });
 
@@ -70,7 +86,7 @@ describe("historyEntry", () => {
   it("drops the pseudonym and keeps the answers, so the questions page can fill them in again", () => {
     const row = summaryRow(makeSession({ answers: { notes: "hello" } }), "abc");
     const entry = historyEntry(row);
-    expect(Object.keys(entry).sort()).toEqual(["answers", "medications", "notes", "staircases", "started_at", "submission_id", "test_type", "test_version", "values"]);
+    expect(Object.keys(entry).sort()).toEqual(["answers", "medications", "notes", "run", "staircases", "started_at", "submission_id", "test_type", "test_version", "values"]);
     expect(entry).not.toHaveProperty("pseudonym");
     expect(entry.notes).toBe("hello");
     expect(entry.answers).toEqual({
@@ -82,6 +98,10 @@ describe("historyEntry", () => {
   it("fills answers missing from an older row with null", () => {
     const { found_via: _, found_via_other: __, ...old } = summaryRow(makeSession(), "abc");
     expect(historyEntry(old as SummaryRow).answers).toMatchObject({ found_via: null, found_via_other: null });
+  });
+  it("sends an older row's exact time to the hour only", () => {
+    const old = { ...summaryRow(makeSession(), "abc"), started_at: "2026-10-18T19:31:07.000Z" };
+    expect(historyEntry(old).started_at).toBe("2026-10-18T19:00:00.000Z");
   });
 });
 

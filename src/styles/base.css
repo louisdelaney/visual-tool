@@ -365,7 +365,7 @@ th {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 0;
-  font-size: var(--t-md);
+  font-size: var(--t-base);
   padding-bottom: 16px;
   margin-bottom: 24px;
   border-bottom: 1px solid var(--rule);
@@ -446,8 +446,23 @@ th {
   color: var(--ink);
 }
 
-.fun-notice strong {
+.fun-notice > strong,
+.fun-notice > p:first-child strong {
   color: var(--accent);
+}
+
+/* With more in it (the Results page's Your data), each part gets some room. */
+.fun-notice > * + * {
+  margin-top: 14px;
+}
+
+.fun-notice section {
+  display: grid;
+  gap: 6px;
+}
+
+.fun-notice section:empty {
+  display: none;
 }
 
 /* Back buttons sit at the right-hand end of their row of buttons. */

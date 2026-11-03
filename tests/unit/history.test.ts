@@ -2,7 +2,7 @@
 // are two plain words, and untrusted responses are checked before they're shown.
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { normalizePseudonym, parseHistory, sampleHistory, suggestPseudonym } from "../../src/app/history";
+import { normalizePseudonym, parseHistory, parseRawHistory, sampleHistory, suggestPseudonym } from "../../src/app/history";
 import { ADJECTIVES, NOUNS } from "../../src/app/words";
 import { mulberry32 } from "../../src/core";
 
@@ -77,4 +77,24 @@ test("history: previous answers parse, and bad or missing ones only leave the fo
     assert.ok(parsed, "the history still shows");
     assert.equal(parsed.sessions[0]!.answers, null, JSON.stringify(bad));
   }
+});
+
+test("history: run info is kept when valid, and dropped (not the whole entry) when not", () => {
+  const entry = sampleHistory("x").sessions[0]!;
+  assert.deepEqual(parseHistory({ pseudonym: "x", sessions: [entry] })!.sessions[0]!.run, entry.run);
+  for (const run of [{ ...entry.run, device: "phone" }, { ...entry.run, checks_missed: -1 }, { ...entry.run, status: { motion: "done", form: null } }, "x"]) {
+    const parsed = parseHistory({ pseudonym: "x", sessions: [{ ...entry, run }] });
+    assert.ok(parsed, JSON.stringify(run));
+    assert.equal(parsed.sessions[0]!.run, null, JSON.stringify(run));
+  }
+  const { run: _, ...old } = entry;
+  assert.equal(parseHistory({ pseudonym: "x", sessions: [old] })!.sessions[0]!.run, null, "an older backend sends none");
+});
+
+test("raw history: needs each session's id, start and trials", () => {
+  const ok = { submission_id: "a", started_at: "2026-10-18T19:00:00.000Z", trials: [] };
+  assert.ok(parseRawHistory({ pseudonym: "x", sessions: [ok] }));
+  assert.equal(parseRawHistory({ pseudonym: "x", sessions: [{ ...ok, trials: null }] }), null);
+  assert.equal(parseRawHistory({ pseudonym: "x", sessions: [{ ...ok, submission_id: 1 }] }), null);
+  assert.equal(parseRawHistory({ sessions: [] }), null);
 });

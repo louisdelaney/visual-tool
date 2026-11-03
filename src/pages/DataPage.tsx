@@ -24,7 +24,7 @@ export function DataPage() {
         <h3>What's in it</h3>
         <ul>
           <li>Every contributed session, from every version of the test, with every trial, the screen calibration, the test's settings and the answers from the first step.</li>
-          <li>Times are rounded to the hour, and the time of each trial is left out.</li>
+          <li>Only what's needed to read the results. Each session has the hour it started and how long it took, never exact times, and its trials have no times at all. Sessions sent before this was tightened are trimmed the same way.</li>
           <li>It's refreshed once a day, so the latest results may take a day to appear.</li>
         </ul>
 

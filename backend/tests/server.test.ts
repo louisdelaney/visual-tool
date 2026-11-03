@@ -2,7 +2,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MIN_GROUP, parseGroups } from "../../src/app/comparison";
-import { parseHistory } from "../../src/app/history";
+import { parseHistory, parseRawHistory } from "../../src/app/history";
 import { TEST_VERSION } from "../../src/core/protocol";
 import { MemoryStore } from "../src/db-memory";
 import type { SummaryRow } from "../src/summary";
@@ -45,6 +45,17 @@ describe("POST /sessions", () => {
     const body = (await res.json()) as { submission_id: string };
     expect(body.submission_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     expect(db.size).toBe(1);
+  });
+
+  it("stores an older page's session without its exact times or dropped details, and the arrival to the hour", async () => {
+    const { base, db } = await start();
+    expect((await post(base, asSchemaV1(makeSession()))).status).toBe(201);
+    const stored = [];
+    for await (const row of db.allSessions()) stored.push(row);
+    expect(stored).toHaveLength(1);
+    expect(stored[0]!.stored.received_at).toMatch(/T\d\d:00:00\.000Z$/);
+    expect(stored[0]!.session.started_at).toBe(makeSession().started_at);
+    expect(JSON.stringify(stored[0]!.session)).not.toMatch(/"at"|"finished_at"|"language"|"screen"|measuredAt|sent_at|macOS/);
   });
 
   it("returns 400 for invalid JSON", async () => {
@@ -218,8 +229,8 @@ describe("GET /groups", () => {
 describe("GET /history", () => {
   it("looks up the normalised pseudonym and returns entries the page accepts", async () => {
     const db = new MemoryStore();
-    const a = await db.storeSession(withThresholds(14.2, 31.5, { started_at: "2026-10-18T19:30:00.000Z", finished_at: "2026-10-18T19:40:00.000Z" }));
-    const b = await db.storeSession(withThresholds(10.2, 21, { started_at: "2026-10-19T19:30:00.000Z", finished_at: "2026-10-19T19:40:00.000Z" }));
+    const a = await db.storeSession(withThresholds(14.2, 31.5, { started_at: "2026-10-18T19:30:00.000Z", duration_s: 600 }));
+    const b = await db.storeSession(withThresholds(10.2, 21, { started_at: "2026-10-19T19:30:00.000Z", duration_s: 600 }));
     await db.storeSession(withThresholds(9, 18, { answers: { pseudonym: "Someone Else" } }));
     const { base } = await start(db);
     const res = await fetch(`${base}/history?pseudonym=%20QUIET%20%20Heron`);
@@ -236,24 +247,27 @@ describe("GET /history", () => {
 
   it("says which sessions were quick, and reads rows kept before the quick test as full", async () => {
     const db = new MemoryStore();
-    const old = await db.storeSession(asSchemaV1(withThresholds(14.2, 31.5, { started_at: "2026-10-18T19:30:00.000Z", finished_at: "2026-10-18T19:40:00.000Z" })));
-    await db.storeSession(makeQuickSession({ started_at: "2026-10-19T19:30:00.000Z", finished_at: "2026-10-19T19:35:00.000Z" }));
+    const old = await db.storeSession(asSchemaV1(withThresholds(14.2, 31.5, { started_at: "2026-10-18T19:30:00.000Z", duration_s: 600 })));
+    await db.storeSession(makeQuickSession({ started_at: "2026-10-19T19:30:00.000Z", duration_s: 300 }));
     // A row stored before rows had a test type.
     delete (db as unknown as { summaries: Map<string, Partial<SummaryRow>> }).summaries.get(old)!.test_type;
     const parsed = parseHistory(await (await fetch(`${(await start(db)).base}/history?pseudonym=quiet%20heron`)).json())!;
     expect(parsed.sessions.map(s => s.test_type)).toEqual(["full", "quick"]);
   });
 
-  it("returns staircases, reading them from the stored session for rows kept without them", async () => {
+  it("returns staircases and run info from the row, and null for rows kept without them", async () => {
     const db = new MemoryStore();
     const id = await db.storeSession(withThresholds(10, 20));
     const fresh = parseHistory(await (await fetch(`${(await start(db)).base}/history?pseudonym=quiet%20heron`)).json())!.sessions[0]!;
     expect(fresh.staircases?.motion.length).toBeGreaterThan(0);
-    // A row stored before staircases were kept.
+    expect(fresh.run).toMatchObject({ status: { motion: "complete", form: "complete" }, checks_missed: 0, device: "computer" });
+    // A row stored before staircases and run info were kept: only the row is read, never the session.
     const rows = (db as unknown as { summaries: Map<string, Partial<SummaryRow>> }).summaries;
     delete rows.get(id)!.staircases;
+    delete rows.get(id)!.run;
     const old = parseHistory(await (await fetch(`${(await start(db)).base}/history?pseudonym=quiet%20heron`)).json())!.sessions[0]!;
-    expect(old.staircases).toEqual(fresh.staircases);
+    expect(old.staircases).toBeNull();
+    expect(old.run).toBeNull();
   });
 
   it("returns at most 50 sessions", async () => {
@@ -283,6 +297,43 @@ describe("GET /history", () => {
     for (const query of ["", "?pseudonym=", "?pseudonym=%20%20", `?pseudonym=${"p".repeat(61)}`]) {
       expect((await fetch(`${base}/history${query}`)).status, query).toBe(400);
     }
+  });
+});
+
+describe("GET /history/sessions", () => {
+  it("returns that pseudonym's sessions in full, scrubbed as the export has them", async () => {
+    const db = new MemoryStore();
+    const a = await db.storeSession(withThresholds(14.2, 31.5, { started_at: "2026-10-18T19:30:00.000Z", duration_s: 600 }));
+    await db.storeSession(withThresholds(9, 18, { answers: { pseudonym: "Someone Else" } }));
+    const { base } = await start(db);
+    const res = await fetch(`${base}/history/sessions?pseudonym=Quiet%20Heron`);
+    expect(res.status).toBe(200);
+    const raw = parseRawHistory(await res.json())!;
+    expect(raw.pseudonym).toBe("quiet heron");
+    expect(raw.sessions.map(s => s.submission_id)).toEqual([a]);
+    expect(raw.sessions[0]!.started_at).toBe("2026-10-18T19:00:00.000Z");
+    expect(raw.sessions[0]!.trials.length).toBeGreaterThan(0);
+    expect(raw.sessions[0]!.trials.some(t => "at" in t)).toBe(false);
+  });
+
+  it("has its own limit, separate from /history and the other GETs", async () => {
+    const { base } = await start(new MemoryStore(), { historySessionsPerMinute: 1 });
+    expect((await fetch(`${base}/history/sessions?pseudonym=quiet%20heron`)).status).toBe(200);
+    expect((await fetch(`${base}/history/sessions?pseudonym=quiet%20heron`)).status).toBe(429);
+    expect((await fetch(`${base}/history?pseudonym=quiet%20heron`)).status).toBe(200);
+    expect((await fetch(`${base}/groups`)).status).toBe(200);
+  });
+
+  it("isn't used up by /history", async () => {
+    const { base } = await start(new MemoryStore(), { historyPerMinute: 1 });
+    expect((await fetch(`${base}/history?pseudonym=quiet%20heron`)).status).toBe(200);
+    expect((await fetch(`${base}/history?pseudonym=quiet%20heron`)).status).toBe(429);
+    expect((await fetch(`${base}/history/sessions?pseudonym=quiet%20heron`)).status).toBe(200);
+  });
+
+  it("returns 400 without a pseudonym", async () => {
+    const { base } = await start();
+    expect((await fetch(`${base}/history/sessions`)).status).toBe(400);
   });
 });
 

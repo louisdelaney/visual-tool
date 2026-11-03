@@ -10,7 +10,7 @@ export function PrivacyPage() {
         <h2 id="privacy-h">Privacy and risks</h2>
         <ul className="key-points">
           <li><strong>Just for fun.</strong> This is a casual online test for curiosity only, and it isn't medical advice.</li>
-          <li><strong>All contributed data is public.</strong> Anyone can <a href={pageHref("data")} onClick={e => { e.preventDefault(); show("data"); }}>download</a> every result and answer people choose to contribute. The download is refreshed once a day; in it, times are rounded to the hour.</li>
+          <li><strong>All contributed data is public.</strong> Anyone can <a href={pageHref("data")} onClick={e => { e.preventDefault(); show("data"); }}>download</a> every result and answer people choose to contribute. The download is refreshed once a day.</li>
           <li><strong>It's anonymous.</strong> There are no accounts, and no name, email or IP address is stored with your results.</li>
           <li><strong>Nothing that identifies you is logged.</strong> Only what's listed below is sent, and only if you choose to contribute. The backend keeps a short anonymous note of each request for a week, with nothing about you in it (see "What the backend logs").</li>
         </ul>
@@ -20,9 +20,10 @@ export function PrivacyPage() {
         <ul>
           <li>Your answers from the first step: whether you have or suspect a visual perceptual disorder, which one, whether you've been diagnosed, psychedelic use, an estimate of how often and which ones, whether you take medications and which, notes, where you found the test, and your pseudonym if you gave one.</li>
           <li>Your results: whether you took the full or quick test, thresholds, sensitivities, and every trial (what was shown, your answer, how long you took).</li>
-          <li>Technical details needed to make sense of the results: your screen size and the card measurement, viewing distance, refresh rate, window size, browser and version (for example "Chrome 131 on macOS"), language setting, and the date and time of the test.</li>
+          <li>Technical details needed to make sense of the results: the card measurement, viewing distance, refresh rate, window size and pixel density, whether you used a computer or a tablet, your browser and its main version (for example "Chrome 131"), the hour the test started (never the exact time) and how long it took.</li>
         </ul>
-        <p>If you choose not to contribute, nothing is sent. Your results stay in your browser, and you can save them as a file.</p>
+        <p>Only what's needed to read the results is collected. Nothing else is sent, however harmless it looks: not your screen's resolution, your language setting, your operating system or the exact time of anything.</p>
+        <p>If you choose not to contribute, nothing is sent. Your results stay in your browser, and you can save them as a file. Saved files, PDFs included, are made in your browser: nothing is sent to make them.</p>
 
         <h3>Your pseudonym</h3>
         <p>A pseudonym is completely optional. Leave it blank and your results can't be looked up or linked to each other: that's the most private choice.</p>
@@ -50,15 +51,15 @@ export function PrivacyPage() {
 
         <h3>Risks to you</h3>
         <ul>
-          <li><strong>Someone who knows your pseudonym</strong> can see all your contributed results and answers, including any health conditions, medications and psychedelic use.</li>
+          <li><strong>Someone who knows your pseudonym</strong> can see and download all your contributed results and answers, including any health conditions, medications and psychedelic use.</li>
           <li><strong>Anything you type is public</strong>, in the notes, medications, psychedelics or "other" boxes. Don't include names, places, contact details or anything else that identifies you.</li>
-          <li><strong>Details can add up.</strong> Someone who already knows a lot about you, such as when you took the test and on what computer, might recognise your record from its date, screen and browser. Leaving out a pseudonym and keeping notes general makes that much harder.</li>
+          <li><strong>Details can add up.</strong> Someone who already knows a lot about you, such as when you took the test and on what computer, might recognise your record from the hour it was taken, its window size and its browser. Leaving out a pseudonym and keeping notes general makes that much harder.</li>
           <li><strong>You can only take a contribution back straight away.</strong> Right after sending, the Results page offers to remove that session from the database, until you run the test again or close the tab. It uses a secret code the backend gives your browser when the session is sent; the browser keeps it in memory only, and the backend stores only a scrambled form of it, which isn't in the download. After that there's no way to prove a result is yours, so no way to remove it. A removed session leaves the group figures at once and the download at its next daily refresh, but anyone who downloaded it before then keeps their copy. Only contribute what you're happy to have public for good.</li>
           <li><strong>The test shows flickering and moving dots.</strong> Don't take it if you have photosensitive epilepsy, and stop if you feel unwell.</li>
         </ul>
 
         <h3>On this device</h3>
-        <p>Your browser remembers your card measurement, so you don't have to redo it next time. Nothing else is stored on your device, and that measurement never leaves it.</p>
+        <p>Your browser remembers your card measurement, so you don't have to redo it next time. Nothing else is stored on your device, and the measurement is only sent as part of a session you choose to contribute.</p>
       </div>
       <div className="actions"><button type="button" className="btn secondary back" onClick={back}>Back</button></div>
     </section>

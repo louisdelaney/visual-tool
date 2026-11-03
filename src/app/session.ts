@@ -2,7 +2,8 @@
 import { Core, PROTOCOLS, TEST_VERSION } from "../core";
 import type { Results, Session, TaskResult } from "./types";
 import { dpr, PAGE_NAME, settingsFor } from "./protocol";
-import { round, shortUA } from "./format";
+import { browserName, round } from "./format";
+import { thisDevice } from "./device";
 import { getState, setState } from "./store";
 
 export function newSeed(): number {
@@ -27,7 +28,7 @@ export function createSession(): Session {
     calibration: calib ? { ...calib } : null,
     distance: distance ? { ...distance, readings: [...distance.readings] } : null,
     frameMs: null, refreshHz: null, display: null, attempts: 0,
-    env: { browser: shortUA(navigator.userAgent), language: navigator.language, screen: [screen.width, screen.height], viewport: [window.innerWidth, window.innerHeight], devicePixelRatio: dpr() },
+    env: { browser: browserName(navigator.userAgent), device: thisDevice(), viewport: [window.innerWidth, window.innerHeight], devicePixelRatio: dpr() },
     tasks: {}, trials: [], results: null,
     contribution: !contribution ? null
       : contribution.contribute ? { contribute: true, submission_id: newId(), sent_at: null, answers: { ...contribution.answers } }

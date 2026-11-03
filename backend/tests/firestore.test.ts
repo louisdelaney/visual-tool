@@ -17,9 +17,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("Db on the Firestore emula
   let db: Db;
 
   // Stored in this order; the first and last share a pseudonym, and the last started earliest.
-  const controlA = withThresholds(10.2, 21.0, { started_at: "2026-10-18T19:30:00.000Z", finished_at: "2026-10-18T19:39:00.000Z", answers: { pseudonym: "Quiet Heron", notes: "second run" } });
-  const controlB = withThresholds(12.4, 25.5, { started_at: "2026-10-19T08:00:00.000Z", finished_at: "2026-10-19T08:09:00.000Z", answers: { pseudonym: null } });
-  const psychedelicsC = withThresholds(9.1, 19.3, { started_at: "2026-08-02T20:00:00.000Z", finished_at: "2026-08-02T20:09:00.000Z", answers: { pseudonym: " quiet  heron ", psychedelics: "yes", medications: ["Lamotrigine"] } });
+  const controlA = withThresholds(10.2, 21.0, { started_at: "2026-10-18T19:30:00.000Z", duration_s: 540, answers: { pseudonym: "Quiet Heron", notes: "second run" } });
+  const controlB = withThresholds(12.4, 25.5, { started_at: "2026-10-19T08:00:00.000Z", duration_s: 540, answers: { pseudonym: null } });
+  const psychedelicsC = withThresholds(9.1, 19.3, { started_at: "2026-08-02T20:00:00.000Z", duration_s: 540, answers: { pseudonym: " quiet  heron ", psychedelics: "yes", medications: ["Lamotrigine"] } });
   const stored: AnySessionExport[] = [controlA, controlB, psychedelicsC];
   const ids: string[] = [];
 

@@ -29,7 +29,6 @@ export interface Calibration {
   cardPx: number;
   pxPerMm: number;
   dpr: number;
-  measuredAt: string;
 }
 
 export interface BlindSpotReading {
@@ -77,7 +76,6 @@ export interface Trial {
   scale: number;
   px_per_deg: number;
   seed: number | null;
-  at: string;
 }
 
 export interface TaskRecord {
@@ -112,11 +110,14 @@ export interface Display {
   fullscreen: boolean;
 }
 
+/** Sorted by app/device.ts. */
+export type DeviceKind = "computer" | "tablet" | "phone";
+
 export interface Environment {
-  /** Browser, major version and system, like "Chrome 131 on macOS": not the full user-agent string, which helps fingerprint people. */
+  /** The browser and its major version, like "Chrome 131": no system or build number, which only help fingerprint people. */
   browser: string;
-  language: string;
-  screen: [number, number];
+  /** A computer, or a tablet standing in for one. Phones can't run the tasks. */
+  device: DeviceKind;
   viewport: [number, number];
   devicePixelRatio: number;
 }

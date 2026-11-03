@@ -1,6 +1,6 @@
-// Checks a POST /sessions body before it's stored. The body is kept as sent, so this doesn't
-// rebuild it field by field: it checks the things the groups and histories depend on, and that
-// the session could have come from a real run. Anything else passes through.
+// Checks a POST /sessions body before it's stored. The body is kept as sent, less what scrub.ts
+// takes out, so this doesn't rebuild it field by field: it checks the things the groups and
+// histories depend on, and that the session could have come from a real run.
 import { SCHEMA_NAME, SCHEMA_VERSION, testTypeOf, type AnySessionExport } from "../../src/app/schema";
 import { PROTOCOLS, TEST_TYPES, TEST_VERSION, type TestType } from "../../src/core/protocol";
 
@@ -63,11 +63,17 @@ export function validateSession(body: unknown): Validation {
   if (body.test_version !== TEST_VERSION) return bad(`test_version must be ${TEST_VERSION}, the current test`);
 
   if (!isDate(body.started_at)) return bad("started_at must be a date");
-  if (body.finished_at !== null && !isDate(body.finished_at)) return bad("finished_at must be a date or null");
-  if (typeof body.finished_at === "string") {
-    const ms = Date.parse(body.finished_at) - Date.parse(body.started_at);
-    if (ms < MIN_RUN_MS || ms > MAX_RUN_MS) return bad("the run's duration isn't plausible");
+  let runMs: number | null;
+  if (body.schema_version === 1) {
+    if (body.finished_at !== null && !isDate(body.finished_at)) return bad("finished_at must be a date or null");
+    runMs = typeof body.finished_at === "string" ? Date.parse(body.finished_at) - Date.parse(body.started_at) : null;
+  } else {
+    if (body.duration_s !== null && !isNum(body.duration_s)) return bad("duration_s must be a number or null");
+    runMs = body.duration_s === null ? null : body.duration_s * 1000;
+    // Phones can't run the tasks; the page doesn't let them start.
+    if (!isObj(body.environment) || (body.environment.device !== "computer" && body.environment.device !== "tablet")) return bad("environment.device must be computer or tablet");
   }
+  if (runMs !== null && (runMs < MIN_RUN_MS || runMs > MAX_RUN_MS)) return bad("the run's duration isn't plausible");
 
   if (!isObj(body.contribution) || body.contribution.contribute !== true) return bad("only contributed sessions are accepted");
   const answers = body.contribution.answers;

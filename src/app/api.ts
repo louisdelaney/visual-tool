@@ -5,7 +5,7 @@
 //   GET  {VITE_API_URL}/history?pseudonym=P          every session sent with that pseudonym (at most 50)
 // Empty until the backend exists: nothing is sent, and no comparison is shown.
 import { parseGroups, type GroupsResponse } from "./comparison";
-import { normalizePseudonym, parseHistory, suggestPseudonym, type HistoryResponse } from "./history";
+import { normalizePseudonym, parseHistory, parseRawHistory, suggestPseudonym, type HistoryResponse, type RawHistory } from "./history";
 import { ApiError, parseErrorId } from "./failure";
 import type { SessionExport } from "./schema";
 import type { TestType } from "../core/protocol";
@@ -56,6 +56,15 @@ export async function fetchHistory(pseudonym: string, signal?: AbortSignal): Pro
   const history = parseHistory(await r.json());
   if (!history) throw new Error("The history wasn't in the expected format");
   return history;
+}
+
+/** Every session sent with a pseudonym, in full, for saving from the Results by pseudonym page. */
+export async function fetchRawHistory(pseudonym: string): Promise<RawHistory> {
+  const r = await fetch(`${API_URL}/history/sessions?pseudonym=${encodeURIComponent(normalizePseudonym(pseudonym))}`, PRIVATE);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const raw = parseRawHistory(await r.json());
+  if (!raw) throw new Error("The sessions weren't in the expected format");
+  return raw;
 }
 
 /**
