@@ -178,7 +178,7 @@ const OLD_KEY = "form-motion-coherence/v1";
       log("  form flash ms: n", fl.length, "min", Math.min(...fl), "max", Math.max(...fl));
       log("  motion display ms: n", md.length, "min", md[0], "median", md[md.length >> 1], "max", md[md.length - 1], "| median rt", motion.map(t => t.rt_ms).sort((a, b) => a - b)[motion.length >> 1]);
       log("  export settings:", JSON.stringify(data.settings), "| test_version:", data.test_version, "| schema_version:", data.schema_version);
-      check(data.schema === "visual-tool/session" && data.schema_version === 2 && data.test_version === 2, `[clinic] export versions wrong: ${data.schema} ${data.schema_version} ${data.test_version}`);
+      check(data.schema === "visual-tool/session" && data.schema_version === 3 && data.test_version === 2, `[clinic] export versions wrong: ${data.schema} ${data.schema_version} ${data.test_version}`);
       // 200 ms targets, allowing one late frame from a busy headless machine
       check(fl.length > 0 && Math.min(...fl) >= 195 && Math.max(...fl) <= 240, `[clinic] form flashes ran ${Math.min(...fl)}-${Math.max(...fl)} ms`);
       check(md.length === motion.length && md[0] >= 195 && md[md.length - 1] <= 240, `[clinic] motion displays ran ${md[0]}-${md[md.length - 1]} ms`);
