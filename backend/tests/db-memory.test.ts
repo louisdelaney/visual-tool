@@ -137,11 +137,11 @@ describe("historyFor", () => {
     expect(await store.historyFor("never used")).toEqual([]);
   });
 
-  it("stops at the limit", async () => {
+  it("keeps the newest rows past the limit, still oldest first", async () => {
     const store = new MemoryStore();
     for (let i = 0; i < 3; i++) await store.storeSession(makeSession({ started_at: `2026-10-0${i + 1}T10:00:00.000Z`, duration_s: null }));
     const rows = await store.historyFor("quiet heron", 2);
-    expect(rows.map(r => r.started_at)).toEqual(["2026-10-01T10:00:00.000Z", "2026-10-02T10:00:00.000Z"]);
+    expect(rows.map(r => r.started_at)).toEqual(["2026-10-02T10:00:00.000Z", "2026-10-03T10:00:00.000Z"]);
   });
 });
 

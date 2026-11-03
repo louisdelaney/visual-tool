@@ -278,6 +278,16 @@ describe("GET /history", () => {
     expect(parsed!.sessions).toHaveLength(50);
   });
 
+  it("still shows a new session once there are more than 50", async () => {
+    const db = new MemoryStore();
+    for (let i = 0; i < 55; i++) await db.storeSession(withThresholds(10, 20, { started_at: "2026-10-01T10:00:00.000Z", duration_s: null }));
+    const latest = await db.storeSession(withThresholds(12, 24, { started_at: "2026-10-20T10:00:00.000Z", duration_s: null }));
+    const { base } = await start(db);
+    const sessions = parseHistory(await (await fetch(`${base}/history?pseudonym=quiet%20heron`)).json())!.sessions;
+    expect(sessions).toHaveLength(50);
+    expect(sessions.at(-1)!.submission_id).toBe(latest);
+  });
+
   it("has its own limit, separate from the other GETs", async () => {
     const { base } = await start(new MemoryStore(), { historyPerMinute: 1 });
     expect((await fetch(`${base}/history?pseudonym=quiet%20heron`)).status).toBe(200);

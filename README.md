@@ -73,7 +73,7 @@ Six endpoints under `VITE_API_URL`. The page calls the first five from the brows
 
 The page validates the response and shows nothing from one that doesn't match (see `src/app/comparison.ts`).
 
-`GET /history?pseudonym=P`: every session sent with that pseudonym (at most 50, oldest first), for the "Results by pseudonym" page and the questions page's "Fill in last answers" button. Each has its type of test (`"full"` or `"quick"`), its three measures, medications, notes, the points of its two staircase charts (coherence, correct and reversal for each scored trial), `run` (each task's status, easy check trials answered wrongly, device, viewing distance and whether it ran full screen) and `answers`: the other answers sent with it, which the button fills the questions in from (all but the notes). They're all public in the export already. Sessions stored before the points or `run` were kept in the summary row send them as `null`: `/history` reads only the rows. Pseudonyms are matched in stored form: trimmed, lower case, inner spaces collapsed (the page sends them that way). There's no password: the dataset is public, and the pseudonym is optional.
+`GET /history?pseudonym=P`: every session sent with that pseudonym, oldest first (the newest 50 when there are more), for the "Results by pseudonym" page and the questions page's "Fill in last answers" button. Each has its type of test (`"full"` or `"quick"`), its three measures, medications, notes, the points of its two staircase charts (coherence, correct and reversal for each scored trial), `run` (each task's status, easy check trials answered wrongly, device, viewing distance and whether it ran full screen) and `answers`: the other answers sent with it, which the button fills the questions in from (all but the notes). They're all public in the export already. Sessions stored before the points or `run` were kept in the summary row send them as `null`: `/history` reads only the rows. Pseudonyms are matched in stored form: trimmed, lower case, inner spaces collapsed (the page sends them that way). There's no password: the dataset is public, and the pseudonym is optional.
 
 ```json
 {
@@ -92,7 +92,7 @@ The page validates the response and shows nothing from one that doesn't match (s
 }
 ```
 
-`GET /history/sessions?pseudonym=P`: the same sessions in full, as the public export has them (times to the hour, no trial times), each with its `submission_id`, for the Results by pseudonym page's save buttons. The page only asks for them when someone saves. It shares `/history`'s rate limit.
+`GET /history/sessions?pseudonym=P`: the same sessions in full, as the public export has them (times to the hour, no trial times), each with its `submission_id`, for the Results by pseudonym page's save buttons. The page only asks for them when someone saves. It has its own, lower rate limit, since each response can be several MB.
 
 ```json
 { "pseudonym": "quiet-heron", "sessions": [ { "schema": "visual-tool/session", "submission_id": "3eed1f03-…", … } ] }
