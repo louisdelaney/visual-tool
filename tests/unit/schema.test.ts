@@ -43,14 +43,14 @@ const session: Session = {
   env: { browser: "Chrome 131", device: "computer", viewport: [1440, 900], devicePixelRatio: 2 },
   tasks: { motion: { task: "motion", staircase: new Staircase(), trials: [], endedEarly: false } },
   trials: [], results: null,
-  contribution: { contribute: true, submission_id: "abc", sent_at: null, sending: true, failed: false, delete_token: "secret", removal: "failed", answers: { pseudonym: null, perceptual_disorder: "no", condition: null, other_condition: null, diagnosed: null, psychedelics: "no", psychedelic_uses: null, psychedelics_used: null, takes_medication: null, medications: null, notes: null, found_via: null, found_via_other: null } },
+  contribution: { contribute: true, submission_id: "abc", sent_at: null, sending: true, failed: false, delete_token: "secret", removal: "failed", answers: { pseudonym: null, age_range: null, perceptual_disorder: "no", condition: null, other_condition: null, diagnosed: null, psychedelics: "no", psychedelic_uses: null, months_since_psychedelics: null, psychedelics_used: null, takes_medication: null, medications: null, notes: null, found_via: null, found_via_other: null } },
 };
 
-test("schema version 2: the export's fields are unchanged", () => {
+test("schema version 3: the export's fields are unchanged", () => {
   const out = exportObject(session);
-  assert.equal(SCHEMA_VERSION, 2, "SCHEMA_VERSION changed: update the expected fields below to match");
+  assert.equal(SCHEMA_VERSION, 3, "SCHEMA_VERSION changed: update the expected fields below to match");
   assert.equal(out.schema, "visual-tool/session");
-  assert.equal(out.schema_version, 2);
+  assert.equal(out.schema_version, 3);
   assert.equal(out.test_version, TEST_VERSION);
   assert.equal(out.test_type, "full");
   assert.deepEqual(Object.keys(out), [
@@ -59,6 +59,10 @@ test("schema version 2: the export's fields are unchanged", () => {
     "contribution", "results", "trials",
   ], "The export's fields changed. Bump SCHEMA_VERSION in src/app/schema.ts and update its type.");
   assert.deepEqual(Object.keys(out.contribution ?? {}), ["contribute", "submission_id", "answers"], "Sending and removal state must not be exported");
+  assert.deepEqual(Object.keys(out.contribution?.contribute ? out.contribution.answers : {}), [
+    "pseudonym", "age_range", "perceptual_disorder", "condition", "other_condition", "diagnosed", "psychedelics", "psychedelic_uses", "months_since_psychedelics",
+    "psychedelics_used", "takes_medication", "medications", "notes", "found_via", "found_via_other",
+  ], "The answers changed. Bump SCHEMA_VERSION in src/app/schema.ts and update its type.");
   assert.deepEqual(Object.keys(out.environment), ["browser", "device", "viewport", "devicePixelRatio"]);
 });
 

@@ -129,9 +129,14 @@ export type Condition = "vss" | "hppd" | "other";
 /** The page now asks only Yes or No; "prefer-not-to-say" is kept for sessions sent before that. */
 export type PsychedelicUse = "yes" | "no" | "prefer-not-to-say";
 export type FoundVia = "reddit" | "forum" | "other";
+/** Age in bands, not years: enough to read results by age without narrowing down who someone is. */
+export type AgeRange = "under-18" | "18-24" | "25-34" | "35-44" | "45-54" | "55-64" | "65-plus";
+export const AGE_RANGES: readonly AgeRange[] = ["under-18", "18-24", "25-34", "35-44", "45-54", "55-64", "65-plus"];
 
 export interface ContributionAnswers {
   pseudonym: string | null;
+  /** Their age band, if they said. From schema version 3. */
+  age_range: AgeRange | null;
   perceptual_disorder: YesNo | null;
   /** Which disorder, when perceptual_disorder is "yes": one only. */
   condition: Condition | null;
@@ -140,6 +145,11 @@ export interface ContributionAnswers {
   psychedelics: PsychedelicUse | null;
   /** The person's estimate of how many times they've used psychedelics: a whole number, 1 or more. */
   psychedelic_uses: number | null;
+  /**
+   * How long since they last used psychedelics, in whole months (years × 12 + months, as they
+   * entered it): 0 is under a month. Only when psychedelics is "yes". From schema version 3.
+   */
+  months_since_psychedelics: number | null;
   /** Which psychedelics they've used, one entry each in their own words; only when psychedelics is "yes". */
   psychedelics_used: string[] | null;
   /** Whether they take any medications, if they said. */

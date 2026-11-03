@@ -122,9 +122,11 @@ async function storedSession(id, dataFile) {
     await p.check('#contrib-form input[name="contribute"][value="yes"]');
     await p.fill("#cq-pseudonym", PSEUDONYM);
     await p.click("#contrib-go"); await sleep(150);
+    await p.selectOption("#cq-age", "25-34");
     await p.check('#questions-form input[name="disorder"][value="no"]');
     await p.check('#questions-form input[name="psychedelics"][value="yes"]');
     await p.fill("#cq-uses", "5");
+    await p.fill("#cq-since-years", "1"); await p.fill("#cq-since-months", "2");
     for (const drug of ["LSD", "psilocybin"]) { await p.fill("#cq-psychedelics-used", drug); await p.press("#cq-psychedelics-used", "Enter"); }
     await p.check('#questions-form input[name="medication"][value="no"]');
     await p.fill("#cq-notes", "end-to-end test");
@@ -206,7 +208,7 @@ async function storedSession(id, dataFile) {
       const a = body.contribution?.answers ?? {};
       log("contribute: stored answers:", JSON.stringify(a));
       check(JSON.stringify(a) === JSON.stringify(exported.contribution?.answers), "stored answers differ from the export");
-      check(a.pseudonym === PSEUDONYM && a.psychedelics === "yes" && a.psychedelic_uses === 5 && JSON.stringify(a.psychedelics_used) === JSON.stringify(["LSD", "psilocybin"]) && a.notes === "end-to-end test",
+      check(a.pseudonym === PSEUDONYM && a.age_range === "25-34" && a.psychedelics === "yes" && a.psychedelic_uses === 5 && a.months_since_psychedelics === 14 && JSON.stringify(a.psychedelics_used) === JSON.stringify(["LSD", "psilocybin"]) && a.notes === "end-to-end test",
         "the stored answers aren't the ones typed in");
     }
 

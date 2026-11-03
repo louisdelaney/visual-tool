@@ -4,7 +4,7 @@
 import { useState, type FormEvent } from "react";
 import { API_URL, fetchHistory, freshPseudonym } from "../app/api";
 import { normalizePseudonym } from "../app/history";
-import type { Condition, ContributionAnswers, ContributionChoice, FoundVia, YesNo } from "../app/types";
+import type { AgeRange, Condition, ContributionAnswers, ContributionChoice, FoundVia, YesNo } from "../app/types";
 import { getState, setState } from "../app/store";
 import { thisDevice } from "../app/device";
 import { show, showHistory } from "../app/flow";
@@ -13,6 +13,7 @@ import { ChipInput, NO_CHIPS, chipValues, type Chips } from "../components/ChipI
 interface Draft {
   contribute: YesNo | "";
   pseudonym: string;
+  ageRange: AgeRange | "";
   disorder: YesNo | "";
   condition: Condition | "";
   otherCondition: string;
@@ -20,6 +21,9 @@ interface Draft {
   psychedelics: YesNo | "";
   /** As typed; checked to be a whole number on Continue. */
   uses: string;
+  /** How long since they last used psychedelics, as typed in its two boxes. */
+  sinceYears: string;
+  sinceMonths: string;
   psychedelicsUsed: Chips;
   takesMedication: YesNo | "";
   medications: Chips;
@@ -28,7 +32,7 @@ interface Draft {
   foundViaOther: string;
 }
 
-const EMPTY: Draft = { contribute: "", pseudonym: "", disorder: "", condition: "", otherCondition: "", diagnosed: "", psychedelics: "", uses: "", psychedelicsUsed: NO_CHIPS, takesMedication: "", medications: NO_CHIPS, notes: "", foundVia: "", foundViaOther: "" };
+const EMPTY: Draft = { contribute: "", pseudonym: "", ageRange: "", disorder: "", condition: "", otherCondition: "", diagnosed: "", psychedelics: "", uses: "", sinceYears: "", sinceMonths: "", psychedelicsUsed: NO_CHIPS, takesMedication: "", medications: NO_CHIPS, notes: "", foundVia: "", foundViaOther: "" };
 
 /** The form as it was answered, for coming back to change something. */
 function fromChoice(c: ContributionChoice | null): Draft {
@@ -41,6 +45,7 @@ function fromAnswers(a: ContributionAnswers): Draft {
   return {
     contribute: "yes",
     pseudonym: a.pseudonym ?? "",
+    ageRange: a.age_range ?? "",
     disorder: a.perceptual_disorder ?? "",
     condition: a.condition ?? "",
     otherCondition: a.other_condition ?? "",
@@ -48,6 +53,8 @@ function fromAnswers(a: ContributionAnswers): Draft {
     // "prefer-not-to-say" is no longer offered: leaving the question blank says the same.
     psychedelics: a.psychedelics === "yes" || a.psychedelics === "no" ? a.psychedelics : "",
     uses: a.psychedelic_uses == null ? "" : String(a.psychedelic_uses),
+    sinceYears: a.months_since_psychedelics == null ? "" : String(Math.floor(a.months_since_psychedelics / 12)),
+    sinceMonths: a.months_since_psychedelics == null ? "" : String(a.months_since_psychedelics % 12),
     psychedelicsUsed: { items: a.psychedelics_used ?? [], typing: "" },
     takesMedication: a.takes_medication ?? "",
     medications: { items: a.medications ?? [], typing: "" },
@@ -61,6 +68,8 @@ const date = (iso: string): string => new Date(iso).toLocaleDateString("en-GB", 
 
 const FOUND_VIA: [FoundVia, string][] = [["reddit", "Reddit"], ["forum", "Forum"], ["other", "Other"]];
 
+const AGE_LABELS: [AgeRange, string][] = [["under-18", "Under 18"], ["18-24", "18 to 24"], ["25-34", "25 to 34"], ["35-44", "35 to 44"], ["45-54", "45 to 54"], ["55-64", "55 to 64"], ["65-plus", "65 or over"]];
+
 /** A whole number of uses, 1 or more, or null if the text isn't one. */
 function parseUses(text: string): number | null {
   const t = text.trim();
@@ -68,6 +77,17 @@ function parseUses(text: string): number | null {
   const n = Number(t);
   return n >= 1 && n <= 100000 ? n : null;
 }
+/**
+ * Whole months since last use from the years and months boxes, or null unless both are whole
+ * numbers in range (years up to 100, months 0 to 11). One box left blank counts as 0; both blank is no answer.
+ */
+function parseSince(years: string, months: string): number | null {
+  const y = years.trim(), m = months.trim();
+  if ((!y && !m) || !/^\d*$/.test(y) || !/^\d*$/.test(m)) return null;
+  const yn = Number(y || 0), mn = Number(m || 0);
+  return yn <= 100 && mn <= 11 ? yn * 12 + mn : null;
+}
+
 const CONDITIONS: [Condition, string][] = [["vss", "Visual snow syndrome (VSS)"], ["hppd", "Hallucinogen persisting perception disorder (HPPD)"], ["other", "Other"]];
 
 // Only answers to questions that were shown are kept, so a hidden follow-up never sends a stale value.
@@ -75,12 +95,14 @@ function toAnswers(d: Draft): ContributionAnswers {
   const condition = d.disorder === "yes" ? d.condition || null : null;
   return {
     pseudonym: normalizePseudonym(d.pseudonym) || null,
+    age_range: d.ageRange || null,
     perceptual_disorder: d.disorder || null,
     condition,
     other_condition: condition === "other" ? d.otherCondition.trim() || null : null,
     diagnosed: d.disorder === "yes" ? d.diagnosed || null : null,
     psychedelics: d.psychedelics || null,
     psychedelic_uses: d.psychedelics === "yes" ? parseUses(d.uses) : null,
+    months_since_psychedelics: d.psychedelics === "yes" ? parseSince(d.sinceYears, d.sinceMonths) : null,
     psychedelics_used: d.psychedelics === "yes" ? chipValues(d.psychedelicsUsed) : null,
     takes_medication: d.takesMedication || null,
     medications: d.takesMedication === "yes" ? chipValues(d.medications) : null,
@@ -92,17 +114,18 @@ function toAnswers(d: Draft): ContributionAnswers {
 
 /** A required question left unanswered: which one, what to say beside it, and the field to focus. */
 interface Missing {
-  field: "contribute" | "disorder" | "condition" | "diagnosed" | "uses";
+  field: "contribute" | "disorder" | "condition" | "diagnosed" | "uses" | "since";
   message: string;
   focus: string;
 }
 
-/** The first required answer that's missing. */
-function missingAnswer(a: ContributionAnswers): Missing | null {
+/** The first required answer that's missing, or an optional one typed in a form it can't be sent in. */
+function missingAnswer(a: ContributionAnswers, d: Draft): Missing | null {
   if (!a.perceptual_disorder) return { field: "disorder", message: "Please choose Yes or No.", focus: "cq-disorder-yes" };
   if (a.perceptual_disorder === "yes" && !a.condition) return { field: "condition", message: "Please choose which disorder.", focus: "cq-vss" };
   if (a.perceptual_disorder === "yes" && !a.diagnosed) return { field: "diagnosed", message: "Please choose Yes or No.", focus: "cq-diagnosed-yes" };
   if (a.psychedelics === "yes" && a.psychedelic_uses == null) return { field: "uses", message: "Please enter a whole number, 1 or more.", focus: "cq-uses" };
+  if (a.psychedelics === "yes" && a.months_since_psychedelics == null && (d.sinceYears.trim() || d.sinceMonths.trim())) return { field: "since", message: "Please use whole numbers, with months from 0 to 11, or leave both boxes blank.", focus: "cq-since-years" };
   return null;
 }
 
@@ -207,7 +230,7 @@ export function ContributePage({ part }: { part: "contribute" | "questions" }) {
     if (key === "pseudonym") setCopied("");
     setStatus("");
     // Answering the flagged question clears its highlight.
-    if (key === missing?.field) setMissing(null);
+    if (key === missing?.field || (missing?.field === "since" && (key === "sinceYears" || key === "sinceMonths"))) setMissing(null);
   };
   const flagMissing = (m: Missing): void => {
     setMissing(m);
@@ -225,7 +248,8 @@ export function ContributePage({ part }: { part: "contribute" | "questions" }) {
     try {
       const last = (await fetchHistory(pseudonym)).sessions.filter(e => e.answers).pop();
       if (!last?.answers) { setFillStatus(`No earlier answers were found for ${pseudonym}.`); return; }
-      const previous = fromAnswers({ ...last.answers, pseudonym, medications: last.medications, notes: null });
+      // How long since last use has changed since then, so it's asked again.
+      const previous = fromAnswers({ ...last.answers, pseudonym, medications: last.medications, notes: null, months_since_psychedelics: null });
       setDraft(prev => ({ ...previous, contribute: "yes", pseudonym: prev.pseudonym, notes: prev.notes }));
       setMissing(null);
       setStatus("");
@@ -251,7 +275,7 @@ export function ContributePage({ part }: { part: "contribute" | "questions" }) {
   const onSubmitAnswers = (e: FormEvent): void => {
     e.preventDefault();
     const answers = toAnswers(d);
-    const m = missingAnswer(answers);
+    const m = missingAnswer(answers, d);
     if (m) { flagMissing(m); return; }
     setState({ contribution: { contribute: true, answers } });
     show("setup");
@@ -324,6 +348,15 @@ export function ContributePage({ part }: { part: "contribute" | "questions" }) {
               <input type="number" id="cq-uses" min={1} step={1} inputMode="numeric" value={d.uses} onChange={e => set("uses", e.target.value)} />
               <FieldError missing={missing} field="uses" />
             </fieldset>
+            <fieldset {...flag("since")}>
+              <legend>How long since you last used them? (optional)</legend>
+              <div className="inline since">
+                <label className="since-part"><input type="number" id="cq-since-years" min={0} max={100} step={1} inputMode="numeric" value={d.sinceYears} onChange={e => set("sinceYears", e.target.value)} /><span>years</span></label>
+                <label className="since-part"><input type="number" id="cq-since-months" min={0} max={11} step={1} inputMode="numeric" value={d.sinceMonths} onChange={e => set("sinceMonths", e.target.value)} /><span>months</span></label>
+              </div>
+              <p className="hint">Your best estimate is fine. If it's been less than a month, enter 0 and 0.</p>
+              <FieldError missing={missing} field="since" />
+            </fieldset>
             <fieldset>
               <legend><label htmlFor="cq-psychedelics-used">Which ones have you used? (optional)</label></legend>
               <ChipInput id="cq-psychedelics-used" noun="psychedelic" value={d.psychedelicsUsed} onChange={c => set("psychedelicsUsed", c)} />
@@ -347,6 +380,14 @@ export function ContributePage({ part }: { part: "contribute" | "questions" }) {
             </fieldset>
           </div>
         )}
+
+        <fieldset>
+          <legend><label htmlFor="cq-age">How old are you? (optional)</label></legend>
+          <select id="cq-age" value={d.ageRange} onChange={e => set("ageRange", e.target.value as AgeRange | "")}>
+            <option value="">Choose…</option>
+            {AGE_LABELS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </fieldset>
 
           <section className="q-section" aria-labelledby="cq-extras-h">
             <h3 id="cq-extras-h">Optional extras</h3>

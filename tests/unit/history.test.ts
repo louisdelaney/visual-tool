@@ -66,13 +66,17 @@ test("history: staircases are optional, so an older backend's entries still pars
 test("history: previous answers parse, and bad or missing ones only leave the form to fill in by hand", () => {
   const ok = sampleHistory("x").sessions[0]!;
   const answers = {
-    perceptual_disorder: "yes", condition: "vss", other_condition: null, diagnosed: "no", psychedelics: "yes", psychedelic_uses: 3,
+    age_range: "18-24", perceptual_disorder: "yes", condition: "vss", other_condition: null, diagnosed: "no", psychedelics: "yes", psychedelic_uses: 3, months_since_psychedelics: 14,
     psychedelics_used: ["LSD"], takes_medication: "no", found_via: "reddit", found_via_other: null,
   };
   assert.deepEqual(parseHistory({ pseudonym: "x", sessions: [{ ...ok, answers }] })!.sessions[0]!.answers, answers);
+  const { months_since_psychedelics: _since, age_range: _age, ...beforeV3 } = answers;
+  const parsedBeforeV3 = parseHistory({ pseudonym: "x", sessions: [{ ...ok, answers: beforeV3 }] })!.sessions[0]!.answers!;
+  assert.equal(parsedBeforeV3.months_since_psychedelics, null, "a backend from before schema 3 sends none");
+  assert.equal(parsedBeforeV3.age_range, null, "a backend from before schema 3 sends no age band");
   const { answers: _, ...old } = ok;
   assert.equal(parseHistory({ pseudonym: "x", sessions: [old] })!.sessions[0]!.answers, null, "an older backend sends none");
-  for (const bad of [{ ...answers, condition: "flu" }, { ...answers, psychedelic_uses: 2.5 }, { ...answers, psychedelics_used: [1] }, "yes"]) {
+  for (const bad of [{ ...answers, condition: "flu" }, { ...answers, psychedelic_uses: 2.5 }, { ...answers, months_since_psychedelics: -1 }, { ...answers, age_range: "30" }, { ...answers, psychedelics_used: [1] }, "yes"]) {
     const parsed = parseHistory({ pseudonym: "x", sessions: [{ ...ok, answers: bad }] });
     assert.ok(parsed, "the history still shows");
     assert.equal(parsed.sessions[0]!.answers, null, JSON.stringify(bad));

@@ -157,7 +157,7 @@ describe("allSessions", () => {
     expect(seen.map(s => s.id)).toEqual([ids[1], ids[2], ids[0]]);
     expect(seen.map(s => s.session)).toEqual([sessions[1], sessions[2], sessions[0]]);
     expect(seen.map(s => s.stored.received_at)).toEqual([at(1), at(3), at(5)].map(d => d.toISOString()));
-    expect(seen[0]!.stored).toMatchObject({ schema_version: 2, test_version: V });
+    expect(seen[0]!.stored).toMatchObject({ schema_version: 3, test_version: V });
   });
 });
 

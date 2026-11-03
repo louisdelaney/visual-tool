@@ -1,6 +1,6 @@
 // A complete, realistic session as the page would send it, for the tests to start from.
 import { CALIBRATION, PROTOCOL, QUICK_PROTOCOL, TEST_VERSION } from "../../src/core/protocol";
-import type { SessionExportV1, SessionExportV2 } from "../../src/app/schema";
+import type { SessionExportV1, SessionExportV2, SessionExportV3 } from "../../src/app/schema";
 import type { ContributionAnswers, Results, TaskResult, Trial } from "../../src/app/types";
 
 /** The page sends the hour it started and how long it took, never the exact times. */
@@ -50,18 +50,18 @@ const task = (threshold: number): TaskResult => ({
 });
 
 /** Overrides: any top-level field, with `answers` and `results` merged into the defaults. */
-export type SessionOverrides = Partial<Omit<SessionExportV2, "contribution" | "results">> & {
+export type SessionOverrides = Partial<Omit<SessionExportV3, "contribution" | "results">> & {
   answers?: Partial<ContributionAnswers>;
   results?: Partial<Results>;
   /** Replaces the whole contribution (e.g. `{ contribute: false }`). */
-  contribution?: SessionExportV2["contribution"];
+  contribution?: SessionExportV3["contribution"];
 };
 
-export function makeSession(overrides: SessionOverrides = {}): SessionExportV2 {
+export function makeSession(overrides: SessionOverrides = {}): SessionExportV3 {
   const { answers, results, contribution, ...rest } = overrides;
-  const base: SessionExportV2 = {
+  const base: SessionExportV3 = {
     schema: "visual-tool/session",
-    schema_version: 2,
+    schema_version: 3,
     test_version: TEST_VERSION,
     test_type: "full",
     page: "https://example.org/visual-tool/",
@@ -90,7 +90,8 @@ export function makeSession(overrides: SessionOverrides = {}): SessionExportV2 {
         other_condition: null,
         diagnosed: null,
         psychedelics: "no",
-        psychedelic_uses: null, psychedelics_used: null,
+        psychedelic_uses: null, months_since_psychedelics: null, psychedelics_used: null,
+        age_range: "25-34",
         takes_medication: "no",
         medications: null,
         notes: null,
@@ -102,18 +103,26 @@ export function makeSession(overrides: SessionOverrides = {}): SessionExportV2 {
     trials: makeTrials(120),
   };
 
-  let merged: SessionExportV2 = { ...base, ...rest };
+  let merged: SessionExportV3 = { ...base, ...rest };
   if (contribution !== undefined) merged = { ...merged, contribution };
   else if (answers && base.contribution?.contribute) merged = { ...merged, contribution: { ...base.contribution, answers: { ...base.contribution.answers, ...answers } } };
   if (results) merged = { ...merged, results: { ...base.results!, ...results } };
   return merged;
 }
 
+/** The same session as a page from before age_range and months_since_psychedelics sent it: schema 2, without those answers. */
+export function asSchemaV2(s: SessionExportV3): SessionExportV2 {
+  if (!s.contribution?.contribute) return { ...s, schema_version: 2, contribution: s.contribution };
+  const { months_since_psychedelics: _since, age_range: _age, ...answers } = s.contribution.answers;
+  return { ...s, schema_version: 2, contribution: { ...s.contribution, answers } };
+}
+
 /**
  * The same session as a page from before the quick test sent it: schema 1, no test type, the full
  * test, and the exact times and extra details pages sent then.
  */
-export function asSchemaV1(s: SessionExportV2): SessionExportV1 {
+export function asSchemaV1(v3: SessionExportV3): SessionExportV1 {
+  const s = asSchemaV2(v3);
   const { test_type: _type, schema_version: _version, duration_s, ...rest } = s;
   const started = Date.parse(s.started_at) + 31 * 60_000 + 7_000;
   const old = {
@@ -129,13 +138,13 @@ export function asSchemaV1(s: SessionExportV2): SessionExportV1 {
 }
 
 /** A quick-test session: its own protocol and run, and fewer trials. */
-export function makeQuickSession(overrides: SessionOverrides = {}): SessionExportV2 {
+export function makeQuickSession(overrides: SessionOverrides = {}): SessionExportV3 {
   const s = makeSession({ test_type: "quick", settings: { protocol: "clinic", motionDisplay: "brief", spiralDots: "flicker", order: "motion-first", run: "quick" }, trials: makeTrials(60), ...overrides });
   return { ...s, protocol: { ...s.protocol, parameters: QUICK_PROTOCOL } };
 }
 
 /** Shorthand for a session whose two tasks and difference are set to these numbers. */
-export function withThresholds(motion: number, form: number, overrides: SessionOverrides = {}): SessionExportV2 {
+export function withThresholds(motion: number, form: number, overrides: SessionOverrides = {}): SessionExportV3 {
   return makeSession({
     ...overrides,
     results: { motion: task(motion), form: task(form), motion_minus_form: { sensitivity: Math.round((1 / motion - 1 / form) * 1e5) / 1e5, threshold_ratio: motion / form } },
