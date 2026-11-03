@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { groupOf, historyEntry, measuresOf, staircasesOf, summaryRow, type SummaryRow } from "../src/summary";
-import { makeSession } from "./fixture";
+import { asSchemaV2, makeSession } from "./fixture";
 
 describe("summaryRow", () => {
   it("normalises the pseudonym", () => {
@@ -28,6 +28,8 @@ describe("summaryRow", () => {
       diagnosed: null,
       psychedelics: "yes",
       psychedelic_uses: null,
+      months_since_psychedelics: null,
+      age_range: "25-34",
       psychedelics_used: null,
       takes_medication: "no",
       values: { motion_threshold_pct: 10.2, form_threshold_pct: 21.0, motion_minus_form: 0.05 },
@@ -53,6 +55,20 @@ describe("summaryRow", () => {
     const s = makeSession();
     delete (s.environment as Partial<typeof s.environment>).device;
     expect(summaryRow(s, "id").run?.device).toBe("computer");
+  });
+
+  it("keeps how long since psychedelics were last used, and none from before schema 3", () => {
+    const s = makeSession({ answers: { psychedelics: "yes", months_since_psychedelics: 14 } });
+    expect(summaryRow(s, "id").months_since_psychedelics).toBe(14);
+    expect(historyEntry(summaryRow(s, "id")).answers?.months_since_psychedelics).toBe(14);
+    expect(summaryRow(asSchemaV2(s), "id").months_since_psychedelics).toBeNull();
+  });
+
+  it("keeps the age band, and none from before schema 3", () => {
+    const s = makeSession({ answers: { age_range: "45-54" } });
+    expect(summaryRow(s, "id").age_range).toBe("45-54");
+    expect(historyEntry(summaryRow(s, "id")).answers?.age_range).toBe("45-54");
+    expect(summaryRow(asSchemaV2(s), "id").age_range).toBeNull();
   });
 });
 
@@ -90,8 +106,8 @@ describe("historyEntry", () => {
     expect(entry).not.toHaveProperty("pseudonym");
     expect(entry.notes).toBe("hello");
     expect(entry.answers).toEqual({
-      perceptual_disorder: row.disorder, condition: row.condition, other_condition: row.other_condition, diagnosed: row.diagnosed,
-      psychedelics: row.psychedelics, psychedelic_uses: row.psychedelic_uses, psychedelics_used: row.psychedelics_used,
+      age_range: row.age_range, perceptual_disorder: row.disorder, condition: row.condition, other_condition: row.other_condition, diagnosed: row.diagnosed,
+      psychedelics: row.psychedelics, psychedelic_uses: row.psychedelic_uses, months_since_psychedelics: row.months_since_psychedelics, psychedelics_used: row.psychedelics_used,
       takes_medication: row.takes_medication, found_via: row.found_via, found_via_other: row.found_via_other,
     });
   });

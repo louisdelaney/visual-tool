@@ -3,7 +3,7 @@
 // anonymity depends on people not putting anything identifying in the pseudonym or text answers.
 import type { MeasureKey } from "./comparison";
 import { TEST_TYPES, TEST_VERSION, type TestType } from "../core/protocol";
-import type { Condition, ContributionAnswers, DeviceKind, FoundVia, PsychedelicUse, TaskName, TaskResult, Trial, YesNo } from "./types";
+import { AGE_RANGES, type AgeRange, type Condition, type ContributionAnswers, type DeviceKind, type FoundVia, type PsychedelicUse, type TaskName, type TaskResult, type Trial, type YesNo } from "./types";
 import type { AnySessionExport } from "./schema";
 import { ADJECTIVES, NOUNS } from "./words";
 import { fmt } from "./format";
@@ -169,13 +169,17 @@ function parseAnswers(v: unknown): PreviousAnswers | null {
   if (!v || typeof v !== "object") return null;
   const o = v as Record<string, unknown>;
   const uses = numOrNull(o.psychedelic_uses ?? null);
+  // A backend from before schema 3 sends neither this nor age_range.
+  const since = numOrNull(o.months_since_psychedelics ?? null);
   const a = {
+    age_range: oneOf<AgeRange>(o.age_range, AGE_RANGES),
     perceptual_disorder: oneOf<YesNo>(o.perceptual_disorder, YES_NO),
     condition: oneOf<Condition>(o.condition, ["vss", "hppd", "other"]),
     other_condition: strOrNull(o.other_condition ?? null),
     diagnosed: oneOf<YesNo>(o.diagnosed, YES_NO),
     psychedelics: oneOf<PsychedelicUse>(o.psychedelics, ["yes", "no", "prefer-not-to-say"]),
     psychedelic_uses: uses === undefined || (uses !== null && !Number.isInteger(uses)) ? undefined : uses,
+    months_since_psychedelics: since === undefined || (since !== null && !(Number.isInteger(since) && since >= 0)) ? undefined : since,
     psychedelics_used: strsOrNull(o.psychedelics_used ?? null),
     takes_medication: oneOf<YesNo>(o.takes_medication, YES_NO),
     found_via: oneOf<FoundVia>(o.found_via, ["reddit", "forum", "other"]),

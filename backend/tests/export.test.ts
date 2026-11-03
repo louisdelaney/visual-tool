@@ -5,7 +5,7 @@ import { gunzipSync } from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
 import { MemoryStore } from "../src/db-memory";
 import { coarsen, dirSink, runExport, toHour, type ExportFile, type ExportSink } from "../src/jobs/export";
-import { asSchemaV1, makeSession } from "./fixture";
+import { asSchemaV1, asSchemaV2, makeSession } from "./fixture";
 
 /** A sink that keeps what's written to it. */
 function memorySink() {
@@ -58,7 +58,7 @@ describe("coarsen", () => {
     expect(o.started_at).toBe("2026-10-18T19:00:00.000Z");
     expect(o).not.toHaveProperty("finished_at");
     expect(o.duration_s).toBe(s.duration_s);
-    expect(o.contribution).toEqual(s.contribution);
+    expect(o.contribution).toEqual(asSchemaV2(s).contribution);
     expect(JSON.stringify(o)).not.toMatch(/"at"|"language"|"screen"|measuredAt|sent_at|macOS/);
     expect(JSON.stringify(old)).toBe(before);
   });

@@ -3,6 +3,7 @@
 // histories depend on, and that the session could have come from a real run.
 import { SCHEMA_NAME, SCHEMA_VERSION, testTypeOf, type AnySessionExport } from "../../src/app/schema";
 import { PROTOCOLS, TEST_TYPES, TEST_VERSION, type TestType } from "../../src/core/protocol";
+import { AGE_RANGES } from "../../src/app/types";
 
 /** Bodies above this are refused before they're parsed. A real session is about 65 KB. */
 export const MAX_BODY_BYTES = 200_000;
@@ -24,11 +25,14 @@ const MAX_TRIALS = 400;
 /** A complete task has reached its run's last reversal, so it has at least this many scored trials. */
 const minCompleteTrials = (testType: TestType): number => PROTOCOLS[testType].run.stopReversals;
 
+/** Months since last using psychedelics: up to the page's 100 years and 11 months. */
+const MAX_MONTHS_SINCE = 100 * 12 + 11;
+
 /**
- * The current format, and version 1 (no test_type, always the full test), which a page opened
- * before the quick test existed still sends.
+ * The current format; version 2 (no age_range or months_since_psychedelics) and version 1 (no test_type, always
+ * the full test), which pages opened before those were added still send.
  */
-const SCHEMA_VERSIONS: readonly number[] = [1, SCHEMA_VERSION];
+const SCHEMA_VERSIONS: readonly number[] = [1, 2, SCHEMA_VERSION];
 
 export type Validation = { ok: true; session: AnySessionExport } | { ok: false; reason: string };
 
@@ -88,6 +92,14 @@ export function validateSession(body: unknown): Validation {
   const yesNo = (v: unknown): boolean => v === null || v === "yes" || v === "no";
   if (!yesNo(answers.perceptual_disorder)) return bad("perceptual_disorder must be yes, no or null");
   if (!(yesNo(answers.psychedelics) || answers.psychedelics === "prefer-not-to-say")) return bad("psychedelics must be yes, no, prefer-not-to-say or null");
+  const since = answers.months_since_psychedelics;
+  if (body.schema_version === SCHEMA_VERSION ? since !== null && !(Number.isInteger(since) && (since as number) >= 0 && (since as number) <= MAX_MONTHS_SINCE) : since !== undefined) {
+    return bad(`months_since_psychedelics must be null or a whole number from 0 to ${MAX_MONTHS_SINCE} (from schema_version 3)`);
+  }
+  const age = answers.age_range;
+  if (body.schema_version === SCHEMA_VERSION ? age !== null && !(AGE_RANGES as readonly unknown[]).includes(age) : age !== undefined) {
+    return bad(`age_range must be null or one of ${AGE_RANGES.join(", ")} (from schema_version 3)`);
+  }
 
   if (!isObj(body.results)) return bad("results must be an object");
   for (const task of ["motion", "form"] as const) {

@@ -12,18 +12,23 @@
 // is the full test. Version 2 also keeps only what's needed to read the results: the hour the
 // test started and its duration instead of exact times, no trial times, the browser and major version only,
 // the device type, and no language, screen size or card-measuring time.
-import type { Calibration, Display, Distance, Environment, Results, SessionContribution, Settings, Trial } from "./types";
+//
+// Version 3 added contribution.answers.age_range, the person's age band, and
+// contribution.answers.months_since_psychedelics: how long since they last used psychedelics, in
+// whole months. Earlier files have no age_range, and no months_since_psychedelics except where the
+// person who sent one gave the answer afterwards and it was added to the stored session.
+import type { Calibration, ContributionAnswers, Display, Distance, Environment, Results, SessionContribution, Settings, Trial } from "./types";
 import type { CALIBRATION, Protocol, TestType } from "../core";
 
 export const SCHEMA_NAME = "visual-tool/session";
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /** The contribution as exported: without its sending state or the time it was sent. */
 export type ExportedContribution =
   | { contribute: false }
   | Omit<Extract<SessionContribution, { contribute: true }>, "sent_at" | "sending" | "failed" | "failure_id" | "delete_token" | "removal">;
 
-export interface SessionExportV2 {
+export interface SessionExportV3 {
   schema: typeof SCHEMA_NAME;
   schema_version: typeof SCHEMA_VERSION;
   test_version: number;
@@ -52,6 +57,15 @@ export interface SessionExportV2 {
   trials: Trial[];
 }
 
+/** Answers as sent before version 3: no age_range, and no months_since_psychedelics unless it was added afterwards. */
+export type AnswersBeforeV3 = Omit<ContributionAnswers, "age_range" | "months_since_psychedelics"> & { months_since_psychedelics?: number | null };
+
+/** The format before age_range and months_since_psychedelics: the same fields otherwise. */
+export type SessionExportV2 = Omit<SessionExportV3, "schema_version" | "contribution"> & {
+  schema_version: 2;
+  contribution: { contribute: false } | (Omit<Extract<ExportedContribution, { contribute: true }>, "answers"> & { answers: AnswersBeforeV3 }) | null;
+};
+
 /**
  * The format before test_type: always the full test. These were sent with exact times and more
  * details than the results need; the backend keeps them as v2 keeps them (backend/src/scrub.ts).
@@ -67,10 +81,10 @@ export type SessionExportV1 = Omit<SessionExportV2, "schema_version" | "test_typ
 };
 
 /** The current format. */
-export type SessionExport = SessionExportV2;
+export type SessionExport = SessionExportV3;
 
 /** A session in any format the backend has stored. */
-export type AnySessionExport = SessionExportV1 | SessionExportV2;
+export type AnySessionExport = SessionExportV1 | SessionExportV2 | SessionExportV3;
 
 /** An ISO time cut to the start of its hour, in UTC. */
 export const toHour = (iso: string): string => {

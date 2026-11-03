@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TEST_VERSION } from "../../src/core/protocol";
 import { validateSession } from "../src/validate";
-import { asSchemaV1, makeQuickSession, makeSession } from "./fixture";
+import { asSchemaV1, asSchemaV2, makeQuickSession, makeSession } from "./fixture";
 
 function rejects(body: unknown, reason?: RegExp) {
   const v = validateSession(body);
@@ -22,7 +22,7 @@ describe("validateSession", () => {
 
   it("checks the schema name and version", () => {
     rejects({ ...makeSession(), schema: "something/else" }, /schema/);
-    rejects({ ...makeSession(), schema_version: 3 }, /schema_version/);
+    rejects({ ...makeSession(), schema_version: 4 }, /schema_version/);
     rejects({ ...makeSession(), schema_version: undefined }, /schema_version/);
   });
 
@@ -94,6 +94,38 @@ describe("validateSession", () => {
     it("rejects an empty list", () => rejects(makeSession({ answers: { psychedelics_used: [] } }), /psychedelics_used/));
     it("rejects an empty entry", () => rejects(makeSession({ answers: { medications: [""] } }), /medications/));
     it("rejects a 101-character entry", () => rejects(makeSession({ answers: { psychedelics_used: ["p".repeat(101)] } }), /psychedelics_used/));
+    describe("months since psychedelics", () => {
+      const since = (v: unknown) => makeSession({ answers: { psychedelics: "yes", months_since_psychedelics: v as number } });
+      it("accepts 0, 14 and 100 years 11 months", () => { for (const v of [0, 14, 1211]) expect(validateSession(since(v)).ok).toBe(true); });
+      it("accepts no answer", () => expect(validateSession(since(null)).ok).toBe(true));
+      it("rejects a part month, a negative, too many or text", () => { for (const v of [1.5, -1, 1212, "14"]) rejects(since(v), /months_since_psychedelics/); });
+      it("needs the field from schema 3", () => {
+        const s = makeSession();
+        if (!s.contribution?.contribute) throw new Error("fixture");
+        const { months_since_psychedelics: _m, ...answers } = s.contribution.answers;
+        rejects({ ...s, contribution: { ...s.contribution, answers } }, /months_since_psychedelics/);
+      });
+      it("accepts schema 2 without it, and refuses it there", () => {
+        expect(validateSession(asSchemaV2(makeSession())).ok).toBe(true);
+        const v2 = asSchemaV2(makeSession());
+        rejects({ ...v2, contribution: { ...v2.contribution, answers: { ...(v2.contribution as { answers: object }).answers, months_since_psychedelics: 3 } } }, /months_since_psychedelics/);
+      });
+    });
+    describe("age range", () => {
+      const age = (v: unknown) => makeSession({ answers: { age_range: v as "18-24" } });
+      it("accepts every band and no answer", () => { for (const v of ["under-18", "18-24", "25-34", "35-44", "45-54", "55-64", "65-plus", null]) expect(validateSession(age(v)).ok).toBe(true); });
+      it("rejects an exact age or an unknown band", () => { for (const v of [30, "30", "65+", ""]) rejects(age(v), /age_range/); });
+      it("needs the field from schema 3", () => {
+        const s = makeSession();
+        if (!s.contribution?.contribute) throw new Error("fixture");
+        const { age_range: _a, ...answers } = s.contribution.answers;
+        rejects({ ...s, contribution: { ...s.contribution, answers } }, /age_range/);
+      });
+      it("refuses it on schema 2", () => {
+        const v2 = asSchemaV2(makeSession());
+        rejects({ ...v2, contribution: { ...v2.contribution, answers: { ...(v2.contribution as { answers: object }).answers, age_range: "18-24" } } }, /age_range/);
+      });
+    });
     it("rejects 21 entries", () => rejects(makeSession({ answers: { medications: Array.from({ length: 21 }, (_, i) => `m${i}`) } }), /medications/));
   });
 

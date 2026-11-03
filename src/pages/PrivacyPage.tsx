@@ -18,7 +18,7 @@ export function PrivacyPage() {
         <h3>If you contribute</h3>
         <p>When you finish the test, this is sent and added to the public dataset:</p>
         <ul>
-          <li>Your answers from the first step: whether you have or suspect a visual perceptual disorder, which one, whether you've been diagnosed, psychedelic use, an estimate of how often and which ones, whether you take medications and which, notes, where you found the test, and your pseudonym if you gave one.</li>
+          <li>Your answers from the first step: your age band (such as "25 to 34", never your exact age), whether you have or suspect a visual perceptual disorder, which one, whether you've been diagnosed, psychedelic use, an estimate of how often, how long since you last used them (in years and months) and which ones, whether you take medications and which, notes, where you found the test, and your pseudonym if you gave one.</li>
           <li>Your results: whether you took the full or quick test, thresholds, sensitivities, and every trial (what was shown, your answer, how long you took).</li>
           <li>Technical details needed to make sense of the results: the card measurement, viewing distance, refresh rate, window size and pixel density, whether you used a computer or a tablet, your browser and its main version (for example "Chrome 131"), the hour the test started (never the exact time) and how long it took.</li>
         </ul>

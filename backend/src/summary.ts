@@ -6,16 +6,19 @@ import type { GroupKey, MeasureKey } from "../../src/app/comparison";
 import type { HistoryEntry, Staircases } from "../../src/app/history";
 import { normalizePseudonym, runInfoOf, staircasePoints, type RunInfo } from "../../src/app/history";
 import { testTypeOf, toHour, type AnySessionExport } from "../../src/app/schema";
-import type { ContributionAnswers } from "../../src/app/types";
+import type { AgeRange, ContributionAnswers } from "../../src/app/types";
 import type { TestType } from "../../src/core/protocol";
 
 /**
  * One row in the `summaries` collection: every answer the person gave, beside the measures.
  * perceptual_disorder is stored as `disorder`, the name rows have had from the start. Rows from
- * before the quick test have no test_type.
+ * before the quick test have no test_type, and rows from before schema 3 have no age_range and may
+ * have no months_since_psychedelics.
  */
-export interface SummaryRow extends Omit<HistoryEntry, "test_type" | "answers" | "run">, Omit<ContributionAnswers, "pseudonym" | "perceptual_disorder" | "medications" | "notes"> {
+export interface SummaryRow extends Omit<HistoryEntry, "test_type" | "answers" | "run">, Omit<ContributionAnswers, "pseudonym" | "perceptual_disorder" | "medications" | "notes" | "age_range" | "months_since_psychedelics"> {
   test_type?: TestType;
+  age_range?: AgeRange | null;
+  months_since_psychedelics?: number | null;
   /** Rows from before it was kept have none. */
   run?: RunInfo;
   pseudonym: string | null;
@@ -49,12 +52,15 @@ export function summaryRow(s: AnySessionExport, submissionId: string): SummaryRo
     started_at: s.started_at,
     test_version: s.test_version,
     test_type: testTypeOf(s),
+    // Answers sent before schema 3 have no age_range.
+    age_range: (a as Partial<ContributionAnswers> | null)?.age_range ?? null,
     disorder: a?.perceptual_disorder ?? null,
     condition: a?.condition ?? null,
     other_condition: a?.other_condition ?? null,
     diagnosed: a?.diagnosed ?? null,
     psychedelics: a?.psychedelics ?? null,
     psychedelic_uses: a?.psychedelic_uses ?? null,
+    months_since_psychedelics: a?.months_since_psychedelics ?? null,
     psychedelics_used: a?.psychedelics_used ?? null,
     takes_medication: a?.takes_medication ?? null,
     found_via: a?.found_via ?? null,
@@ -95,12 +101,14 @@ export function historyEntry(row: SummaryRow): HistoryEntry {
   const staircases: Staircases | null = row.staircases ?? null;
   const run = row.run ?? null;
   const answers = {
+    age_range: row.age_range ?? null,
     perceptual_disorder: row.disorder ?? null,
     condition: row.condition ?? null,
     other_condition: row.other_condition ?? null,
     diagnosed: row.diagnosed ?? null,
     psychedelics: row.psychedelics ?? null,
     psychedelic_uses: row.psychedelic_uses ?? null,
+    months_since_psychedelics: row.months_since_psychedelics ?? null,
     psychedelics_used: row.psychedelics_used ?? null,
     takes_medication: row.takes_medication ?? null,
     found_via: row.found_via ?? null,
