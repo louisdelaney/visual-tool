@@ -5,6 +5,9 @@ import type { TaskName } from "../app/types";
 import type { StaircasePoint } from "../app/history";
 import { fmt } from "../app/format";
 import { useElementWidth } from "../hooks";
+import { text } from "../text";
+
+const t = text.charts.staircase;
 
 interface StaircaseChartProps {
   task: TaskName;
@@ -38,8 +41,8 @@ export function StaircaseChart({ task, points: tr, threshold, subtitle }: Stairc
   const x = (i: number): number => M.l + (n <= 1 ? iw / 2 : (i / (n - 1)) * iw);
   const y = (v: number): number => M.t + (1 - Math.log10(Math.min(100, Math.max(1, v))) / 2) * ih;
   const val = (t: StaircasePoint): number => t.coherence_pct;
-  const name = task === "motion" ? "Motion" : "Form";
-  const label = `${name} staircase: ${n} scored trials, threshold ${threshold != null ? fmt.pct(threshold) : "not reached"}`;
+  const name = text.charts.taskName[task];
+  const label = t.described(name, n, threshold != null ? fmt.pct(threshold) : t.notReached);
   const step = n > 30 ? 10 : 5;
   const xTicks: number[] = [];
   for (let k = step; k <= n; k += step) xTicks.push(k);
@@ -82,12 +85,12 @@ export function StaircaseChart({ task, points: tr, threshold, subtitle }: Stairc
               <text className="tick" x={x(k - 1)} y={H - M.b + 16} textAnchor="middle">{k}</text>
             </g>
           ))}
-          <text className="axis-label" x={M.l} y={H - 4}>Trial</text>
+          <text className="axis-label" x={M.l} y={H - 4}>{t.trial}</text>
           {hover && <line className="crosshair" x1={x(hover.i)} x2={x(hover.i)} y1={M.t} y2={H - M.b} />}
           {threshold != null && (
             <g>
               <line className="thr" x1={M.l} x2={W - M.r} y1={y(threshold)} y2={y(threshold)} />
-              <text className="thr-label" x={W - M.r + 8} y={y(threshold)} dy="-0.25em">Threshold</text>
+              <text className="thr-label" x={W - M.r + 8} y={y(threshold)} dy="-0.25em">{t.threshold}</text>
               <text className="thr-value" x={W - M.r + 8} y={y(threshold)} dy="1em">{fmt.pct(threshold)}</text>
             </g>
           )}
@@ -101,7 +104,7 @@ export function StaircaseChart({ task, points: tr, threshold, subtitle }: Stairc
         </svg>
       </div>
       <div className="tip" role="tooltip" ref={tipRef} hidden={!hovered} style={hover ? { left: hover.left, top: hover.top } : undefined}>
-        {hovered && hover && `Trial ${hover.i + 1} · ${fmt.pct(val(hovered))} · ${hovered.correct ? "correct" : "wrong"}${hovered.reversal ? " · reversal" : ""}`}
+        {hovered && hover && t.tip(hover.i + 1, fmt.pct(val(hovered)), hovered.correct, hovered.reversal)}
       </div>
     </figure>
   );
@@ -111,10 +114,10 @@ export function StaircaseChart({ task, points: tr, threshold, subtitle }: Stairc
 export function StaircaseKey() {
   return (
     <div className="chart-key" aria-hidden="true">
-      <span><svg width="14" height="14" viewBox="0 0 14 14"><circle className="k-ok" cx="7" cy="7" r="4" /></svg>Correct</span>
-      <span><svg width="14" height="14" viewBox="0 0 14 14"><circle className="k-miss" cx="7" cy="7" r="4" /></svg>Wrong</span>
-      <span><svg width="18" height="18" viewBox="0 0 18 18"><circle className="k-rev" cx="9" cy="9" r="7.5" /></svg>Reversal</span>
-      <span><svg width="20" height="10" viewBox="0 0 20 10"><line className="k-thr" x1="0" x2="20" y1="5" y2="5" /></svg>Threshold, averaged from the last reversals</span>
+      <span><svg width="14" height="14" viewBox="0 0 14 14"><circle className="k-ok" cx="7" cy="7" r="4" /></svg>{t.keyCorrect}</span>
+      <span><svg width="14" height="14" viewBox="0 0 14 14"><circle className="k-miss" cx="7" cy="7" r="4" /></svg>{t.keyWrong}</span>
+      <span><svg width="18" height="18" viewBox="0 0 18 18"><circle className="k-rev" cx="9" cy="9" r="7.5" /></svg>{t.keyReversal}</span>
+      <span><svg width="20" height="10" viewBox="0 0 20 10"><line className="k-thr" x1="0" x2="20" y1="5" y2="5" /></svg>{t.keyThreshold}</span>
     </div>
   );
 }

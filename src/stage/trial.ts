@@ -6,6 +6,7 @@ import { round } from "../app/format";
 import { drawGlass, drawUpDown, FIX_GREY, FIX_RED } from "./drawing";
 import { clearStage, fixation, getStage, input, setHud, stageGeom, type StageGeom } from "./stage";
 import { pause } from "./pause";
+import { text } from "../text";
 
 interface PresentArgs {
   s: Session;
@@ -37,8 +38,8 @@ type PresentResult = Presented | Aborted;
 let trialRaf = 0;
 
 const RESPONSE_HUD = {
-  updown: "Up: ↑  ·  Down: ↓  ·  Pause: Esc",
-  glass: "First flash: 1 or ←  ·  Second flash: 2 or →  ·  Pause: Esc",
+  updown: text.tasks.hud.motion,
+  glass: text.tasks.hud.form,
 };
 
 type Answered = { response: Answer; t1: number } | Aborted;

@@ -3,7 +3,8 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
-import { INFO_PAGES } from "./src/app/types";
+import { INFO_PAGES } from "./src/app/types.ts";
+import { markdownText } from "./src/text/markdownPlugin.ts";
 
 // The built page may contact only itself and the backend. The browser blocks everything else,
 // so no future change can quietly add a tracker, a CDN or a font host. Only added to builds:
@@ -50,7 +51,7 @@ function infoPageCopies(): Plugin {
 }
 
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), contentSecurityPolicy(loadEnv(mode, process.cwd(), "VITE_").VITE_API_URL ?? ""), infoPageCopies()],
+  plugins: [markdownText, react(), contentSecurityPolicy(loadEnv(mode, process.cwd(), "VITE_").VITE_API_URL ?? ""), infoPageCopies()],
   // Relative asset paths, so the build works under GitHub Pages' /visual-tool/ path or any other.
   base: "./",
   // Never inline assets as data: URLs: the security policy allows files from this site only.

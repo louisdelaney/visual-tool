@@ -10,15 +10,19 @@ import { createSession } from "../app/session";
 import { thisDevice } from "../app/device";
 import { goFullscreen } from "../stage/fullscreen";
 import { useFullscreen, useWindowSize } from "../hooks";
+import { text } from "../text";
+import { Rich } from "../text/Rich";
+
+const t = text.calibration.distance;
 
 function DistanceResult({ distance }: { distance: Distance | null }) {
-  if (!distance) return <>Not measured yet.</>;
-  if (distance.method !== "blind-spot") return <>Viewing distance: <strong>{distance.cm.toFixed(0)} cm</strong>, entered by hand.</>;
+  if (!distance) return <>{t.notMeasured}</>;
+  if (distance.method !== "blind-spot") return <Rich text={t.byHand(distance.cm.toFixed(0))} />;
   const lo = Math.min(...distance.readings), hi = Math.max(...distance.readings);
   return (
     <>
-      Viewing distance: <strong>{distance.cm.toFixed(0)} cm</strong>, from {distance.readings.length} blind-spot readings between {lo.toFixed(0)} and {hi.toFixed(0)} cm.
-      {(hi - lo) / distance.cm > 0.2 ? " The readings vary a lot, so try the check again if you can." : ""}
+      <Rich text={t.fromBlindSpot(distance.cm.toFixed(0), distance.readings.length, lo.toFixed(0), hi.toFixed(0))} />
+      {(hi - lo) / distance.cm > 0.2 ? ` ${t.readingsVary}` : ""}
     </>
   );
 }
@@ -29,10 +33,10 @@ function fitText(distance: Distance, calib: Calibration, W: number, H: number): 
   const field = PROTOCOL.field;
   const scale = Core.fitScale(W, H, ppd, field.w, field.h);
   const pxPerCm = calib.pxPerMm * 10;
-  const span = `At ${distance.cm.toFixed(0)} cm this window covers about ${Core.angularExtentDeg(W / pxPerCm, distance.cm).toFixed(0)}° × ${Core.angularExtentDeg(H / pxPerCm, distance.cm).toFixed(0)}° of your view, and the tasks need ${field.w}° × ${field.h}°.`;
+  const span = t.fitSpan(distance.cm.toFixed(0), Core.angularExtentDeg(W / pxPerCm, distance.cm).toFixed(0), Core.angularExtentDeg(H / pxPerCm, distance.cm).toFixed(0), field.w, field.h);
   return scale >= 0.999
-    ? `${span} They fit at full size.`
-    : `${span} They'll be shown at ${Math.round(scale * 100)}% of full size. For full size, go full screen, or sit at about ${Math.floor(distance.cm * scale)} cm and measure again.`;
+    ? `${span} ${t.fitsFull}`
+    : `${span} ${t.fitsScaled(Math.round(scale * 100), Math.floor(distance.cm * scale))}`;
 }
 
 interface DistancePageProps {
@@ -48,12 +52,12 @@ export function DistancePage({ calib, distance }: DistancePageProps) {
 
   const partial = !fullscreen && w < 0.85 * screen.width;
   const windowNote = !partial ? "" : document.fullscreenEnabled
-    ? "This window is narrower than your screen. The blind-spot check and the tasks switch to full screen when they start, because both assume you're sitting centred on what the page draws."
-    : "This window is narrower than your screen, and full screen isn't available here. Maximise the window and sit centred on it: the blind-spot check and the tasks both assume you're centred on what the page draws.";
+    ? t.windowNarrowFullScreen
+    : t.windowNarrowNoFullScreen;
 
   const useManual = (): void => {
     const v = parseFloat(manual);
-    if (!(v >= 25 && v <= 150)) { setManualMsg("Enter a distance between 25 and 150 cm."); return; }
+    if (!(v >= 25 && v <= 150)) { setManualMsg(t.manualOutOfRange); return; }
     setManualMsg("");
     setState({ distance: { cm: v, method: "manual", readings: [] } });
   };
@@ -65,31 +69,31 @@ export function DistancePage({ calib, distance }: DistancePageProps) {
   };
 
   const fullScreen = async (): Promise<void> => {
-    if (!(await goFullscreen())) setState({ flash: "Full screen isn't available here. Maximise the browser window instead." });
+    if (!(await goFullscreen())) setState({ flash: text.common.fullScreenUnavailable });
   };
 
   return (
     <section className="view panel" data-view="distance" aria-labelledby="distance-h">
-      <h2 id="distance-h">Measure your viewing distance</h2>
-      <p>The tasks are specified in degrees of visual angle, so the page needs to know how far your eyes are from the screen. It works this out from your blind spot, which sits about 13.5° from wherever you look. Sit centred in front of the screen, as you will for the tasks: the maths assumes it.</p>
-      <p className="notice" id="window-note" hidden={!partial}>{windowNote}</p>
-      <div className="actions"><button type="button" className="btn" id="bs-start" onClick={() => void measureDistance()}>Start blind-spot check</button></div>
-      {thisDevice() === "tablet" && <p className="small-note" id="bs-tablet">The blind-spot check needs a keyboard's space bar. Without one, measure from your eyes to the screen with a tape measure while you sit as you will for the tasks, and enter it below.</p>}
+      <h2 id="distance-h">{t.heading}</h2>
+      <p><Rich text={t.intro} /></p>
+      <p className="notice" id="window-note" hidden={!partial}><Rich text={windowNote} /></p>
+      <div className="actions"><button type="button" className="btn" id="bs-start" onClick={() => void measureDistance()}>{t.startCheck}</button></div>
+      {thisDevice() === "tablet" && <p className="small-note" id="bs-tablet"><Rich text={t.tabletNote} /></p>}
       <p className="result" id="distance-result"><DistanceResult distance={distance} /></p>
       <div className="manual">
-        <label htmlFor="manual-cm">Or enter a distance you've measured, eye to screen</label>
+        <label htmlFor="manual-cm">{t.manualLabel}</label>
         <div className="inline">
           <input type="number" id="manual-cm" min={25} max={150} step={1} inputMode="numeric" value={manual} onChange={e => setManual(e.target.value)} />
-          <span>cm</span>
-          <button type="button" className="btn secondary" id="manual-use" onClick={useManual}>Use this distance</button>
+          <span>{t.cm}</span>
+          <button type="button" className="btn secondary" id="manual-use" onClick={useManual}>{t.useManual}</button>
         </div>
         <p className="field-msg" id="manual-msg" role="status">{manualMsg}</p>
       </div>
       <p className="fit" id="fit" hidden={!(distance && calib)}>{distance && calib ? fitText(distance, calib, w, h) : ""}</p>
       <div className="actions">
-        <button type="button" className="btn" id="distance-next" disabled={!(distance && calib)} onClick={next}>Continue to the tasks</button>
-        <button type="button" className="btn secondary" id="fs-btn" onClick={() => void fullScreen()}>Go full screen</button>
-        <button type="button" className="btn secondary back" id="distance-back" onClick={() => show("screen")}>Back</button>
+        <button type="button" className="btn" id="distance-next" disabled={!(distance && calib)} onClick={next}>{t.next}</button>
+        <button type="button" className="btn secondary" id="fs-btn" onClick={() => void fullScreen()}>{text.common.goFullScreen}</button>
+        <button type="button" className="btn secondary back" id="distance-back" onClick={() => show("screen")}>{text.common.back}</button>
       </div>
     </section>
   );

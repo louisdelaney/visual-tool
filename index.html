@@ -22,12 +22,13 @@
     <p class="stage-note" id="stage-note" hidden></p>
     <p class="stage-fb" id="stage-fb" hidden></p>
     <div class="stage-msg" id="stage-msg" role="dialog" aria-modal="true" hidden></div>
+    <!-- The pause box's words come from src/text (tasks.pause), filled in by src/stage/pause.ts. -->
     <div class="pause-box" id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-h" hidden>
-      <h2 id="pause-h">Paused</h2>
-      <p>When you resume, this trial starts again with a new pattern at the same level.</p>
+      <h2 id="pause-h"></h2>
+      <p></p>
       <div class="msg-actions">
-        <button type="button" class="btn" id="pause-resume">Resume</button>
-        <button type="button" class="btn secondary" id="pause-end">End and see results</button>
+        <button type="button" class="btn" id="pause-resume"></button>
+        <button type="button" class="btn secondary" id="pause-end"></button>
       </div>
     </div>
     <p class="hud" id="hud"></p>

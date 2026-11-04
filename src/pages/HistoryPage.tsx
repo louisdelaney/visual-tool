@@ -4,12 +4,14 @@ import { useEffect, useState, type FormEvent } from "react";
 import { TEST_TYPES, TEST_VERSION, type TestType } from "../core";
 import { API_URL, fetchGroups, fetchHistory, fetchRawHistory } from "../app/api";
 import { GROUPS, SAMPLE_GROUPS, sensitivities, shownMeasures, type GroupsResponse } from "../app/comparison";
-import { normalizePseudonym, sampleHistory, takenOn, type HistoryEntry, type HistoryResponse, type RawHistory } from "../app/history";
+import { normalizePseudonym, sampleHistory, type HistoryEntry, type HistoryResponse, type RawHistory } from "../app/history";
+import { takenOn } from "../app/runText";
 import { allSummariesJSON, downloadFile, fileBaseAt, pastSummaryJSON } from "../app/export";
 import { reportEntry, savePDF, type Report } from "../app/report";
 import { RunNotes, SessionNotes } from "../components/RunNotes";
 import { SaveMenu } from "../components/SaveMenu";
-import { RunSummary, runNumbers } from "../components/RunSummary";
+import { RunSummary } from "../components/RunSummary";
+import { runNumbers } from "../app/runNumbers";
 import { GroupSection, type Load as GroupLoad } from "../components/GroupComparison";
 import type { TaskName } from "../app/types";
 import { TEST_TYPE_LABEL } from "../app/protocol";
@@ -17,6 +19,10 @@ import { back } from "../app/flow";
 import { StaircaseChart, StaircaseKey } from "../components/StaircaseChart";
 import { SensitivityBars } from "../components/SensitivityBars";
 import { ResultsExplained } from "../components/ResultsExplained";
+import { text } from "../text";
+import { Rich } from "../text/Rich";
+
+const t = text.history;
 
 const TASKS: readonly TaskName[] = ["motion", "form"];
 
@@ -31,14 +37,14 @@ const usingSample = (): boolean => !API_URL && import.meta.env.DEV;
 /** Development only, labelled as sample: no quick-test groups yet. */
 const EMPTY_SAMPLE_GROUPS: GroupsResponse = { test_version: TEST_VERSION, test_type: "quick", groups: { control: { n: 0, measures: null }, psychedelics: { n: 0, measures: null } } };
 
-const date = (iso: string): string => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-const time = (iso: string): string => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+const date = (iso: string): string => new Date(iso).toLocaleDateString(text.common.locale, { day: "numeric", month: "short", year: "numeric" });
+const time = (iso: string): string => new Date(iso).toLocaleTimeString(text.common.locale, { hour: "2-digit", minute: "2-digit" });
 
 /** What can be saved: one session's or every session's summary or full data. Resolves to the file's name. */
 type SaveKind = "summary" | "raw";
 type Save = (kind: SaveKind, submissionId?: string) => Promise<string>;
 
-const PDF_PENDING = "Making the PDF…";
+const PDF_PENDING = t.makingPdf;
 
 /** A file name for a PDF of several of a pseudonym's sessions. */
 const manyPdfName = (pseudonym: string, which: "all" | "selected"): string =>
@@ -72,38 +78,38 @@ function SessionEntry({ entry: e, groups, retry, save, savePdf, selected, onSele
   return (
     <article className={selected ? "panel hist-entry save-card selected" : "panel hist-entry save-card"} aria-labelledby={`h-${e.submission_id}`}>
       <div className="card-tools">
-        <label className="select-toggle" title="Select for a PDF of chosen sessions">
-          <input type="checkbox" className="visually-hidden" checked={selected} onChange={ev => onSelect(ev.target.checked)} aria-label="Select this session for a PDF of chosen sessions" />
+        <label className="select-toggle" title={t.selectTitle}>
+          <input type="checkbox" className="visually-hidden" checked={selected} onChange={ev => onSelect(ev.target.checked)} aria-label={t.selectLabel} />
           <CheckIcon />
         </label>
-        <SaveMenu label="Save this session" options={[
-          { label: "Save summary (PDF)", description: "Its results, charts and the groups as they are now, to read or print.", pending: PDF_PENDING, save: savePdf },
+        <SaveMenu label={t.saveOneLabel} options={[
+          { label: t.savePdf.label, description: t.savePdf.description, pending: PDF_PENDING, save: savePdf },
           ...(save ? [
-            { label: "Save summary (JSON)", description: "Its answers, results and the points on the staircase charts.", save: () => save("summary", e.submission_id) },
-            { label: "Save full data (JSON)", description: "Everything recorded, exactly as it's stored in the database.", save: () => save("raw", e.submission_id) },
+            { label: t.saveSummary.label, description: t.saveSummary.description, save: () => save("summary", e.submission_id) },
+            { label: t.saveFull.label, description: t.saveFull.description, save: () => save("raw", e.submission_id) },
           ] : []),
         ]} />
       </div>
       <header className="card-head">
         <h3 id={`h-${e.submission_id}`}>{date(e.started_at)} <span className="hist-time">{time(e.started_at)}</span>{quick && <> <span className="pill type-pill">{TEST_TYPE_LABEL.quick}</span></>}</h3>
-        {e.run && <p className="hint run-taken">Taken on: {takenOn(e.run)}</p>}
+        {e.run && <p className="hint run-taken">{text.charts.runNotes.takenOn(takenOn(e.run))}</p>}
       </header>
-      {quick && <p className="hint">A quick test: a shorter run, so its results are less precise than a full test's. It's shown only beside other quick-test results.</p>}
-      {!current && <p className="hint">This used an earlier version of the test, so it isn't shown beside the groups.</p>}
+      {quick && <p className="hint"><Rich text={t.quickNote} /></p>}
+      {!current && <p className="hint"><Rich text={t.earlierVersion} /></p>}
       <RunSummary results={runNumbers(e)} />
       {e.run && <RunNotes run={e.run} taken={false} />}
       <SessionNotes medications={e.medications} notes={e.notes} />
       {current && groups
-        ? <GroupSection testType={e.test_type} load={groups[e.test_type]} own={e.values} retry={retry} heading={<h4>Compared with other groups</h4>} />
+        ? <GroupSection testType={e.test_type} load={groups[e.test_type]} own={e.values} retry={retry} heading={<h4>{t.groupsHeading}</h4>} />
         : <SensitivityBars own={sensitivities(e.values)} groups={[]} />}
       {e.staircases ? (
         <div className="charts">
-          {TASKS.map(t => (
-            <StaircaseChart key={t} task={t} points={e.staircases![t]} threshold={e.values[t === "motion" ? "motion_threshold_pct" : "form_threshold_pct"]}
-              subtitle="Coherence (%) on each scored trial, log scale" />
+          {TASKS.map(task => (
+            <StaircaseChart key={task} task={task} points={e.staircases![task]} threshold={e.values[task === "motion" ? "motion_threshold_pct" : "form_threshold_pct"]}
+              subtitle={t.staircaseSubtitle} />
           ))}
         </div>
-      ) : <p className="hint">No staircases were kept for this session.</p>}
+      ) : <p className="hint">{t.noStaircases}</p>}
     </article>
   );
 }
@@ -112,32 +118,36 @@ function SessionEntry({ entry: e, groups, retry, save, savePdf, selected, onSele
 function SelectionBar({ count, save, clear }: { count: number; save: () => Promise<string>; clear: () => void }) {
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  // Whether the status says it saved, which clears sooner than a failure.
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (!status || busy) return;
-    const t = setTimeout(() => setStatus(""), status.startsWith("Saved") ? 4000 : 10000);
-    return () => clearTimeout(t);
-  }, [status, busy]);
+    const timer = setTimeout(() => setStatus(""), saved ? 4000 : 10000);
+    return () => clearTimeout(timer);
+  }, [status, busy, saved]);
 
   const onSave = async (): Promise<void> => {
     setBusy(true);
+    setSaved(false);
     setStatus(PDF_PENDING);
     try {
-      setStatus(`Saved ${await save()}.`);
+      setStatus(t.saved(await save()));
+      setSaved(true);
     } catch (err) {
-      setStatus(err instanceof Error ? err.message : "Couldn't save it.");
+      setStatus(err instanceof Error ? err.message : t.couldntSave);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <div className="select-bar" id="history-selection" role="region" aria-label="Selected sessions">
-      <p><strong>{count}</strong> {count === 1 ? "session" : "sessions"} selected</p>
+    <div className="select-bar" id="history-selection" role="region" aria-label={t.selectionLabel}>
+      <p><Rich text={t.selectedCount(count)} /></p>
       <span className="select-status" role="status" aria-live="polite">{status}</span>
       <div className="actions">
-        <button type="button" className="btn secondary" id="history-select-clear" onClick={clear} disabled={busy}>Clear</button>
-        <button type="button" className="btn" id="history-save-selected" onClick={() => void onSave()} disabled={busy}>Save as PDF</button>
+        <button type="button" className="btn secondary" id="history-select-clear" onClick={clear} disabled={busy}>{t.clear}</button>
+        <button type="button" className="btn" id="history-save-selected" onClick={() => void onSave()} disabled={busy}>{t.saveAsPdf}</button>
       </div>
     </div>
   );
@@ -192,11 +202,11 @@ export function HistoryPage({ initialPseudonym }: { initialPseudonym: string }) 
   const save = async (p: string, kind: SaveKind, submissionId?: string): Promise<string> => {
     let r = raw;
     if (!r || r.pseudonym !== p) {
-      try { r = await fetchRawHistory(p); } catch { throw new Error("Couldn't get the data. Check your connection and try again."); }
+      try { r = await fetchRawHistory(p); } catch { throw new Error(t.fetchFailed); }
       setRaw(r);
     }
     const one = submissionId ? r.sessions.find(s => s.submission_id === submissionId) : undefined;
-    if (submissionId && !one) throw new Error("Couldn't find that session's data. It may have been removed.");
+    if (submissionId && !one) throw new Error(t.sessionMissing);
     const base = one ? fileBaseAt(one.started_at) : `form-motion-coherence-${p.replace(/[^a-z0-9]+/g, "-")}-all`;
     const filename = `${base}${kind === "summary" ? (one ? "-summary" : "-summaries") : ""}.json`;
     const data = one
@@ -222,43 +232,43 @@ export function HistoryPage({ initialPseudonym }: { initialPseudonym: string }) 
   return (
     <section className="view view-stack" data-view="history" aria-labelledby="history-h">
       <div className="panel">
-        <h2 id="history-h">Results by pseudonym</h2>
-        <p>Enter a pseudonym to see every result stored under it. Results are public: anyone who enters the same pseudonym sees this page.</p>
+        <h2 id="history-h">{t.heading}</h2>
+        <p><Rich text={t.intro} /></p>
         {!API_URL && !usingSample() ? (
-          <p className="hint">Looking up past results isn't available on this copy of the test yet.</p>
+          <p className="hint"><Rich text={t.notAvailable} /></p>
         ) : (
           <form className="inline" onSubmit={onSubmit}>
-            <input type="text" id="history-pseudonym" aria-label="Pseudonym" maxLength={40} autoComplete="off" spellCheck={false} value={pseudonym} onChange={e => setPseudonym(e.target.value)} />
-            <button type="submit" className="btn" id="history-go" disabled={!normalizePseudonym(pseudonym) || load.state === "loading"}>Show results</button>
+            <input type="text" id="history-pseudonym" aria-label={t.pseudonymLabel} maxLength={40} autoComplete="off" spellCheck={false} value={pseudonym} onChange={e => setPseudonym(e.target.value)} />
+            <button type="submit" className="btn" id="history-go" disabled={!normalizePseudonym(pseudonym) || load.state === "loading"}>{t.showResults}</button>
           </form>
         )}
-        {load.state === "loading" && <p className="hint">Looking up {load.pseudonym}…</p>}
-        {load.state === "error" && <p className="hint">Couldn't load results for {load.pseudonym}. Check your connection and try again.</p>}
+        {load.state === "loading" && <p className="hint">{t.lookingUp(load.pseudonym)}</p>}
+        {load.state === "error" && <p className="hint">{t.loadFailed(load.pseudonym)}</p>}
         {load.state === "ready" && load.history.sessions.length === 0 && (
-          <p className="hint" id="history-none">No results for "{load.history.pseudonym}". Pseudonyms ignore capitals and extra spaces, but otherwise must match exactly.</p>
+          <p className="hint" id="history-none">{t.noResults(load.history.pseudonym)}</p>
         )}
       </div>
 
       {load.state === "ready" && load.history.sessions.length > 0 && (
         <>
           <div className="panel save-card" id="history-results">
-            <SaveMenu id="history-save" label="Save every session" text="Save all" options={[
-              { id: "history-save-pdf", label: "Save summaries (PDF)", description: `Every session for ${load.history.pseudonym}, with its charts, in one file to read or print.`, pending: PDF_PENDING, save: () => savePDF(manyPdfName(load.history.pseudonym, "all"), pdfOf(newestFirst)) },
+            <SaveMenu id="history-save" label={t.saveAllLabel} text={t.saveAllButton} options={[
+              { id: "history-save-pdf", label: t.saveAllPdf.label, description: t.saveAllPdf.description(load.history.pseudonym), pending: PDF_PENDING, save: () => savePDF(manyPdfName(load.history.pseudonym, "all"), pdfOf(newestFirst)) },
               ...(saver ? [
-                { id: "history-save-summaries", label: "Save summaries (JSON)", description: `Every session for ${load.history.pseudonym}: answers, results and staircase points, in one file.`, save: () => saver("summary") },
-                { id: "history-save-raw", label: "Save full data (JSON)", description: `Every session for ${load.history.pseudonym} in full, as stored in the database, in one file.`, save: () => saver("raw") },
+                { id: "history-save-summaries", label: t.saveAllSummaries.label, description: t.saveAllSummaries.description(load.history.pseudonym), save: () => saver("summary") },
+                { id: "history-save-raw", label: t.saveAllRaw.label, description: t.saveAllRaw.description(load.history.pseudonym), save: () => saver("raw") },
               ] : []),
             ]} />
-            {load.sample && <p className="banner">Sample data for development. This isn't anyone's real history.</p>}
-            <h3>{load.history.pseudonym}: {load.history.sessions.length} {load.history.sessions.length === 1 ? "session" : "sessions"}, newest first</h3>
-            <p className="hint">Just for fun, and not medical advice.</p>
+            {load.sample && <p className="banner">{t.sampleBanner}</p>}
+            <h3>{t.sessionsHeading(load.history.pseudonym, load.history.sessions.length)}</h3>
+            <p className="hint"><Rich text={t.justForFun} /></p>
             {load.history.sessions.length > 1 && (
-              <p className="hint" id="history-practice">People can get better at the test with practice. Keep in mind this could affect results if the test has been taken a lot.</p>
+              <p className="hint" id="history-practice"><Rich text={t.practice} /></p>
             )}
             <ResultsExplained groups={anyShown} thresholdCharts />
-            <p className="hint">The staircases show the share of organised dots on each scored trial.</p>
+            <p className="hint"><Rich text={t.staircasesHint} /></p>
             <StaircaseKey />
-            {newestFirst.length > 1 && <p className="hint" id="history-select-hint">To save a PDF of only some sessions, select them below.</p>}
+            {newestFirst.length > 1 && <p className="hint" id="history-select-hint"><Rich text={t.selectHint} /></p>}
           </div>
           {newestFirst.map(e => (
             <SessionEntry key={e.submission_id} entry={e} groups={groupLoads} retry={retryGroups} save={saver}
@@ -272,7 +282,7 @@ export function HistoryPage({ initialPseudonym }: { initialPseudonym: string }) 
         </>
       )}
 
-      <div className="actions"><button type="button" className="btn secondary back" id="history-back" onClick={back}>Back</button></div>
+      <div className="actions"><button type="button" className="btn secondary back" id="history-back" onClick={back}>{text.common.back}</button></div>
     </section>
   );
 }

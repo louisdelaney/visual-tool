@@ -1,6 +1,9 @@
 // A list answer typed one entry at a time: type one, press + (or Enter), and it becomes a chip
 // that can be removed. Text typed but not yet added still counts (see chipValues).
 import { useRef, type KeyboardEvent } from "react";
+import { text } from "../text";
+
+const t = text.contribute.chips;
 
 export interface Chips {
   items: string[];
@@ -50,18 +53,18 @@ export function ChipInput({ id, noun, value, onChange }: ChipInputProps) {
   return (
     <div className="chip-input">
       {value.items.length > 0 && (
-        <ul className="chips" aria-label={`Added: ${value.items.length}`}>
+        <ul className="chips" aria-label={t.added(value.items.length)}>
           {value.items.map((item, i) => (
             <li key={item} className="chip">
               <span>{item}</span>
-              <button type="button" className="chip-remove" aria-label={`Remove ${item}`} onClick={() => remove(i)}>×</button>
+              <button type="button" className="chip-remove" aria-label={t.remove(item)} onClick={() => remove(i)}>×</button>
             </li>
           ))}
         </ul>
       )}
       <div className="inline">
         <input ref={input} type="text" id={id} maxLength={MAX_CHIP_LENGTH} autoComplete="off" disabled={full} value={value.typing} onChange={e => onChange({ ...value, typing: e.target.value })} onKeyDown={onKeyDown} />
-        <button type="button" className="btn secondary chip-add" aria-label={`Add ${noun}`} disabled={full || !clean(value.typing)} onClick={add}>+</button>
+        <button type="button" className="btn secondary chip-add" aria-label={t.add(noun)} disabled={full || !clean(value.typing)} onClick={add}>+</button>
       </div>
     </div>
   );

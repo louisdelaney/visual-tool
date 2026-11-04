@@ -9,20 +9,24 @@ import fontkit from "@pdf-lib/fontkit";
 import regularUrl from "@fontsource/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-400-normal.woff?url";
 import boldUrl from "@fontsource/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-700-normal.woff?url";
 import { TEST_VERSION } from "../core/protocol";
-import { describeQuantiles, groupLine, GROUP_INFO, groupSensitivities, GROUPS, groupsIntro, MEASURE_INFO, MEASURES, sensitivities, sensitivityNote, shownGroups, THRESHOLD_CHARTS_NOTE, type MeasureKey, type Quantiles, type ShownGroup } from "./comparison";
+import { groupSensitivities, GROUPS, MEASURES, sensitivities, shownGroups, type MeasureKey, type Quantiles, type ShownGroup } from "./comparison";
+import { describeQuantiles, groupLine, GROUP_INFO, groupsIntro, MEASURE_INFO, sensitivityNote, THRESHOLD_CHARTS_NOTE } from "./groupText";
 import { EXPLAIN_LEAD, explanations } from "./explanations";
 import { fmt } from "./format";
-import { missedChecksText, takenOn, type StaircasePoint } from "./history";
+import { type StaircasePoint } from "./history";
+import { missedChecksText, takenOn } from "./runText";
 import { LOG_TICKS, logPosition, rangeAxis, roundTicks, tickDecimals } from "./scales";
 import { TEST_TYPE_LABEL } from "./protocol";
 import { woffToSfnt } from "./woff";
-import { interpretation, type TaskNumbers } from "../components/RunSummary";
+import { interpretation, type TaskNumbers } from "./runNumbers";
 import type { Report, ReportSession } from "./report";
 import type { TaskName } from "./types";
+import { text } from "../text";
+import { parseTags, type TagNode } from "../text/tags";
 
-export const TITLE = "Form–Motion Coherence Test";
-const FUN = "This is a casual online test for curiosity only. It isn't medical advice.";
-const FOOTER = `${TITLE} · Just for fun, not medical advice.`;
+const t = text.pdf;
+
+export const TITLE = t.title;
 
 /** The site's font, as bundled (WOFF). */
 export interface Fonts {
@@ -75,6 +79,15 @@ interface Run {
   bold?: boolean;
   color?: Color;
 }
+
+/**
+ * A sentence from src/text as runs: its bold as bold, and everything else (italic, keys, links) as
+ * its plain words, which is all the PDF can show. Only for the site's own text: someone's answers
+ * go in as plain runs, so nothing they typed is read as formatting.
+ */
+const pdfRuns = (s: string): Run[] => toRuns(parseTags(s), false);
+const toRuns = (nodes: (string | TagNode)[], bold: boolean): Run[] =>
+  nodes.flatMap(n => (typeof n === "string" ? [{ text: n, bold }] : toRuns(n.children, bold || n.tag === "strong")));
 
 interface TextStyle {
   size?: number;
@@ -229,7 +242,7 @@ class Writer {
     this.y = top + h;
   }
 
-  hint(text: string, size = 9.5): void {
+  hint(text: Run[] | string, size = 9.5): void {
     this.para(text, { size, color: C.ink2 });
   }
 
@@ -238,8 +251,8 @@ class Writer {
     this.pages.forEach((page, i) => {
       this.page = page;
       this.line(ML, PAGE_H - MB + 22, PAGE_W - MR, PAGE_H - MB + 22, C.rule, 0.5);
-      this.label(FOOTER, ML, PAGE_H - MB + 36, 8, { color: C.muted });
-      this.label(`Page ${i + 1} of ${this.pages.length}`, PAGE_W - MR, PAGE_H - MB + 36, 8, { color: C.muted, anchor: "end" });
+      this.label(t.footer, ML, PAGE_H - MB + 36, 8, { color: C.muted });
+      this.label(t.pageOf(i + 1, this.pages.length), PAGE_W - MR, PAGE_H - MB + 36, 8, { color: C.muted, anchor: "end" });
     });
   }
 }
@@ -263,34 +276,34 @@ function tile(w: Writer, x: number, y: number, width: number, height: number, la
 /** The three tiles, as on the pages. */
 function tiles(w: Writer, s: ReportSession): void {
   const R = s.numbers;
-  const pillOf = (t: TaskNumbers | null): string | null => (t && t.status !== "complete" ? (t.status === "incomplete" ? "Ended early" : "No threshold") : null);
+  const pillOf = (n: TaskNumbers | null): string | null => (n && n.status !== "complete" ? (n.status === "incomplete" ? t.endedEarly : t.noThreshold) : null);
   const h = [R.motion, R.form].some(t => pillOf(t)) ? 80 : 64;
   const gap = 10, tw = (CW - 2 * gap) / 3;
   w.keep(h);
-  const task = (t: TaskName, i: number): void => {
-    const r = R[t], name = t === "motion" ? "Motion" : "Form";
-    if (!r) { tile(w, ML + i * (tw + gap), w.y, tw, h, `${name} threshold`, t, "–", "Not run", null); return; }
-    tile(w, ML + i * (tw + gap), w.y, tw, h, `${name} threshold`, t, fmt.pct(r.threshold_pct),
-      `sensitivity ${fmt.fixed(r.sensitivity, 3)}${r.staircase_trials != null ? ` · ${r.staircase_trials} scored trials` : ""}`, pillOf(r));
+  const task = (task: TaskName, i: number): void => {
+    const r = R[task];
+    if (!r) { tile(w, ML + i * (tw + gap), w.y, tw, h, t.threshold[task], task, text.common.none, t.notRun, null); return; }
+    tile(w, ML + i * (tw + gap), w.y, tw, h, t.threshold[task], task, fmt.pct(r.threshold_pct),
+      t.sensitivityLine(fmt.fixed(r.sensitivity, 3), r.staircase_trials ?? null), pillOf(r));
   };
   task("motion", 0);
   task("form", 1);
   const d = R.motion_minus_form;
-  tile(w, ML + 2 * (tw + gap), w.y, tw, h, "Motion minus form sensitivity", null, d ? fmt.signed(d.sensitivity, 3) : "–", d ? `motion ÷ form threshold ${fmt.fixed(d.threshold_ratio, 2)}` : "Needs both thresholds", null);
+  tile(w, ML + 2 * (tw + gap), w.y, tw, h, t.diffTitle, null, d ? fmt.signed(d.sensitivity, 3) : text.common.none, d ? t.diffLine(fmt.fixed(d.threshold_ratio, 2)) : t.needsBoth, null);
   w.gap(h + 12);
 }
 
-const BAR_SERIES = [{ key: "motion", label: "Motion" }, { key: "form", label: "Form" }, { key: "diff", label: "Motion − form" }] as const;
+const BAR_SERIES = [{ key: "motion", label: t.bars.motion }, { key: "form", label: t.bars.form }, { key: "diff", label: t.bars.diff }] as const;
 
 /** The sensitivity bars: the person's three, then each group's medians with the middle half. */
 function sensitivityBars(w: Writer, s: ReportSession, shown: ShownGroup[]): void {
   const own = sensitivities(s.values);
   type Bar = { value: number | null; range?: { p25: number; p75: number } };
   const clusters: { label: string; sub: string; bars: Record<"motion" | "form" | "diff", Bar> }[] = [
-    { label: "This run", sub: "", bars: { motion: { value: own.motion }, form: { value: own.form }, diff: { value: own.diff } } },
+    { label: t.thisRun, sub: "", bars: { motion: { value: own.motion }, form: { value: own.form }, diff: { value: own.diff } } },
     ...shown.map(g => {
       const r = groupSensitivities(g.measures);
-      return { label: GROUP_INFO[g.group].name, sub: `${g.n} people`, bars: { motion: { value: r.motion.p50, range: r.motion }, form: { value: r.form.p50, range: r.form }, diff: { value: r.diff.p50, range: r.diff } } };
+      return { label: GROUP_INFO[g.group].name, sub: t.people(g.n), bars: { motion: { value: r.motion.p50, range: r.motion }, form: { value: r.form.p50, range: r.form }, diff: { value: r.diff.p50, range: r.diff } } };
     }),
   ];
   const all = clusters.flatMap(c => BAR_SERIES.flatMap(({ key }) => [c.bars[key].value, c.bars[key].range?.p25, c.bars[key].range?.p75])).filter((v): v is number => v != null);
@@ -308,7 +321,7 @@ function sensitivityBars(w: Writer, s: ReportSession, shown: ShownGroup[]): void
     w.line(ML + M.l, y(t), ML + CW - M.r, y(t), t === 0 ? C.axis : C.grid, 0.75);
     w.label(fmt.fixed(t, decimals), ML + M.l - 6, y(t) + 2.5, 7.5, { color: C.muted, anchor: "end" });
   }
-  const axisLabel = "Sensitivity";
+  const axisLabel = t.sensitivityAxis;
   w.label(axisLabel, ML + 8, top + M.t + ih / 2 + w.regular.widthOfTextAtSize(axisLabel, 8) / 2, 8, { color: C.ink2, rotate: 90 });
   const cw = iw / clusters.length, bw = Math.min(26, cw * 0.2);
   clusters.forEach((c, i) => {
@@ -345,11 +358,11 @@ function measureRow(w: Writer, measure: MeasureKey, lanes: { group: ShownGroup["
   const info = MEASURE_INFO[measure];
   const LANE = 30, TOP = 4, AXIS_H = 14, PAD = 10;
   const H = TOP + lanes.length * LANE + AXIS_H;
-  const yours = value == null ? "This run didn't reach a value for this." : `This run: ${info.format(value)}.`;
-  const text = `${yours} ${lanes.map(l => `${GROUP_INFO[l.group].name}: ${describeQuantiles(info, l.q)}.`).join(" ")} ${info.reading}`;
-  w.keep(18 + H + 6 + w.measure(text, { size: 8.5 }) + 14);
+  const yours = value == null ? t.noValue : t.thisRunValue(info.format(value));
+  const caption = `${yours} ${lanes.map(l => t.groupValue(GROUP_INFO[l.group].name, describeQuantiles(info, l.q))).join(" ")} ${info.reading}`;
+  w.keep(18 + H + 6 + w.measure(pdfRuns(caption), { size: 8.5 }) + 14);
   w.label(info.title, ML, w.y + 10, 10, { bold: true });
-  w.label(value == null ? "–" : info.format(value), ML + CW, w.y + 10, 10, { bold: true, anchor: "end" });
+  w.label(value == null ? text.common.none : info.format(value), ML + CW, w.y + 10, 10, { bold: true, anchor: "end" });
   w.gap(18);
   const top = w.y, color = SERIES_COLOR[info.series];
   const { to, ticks } = rangeAxis(lanes.map(l => l.q), value, info.log);
@@ -370,7 +383,7 @@ function measureRow(w: Writer, measure: MeasureKey, lanes: { group: ShownGroup["
   }
   for (const t of ticks) w.label(info.log ? `${t}%` : fmt.signed(t, decimals), x(t), top + H - 2, 7.5, { color: C.muted, anchor: "middle" });
   w.y = top + H + 6;
-  w.para(text, { size: 8.5, color: C.ink2 });
+  w.para(pdfRuns(caption), { size: 8.5, color: C.ink2 });
   w.gap(10);
 }
 
@@ -378,36 +391,36 @@ function measureRow(w: Writer, measure: MeasureKey, lanes: { group: ShownGroup["
 function groupsSection(w: Writer, s: ReportSession): void {
   const g = s.groups;
   w.keep(240);
-  w.heading("Compared with other groups", 13);
+  w.heading(t.groupsHeading, 13);
   w.gap(4);
   if (s.test_version !== TEST_VERSION) {
-    w.hint("This used an earlier version of the test, so it isn't shown beside the groups.");
+    w.hint(pdfRuns(t.earlierVersion));
     w.gap(6);
     sensitivityBars(w, s, []);
     return;
   }
   if (g.state !== "ready") {
-    if (g.state === "unavailable") { w.hint("The groups hadn't loaded when this file was saved, so they're left out. Save it again once they've loaded to include them."); w.gap(6); }
-    w.hint(sensitivityNote(false));
+    if (g.state === "unavailable") { w.hint(pdfRuns(t.groupsNotLoaded)); w.gap(6); }
+    w.hint(pdfRuns(sensitivityNote(false)));
     w.gap(6);
     sensitivityBars(w, s, []);
     return;
   }
-  if (g.sample) { w.box("Sample data for development. These are not real groups.", C.notice, C.noticeEdge, 9.5); w.gap(8); }
+  if (g.sample) { w.box(t.sampleGroups, C.notice, C.noticeEdge, 9.5); w.gap(8); }
   const shown = shownGroups(g.stats);
-  w.para(groupsIntro(s.test_type), { size: 9.5 });
+  w.para(pdfRuns(groupsIntro(s.test_type)), { size: 9.5 });
   w.gap(3);
   for (const key of GROUPS) {
     const l = groupLine(key, g.stats.groups[key].n);
     w.para([{ text: "•  " }, { text: l.name, bold: true }, { text: ` ${l.rest}` }], { size: 9.5, x: ML + 6, width: CW - 6 });
   }
   w.gap(3);
-  w.para(sensitivityNote(shown.length > 0), { size: 9.5 });
+  w.para(pdfRuns(sensitivityNote(shown.length > 0)), { size: 9.5 });
   w.gap(8);
   sensitivityBars(w, s, shown);
   if (!shown.length) return;
-  w.keep(w.measure(THRESHOLD_CHARTS_NOTE, { size: 9.5 }) + 80);
-  w.para(THRESHOLD_CHARTS_NOTE, { size: 9.5 });
+  w.keep(w.measure(pdfRuns(THRESHOLD_CHARTS_NOTE), { size: 9.5 }) + 80);
+  w.para(pdfRuns(THRESHOLD_CHARTS_NOTE), { size: 9.5 });
   w.gap(8);
   for (const m of MEASURES) measureRow(w, m, shown.map(sg => ({ group: sg.group, q: sg.measures[m] })), s.values[m]);
 }
@@ -416,7 +429,7 @@ function groupsSection(w: Writer, s: ReportSession): void {
 function staircase(w: Writer, x0: number, top: number, width: number, task: TaskName, points: StaircasePoint[], threshold: number | null): void {
   const H = 150, M = { l: 24, r: 44, t: 18, b: 24 }, color = SERIES_COLOR[task];
   w.rect(x0, top + 2, 8, 8, { fill: color, radius: 1.5 });
-  w.label(task === "motion" ? "Motion" : "Form", x0 + 12, top + 9.5, 10, { bold: true });
+  w.label(t.task[task], x0 + 12, top + 9.5, 10, { bold: true });
   const iw = width - M.l - M.r, ih = H - M.t - M.b, n = points.length;
   const x = (i: number): number => x0 + M.l + (n <= 1 ? iw / 2 : (i / (n - 1)) * iw);
   const y = (v: number): number => top + M.t + (1 - logPosition(v)) * ih;
@@ -430,11 +443,11 @@ function staircase(w: Writer, x0: number, top: number, width: number, task: Task
     w.line(x(k - 1), top + H - M.b, x(k - 1), top + H - M.b + 3, C.axis, 0.75);
     w.label(String(k), x(k - 1), top + H - M.b + 12, 7, { color: C.muted, anchor: "middle" });
   }
-  w.label("Trial", x0 + M.l, top + H - 1, 7, { color: C.muted });
-  if (!n) { w.label("No trials were completed.", x0 + M.l + iw / 2, top + M.t + ih / 2, 8, { color: C.muted, anchor: "middle" }); return; }
+  w.label(t.trialAxis, x0 + M.l, top + H - 1, 7, { color: C.muted });
+  if (!n) { w.label(t.noTrials, x0 + M.l + iw / 2, top + M.t + ih / 2, 8, { color: C.muted, anchor: "middle" }); return; }
   if (threshold != null) {
     w.line(x0 + M.l, y(threshold), x0 + width - M.r, y(threshold), C.ink, 0.75);
-    w.label("Threshold", x0 + width - M.r + 9, y(threshold) - 2, 7, { color: C.ink2 });
+    w.label(t.thresholdLabel, x0 + width - M.r + 9, y(threshold) - 2, 7, { color: C.ink2 });
     w.label(fmt.pct(threshold), x0 + width - M.r + 9, y(threshold) + 8, 7.5, { bold: true });
   }
   w.polyline(points.map((p, i) => [x(i), y(p.coherence_pct)]), color, 1.25);
@@ -451,19 +464,19 @@ function staircaseKey(w: Writer): void {
     w.label(text, x + markW + 4, y + 3, 8, { color: C.ink2 });
     x += markW + 4 + w.regular.widthOfTextAtSize(text, 8) + 14;
   };
-  item(() => w.circle(x + 3, y, 2.6, { fill: C.ink2, stroke: C.white, width: 0.75 }), "Correct", 6);
-  item(() => w.circle(x + 3, y, 2.6, { fill: C.white, stroke: C.ink2, width: 1 }), "Wrong", 6);
-  item(() => w.circle(x + 5, y, 4.5, { stroke: C.ink2, width: 0.75 }), "Reversal", 10);
-  item(() => w.line(x, y, x + 14, y, C.ink, 0.75), "Threshold, averaged from the last reversals", 14);
+  item(() => w.circle(x + 3, y, 2.6, { fill: C.ink2, stroke: C.white, width: 0.75 }), t.key.correct, 6);
+  item(() => w.circle(x + 3, y, 2.6, { fill: C.white, stroke: C.ink2, width: 1 }), t.key.wrong, 6);
+  item(() => w.circle(x + 5, y, 4.5, { stroke: C.ink2, width: 0.75 }), t.key.reversal, 10);
+  item(() => w.line(x, y, x + 14, y, C.ink, 0.75), t.key.threshold, 14);
   w.gap(16);
 }
 
 function staircases(w: Writer, s: ReportSession): void {
   w.keep(20 + 150 + 30);
-  w.heading("Staircases", 13);
-  w.hint("Coherence (%) on each scored trial, log scale.");
+  w.heading(t.staircasesHeading, 13);
+  w.hint(t.staircaseSubtitle);
   w.gap(6);
-  if (!s.staircases) { w.hint("No staircases were kept for this session."); return; }
+  if (!s.staircases) { w.hint(t.noStaircases); return; }
   const gap = 18, half = (CW - gap) / 2, top = w.y;
   staircase(w, ML, top, half, "motion", s.staircases.motion, s.values.motion_threshold_pct);
   staircase(w, ML + half + gap, top, half, "form", s.staircases.form, s.values.form_threshold_pct);
@@ -475,24 +488,24 @@ function sessionSection(w: Writer, s: ReportSession): void {
   const quick = s.test_type === "quick";
   w.keep(160);
   const date = new Date(s.started_at);
-  const heading = `${date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}, ${date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+  const heading = `${date.toLocaleDateString(text.common.locale, { day: "numeric", month: "short", year: "numeric" })}, ${date.toLocaleTimeString(text.common.locale, { hour: "2-digit", minute: "2-digit" })}`;
   w.heading(heading, 16);
   // How it was taken, straight under the date, as on the Results by pseudonym page.
-  if (s.run) w.hint(`Taken on: ${takenOn(s.run)}`);
+  if (s.run) w.hint(t.takenOnLine(takenOn(s.run)));
   // Which test it was, large: results are only ever compared within one type and version.
   w.gap(6);
-  w.para(`${TEST_TYPE_LABEL[s.test_type]} · test version ${s.test_version}`, { size: 14, bold: true, leading: 1.3 });
-  if (quick) w.hint("A quick test: a shorter run, so its results are less precise than a full test's. It's shown only beside other quick-test results.");
+  w.para(t.testLine(TEST_TYPE_LABEL[s.test_type], s.test_version), { size: 14, bold: true, leading: 1.3 });
+  if (quick) w.hint(pdfRuns(t.quickNote));
   w.gap(10);
   tiles(w, s);
-  w.para(interpretation(s.numbers), { size: 10.5 });
+  w.para(pdfRuns(interpretation(s.numbers)), { size: 10.5 });
   w.gap(4);
-  if (s.run && s.run.checks_missed > 0) w.hint(missedChecksText(s.run.checks_missed));
+  if (s.run && s.run.checks_missed > 0) w.hint(pdfRuns(missedChecksText(s.run.checks_missed)));
   // The medications and notes the person sent, in their own words, boxed so they're easy to find again.
   const noted: Run[] = [
-    ...(s.medications?.length ? [{ text: "Medications: ", bold: true }, { text: s.medications.join(", ") }] : []),
+    ...(s.medications?.length ? [{ text: t.medications, bold: true }, { text: s.medications.join(", ") }] : []),
     ...(s.medications?.length && s.notes ? [{ text: "\n" }] : []),
-    ...(s.notes ? [{ text: "Notes: ", bold: true }, { text: s.notes }] : []),
+    ...(s.notes ? [{ text: t.notes, bold: true }, { text: s.notes }] : []),
   ];
   if (noted.length) { w.gap(6); w.box(noted, C.noted, C.notedEdge, 10.5); }
   w.gap(14);
@@ -510,20 +523,20 @@ export async function buildSummaryPDF(report: Report, fonts: Fonts): Promise<Uin
   doc.registerFontkit(fontkit);
   const [regular, bold] = await Promise.all([doc.embedFont(await woffToSfnt(fonts.regular), { subset: true }), doc.embedFont(await woffToSfnt(fonts.bold), { subset: true })]);
   const many = report.sessions.length > 1;
-  doc.setTitle(`${TITLE}: ${many ? "results summaries" : "results summary"}`);
-  doc.setLanguage("en-GB");
+  doc.setTitle(t.docTitle(many));
+  doc.setLanguage(text.common.locale);
 
   const w = new Writer(doc, regular, bold);
   w.heading(TITLE, 22);
   w.para(report.pseudonym
-    ? `Results for ${report.pseudonym}: ${report.sessions.length} ${many ? "sessions, newest first" : "session"}`
-    : "Results summary", { size: 12, color: C.ink2 });
+    ? t.resultsFor(report.pseudonym, report.sessions.length, many)
+    : t.resultsSummary, { size: 12, color: C.ink2 });
   w.gap(12);
-  w.box([{ text: "Just for fun. ", bold: true }, { text: FUN }], C.notice, C.noticeEdge, 10.5);
+  w.box(pdfRuns(t.funNotice), C.notice, C.noticeEdge, 10.5);
   w.gap(10);
-  if (report.sample) { w.box("Sample data for development. This isn't anyone's real history.", C.notice, C.noticeEdge, 9.5); w.gap(10); }
-  w.para(EXPLAIN_LEAD, { size: 10 });
-  if (many) { w.gap(4); w.para("People can get better at the test with practice. Keep in mind this could affect results if the test has been taken a lot.", { size: 10 }); }
+  if (report.sample) { w.box(t.sampleHistory, C.notice, C.noticeEdge, 9.5); w.gap(10); }
+  w.para(pdfRuns(EXPLAIN_LEAD), { size: 10 });
+  if (many) { w.gap(4); w.para(pdfRuns(t.practice), { size: 10 }); }
   w.gap(10);
   w.line(ML, w.y, ML + CW, w.y, C.rule, 0.75);
   w.gap(18);
@@ -536,12 +549,12 @@ export async function buildSummaryPDF(report: Report, fonts: Fonts): Promise<Uin
   // What the numbers mean, as the pages explain it, on a page of its own.
   const groups = report.sessions.some(s => s.groups.state === "ready" && shownGroups(s.groups.stats).length > 0);
   w.newPage();
-  w.heading("What the numbers mean", 13);
+  w.heading(t.numbersHeading, 13);
   w.gap(4);
   for (const e of explanations({ groups, thresholdCharts: true })) {
-    w.keep(w.measure(e.text, { size: 9.5 }) + 16);
+    w.keep(w.measure(pdfRuns(e.text), { size: 9.5 }) + 16);
     w.para(e.title, { size: 10, bold: true });
-    w.para(e.text, { size: 9.5, color: C.ink2 });
+    w.para(pdfRuns(e.text), { size: 9.5, color: C.ink2 });
     w.gap(6);
   }
 

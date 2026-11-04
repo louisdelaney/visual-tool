@@ -103,6 +103,49 @@ To run the slow ones somewhere else, `npm run check:e2e` runs the end-to-end tes
 
 Run `npm run test:e2e` if you change anything in `src/core/` or `src/stage/`. For other changes, `npm run typecheck`, `npm test` and `npm run test:backend` are enough, and CI runs them again on the pull request.
 
+## Changing the words on the site
+
+The words on the pages, the test screens and the PDF are in `src/text/en/`, and you don't need to touch the components to change them. There are three kinds of file:
+
+- **A page's Markdown file** (`contribute.md`, `results.md`, `tasks.md` and so on) has its paragraphs: introductions, notes, hints, instructions and explanations. It's written to be read and edited without knowing any code, including in GitHub's editor.
+- **The TypeScript file with the same name** (`contribute.ts` and so on) has the short words: headings, questions and their answers, buttons, labels on the charts, and short messages like errors.
+- **A long page's Markdown file** (`privacy.md`, `references.md`, `data.md`) is the whole page, written as it appears.
+
+The tables and papers on Method and references are in `src/components/methodData.ts`.
+
+### Formatting, in every Markdown file
+
+- A blank line starts a new paragraph. A line break inside a paragraph is just a space, so break long lines wherever you like.
+- `**bold**` and `*italic*` work as usual, and `<kbd>Esc</kbd>` shows a key.
+- `[these words](privacy)` links to another page of the site: `history`, `privacy`, `references` or `data`.
+- Lines starting `1.` or `-` are a list. Each starts an item; a line without one carries on the item above.
+- `{minutes}`, `{trials}` and the like are filled in by the page. Keep them, and move them anywhere in the sentence.
+- `<!-- ... -->` is a note for whoever edits the file, never shown on the site. Many pieces have one saying where they appear, or what they must keep saying.
+
+All of this works in every piece of text, wherever it's shown. Where something can't be shown, its words still are: on the test screens a link shows as its words, since it can't be followed there; in the PDF bold stays bold and the rest shows as plain words.
+
+### A page's Markdown file
+
+Each `## name` line starts one piece of text, and the words under it, up to the next `##` line, are what the page shows in that place. Change the words, but leave the `##` lines as they are: the page finds its text by those names.
+
+### A long page's Markdown file
+
+The file reads like the page: `# Title` once at the top, `## Heading` for each section, then paragraphs and lists. A list straight under the title is shown as the page's key points. These files can also use `` `code` `` and link to a web address with `[words](https://...)`, which opens in a new tab.
+
+A line that's only `{name}`, like `{download}` or `{protocol}`, is a part the page draws from code, such as a button or a table. Move it to change where that part goes, but keep it, once, on a line of its own.
+
+### In a TypeScript file
+
+- Most entries are plain strings in quotes. Where a number or name goes into a sentence, the entry is a small function, like `` (n: number) => `${n} scored trials` ``; keep its parameters as they are.
+- Inside a sentence, `<strong>`, `<em>` and `<kbd>` work as in HTML, and `<privacy-link>…</privacy-link>` (or `history`, `references`, `data`) links to that page. A few other hyphenated tags are filled in by the component that shows the sentence; keep the tag and change the words inside it. Nothing else: no other HTML and no attributes. `pdf.ts` holds the PDF's labels, drawn as they are, so no tags there; the paragraphs it shares with the pages keep their bold.
+- A `.ts` file reads its Markdown file's pieces at the top, as it loads, never inside a function, so a missing piece stops the site loading instead of failing later.
+
+### For all of them
+
+- The wording rulings in `AGENTS.md` apply to every line: no medical claims, and nothing that judges a result.
+- `npm test` checks the text (`tests/unit/text.test.ts`): every piece the site needs is there and each one is used, every link goes to a page that exists, the long pages have their parts, the formatting is one the pages can show, and the most common judging words are caught. A mistake in a Markdown file names the file and the piece.
+- Rewording instructions on the test screens (`calibration.md`, `tasks.md`, and their `.ts` files) can change how people answer: see the next section.
+
 ## Test version and schema version
 
 - If you change what participants see or do (timings, sizes, dot counts, the staircase, instructions that could change answers), it is a different test. Bump `TEST_VERSION` in `src/core/protocol.ts`. A unit test pins the parameters, so forgetting fails.
@@ -111,9 +154,9 @@ Run `npm run test:e2e` if you change anything in `src/core/` or `src/stage/`. Fo
 
 ## The backend shares code with the site
 
-The backend imports `src/app/schema.ts`, `src/app/comparison.ts` and `src/app/history.ts` on purpose, so validation and the group rules can't drift from the page. Keep those three files free of browser dependencies. If `history.ts` ever needs one, move `normalizePseudonym` into `src/core/`.
+The backend imports `src/app/schema.ts`, `src/app/comparison.ts` and `src/app/history.ts` on purpose, so validation and the group rules can't drift from the page. Keep those files free of browser dependencies (if `history.ts` ever needs one, move `normalizePseudonym` into `src/core/`), and free of the site's words: the wording for the groups and for how a run was taken is in `src/app/groupText.ts` and `src/app/runText.ts`, which read `src/text`, so rewording the site never touches the backend. `tests/unit/text.test.ts` checks it.
 
-The backend must keep the privacy rules in the README's "Privacy rules the backend must keep": no IP addresses, no request headers, no request logs, nothing stored beyond the session. A change that touches what's collected or sent also updates `src/pages/PrivacyPage.tsx`.
+The backend must keep the privacy rules in the README's "Privacy rules the backend must keep": no IP addresses, no request headers, no request logs, nothing stored beyond the session. A change that touches what's collected or sent also updates the Privacy and risks page, `src/text/en/privacy.md`.
 
 ## Deploying your own copy
 

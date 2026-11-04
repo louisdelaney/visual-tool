@@ -126,7 +126,7 @@ The Privacy and risks page promises these, so the backend has to keep them:
 - **Only what's needed to read the results is collected** (AGENTS.md, "What's collected"). The page sends `started_at` to the hour and `duration_s`, no trial times, the browser and major version only, and `environment.device`. It doesn't send a language, screen resolution, operating system or the card-measuring time. Pages opened before this was tightened still send some of those, and sessions stored then have them, so `backend/src/scrub.ts` strips them before a session is stored and again as the download is written. `received_at` is stored to the hour.
 - **The public download** is the stored sessions, scrubbed as above: exact times can help single someone out and aren't needed to analyse the results.
 
-If any of this changes, update `src/pages/PrivacyPage.tsx` to match.
+If any of this changes, update the Privacy and risks page, `src/text/en/privacy.md`, to match.
 
 ## How it's built
 
@@ -140,6 +140,8 @@ src/
   app/         State, sessions and scoring, exports, sending results, and the flows that run the stage.
   pages/       One React component per step.
   components/  Shared React pieces: step list, header, stimulus previews, staircase charts.
+  text/        The words on the pages, the test screens and the PDF, in en/: paragraphs in a page's
+               .md file, short words in its .ts file, and each long page as one .md document.
   styles/      CSS by area, with colour and type tokens in tokens.css.
 tests/
   unit/        Vitest unit tests for src/core.

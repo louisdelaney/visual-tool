@@ -2,6 +2,10 @@
 // and each measure's explanation opens on request. The words are in app/explanations.ts, which the
 // PDF summaries share.
 import { EXPLAIN_LEAD, explanations } from "../app/explanations";
+import { text } from "../text";
+import { Rich } from "../text/Rich";
+
+const t = text.charts.explained;
 
 interface ResultsExplainedProps {
   /** Whether group bars are on the page, so their parts need explaining. */
@@ -13,15 +17,15 @@ interface ResultsExplainedProps {
 export function ResultsExplained({ groups, thresholdCharts = false }: ResultsExplainedProps) {
   return (
     <div className="explain" id="results-explained">
-      <h3>What the numbers mean</h3>
-      <p>{EXPLAIN_LEAD}</p>
+      <h3>{t.heading}</h3>
+      <p><Rich text={EXPLAIN_LEAD} /></p>
       <details className="explain-more">
-        <summary>More about each number</summary>
+        <summary>{t.more}</summary>
         <div className="explain-grid">
           {explanations({ groups, thresholdCharts }).map(e => (
             <section key={e.title}>
               <h4>{e.title}</h4>
-              <p>{e.text}</p>
+              <p><Rich text={e.text} /></p>
             </section>
           ))}
         </div>

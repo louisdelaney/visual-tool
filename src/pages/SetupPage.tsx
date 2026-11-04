@@ -7,6 +7,10 @@ import { getState, setState } from "../app/store";
 import { thisDevice } from "../app/device";
 import { useWindowSize } from "../hooks";
 import { StimulusPreview } from "../components/StimulusPreview";
+import { text } from "../text";
+import { Rich } from "../text/Rich";
+
+const t = text.setup;
 
 /** The narrowest window the tasks run in. */
 const MIN_WINDOW_W = 760;
@@ -31,50 +35,50 @@ export function SetupPage({ testType, session }: SetupPageProps) {
 
   return (
     <section className="view panel" data-view="setup" aria-labelledby="setup-h">
-      <h2 id="setup-h">What you'll see</h2>
+      <h2 id="setup-h">{t.heading}</h2>
       <div className="previews">
         <figure>
-          <StimulusPreview kind="motion" seed={101} playing={playing} id="pv-motion" label="Animated example of the motion task" />
+          <StimulusPreview kind="motion" seed={101} playing={playing} id="pv-motion" label={t.motionPreviewLabel} />
           <figcaption>
-            <strong>Motion.</strong> Some of the dots drift together, up or down. You say which way.{" "}
-            <button type="button" className="linkish" id="pv-play" onClick={() => setPlaying(!playing)}>{playing ? "Pause" : "Play"}</button>
+            <Rich text={t.motionCaption} />{" "}
+            <button type="button" className="linkish" id="pv-play" onClick={() => setPlaying(!playing)}>{playing ? t.pause : t.play}</button>
           </figcaption>
         </figure>
         <figure>
-          <StimulusPreview kind="form" seed={202} playing={playing} id="pv-form" label="Example of the form task" />
-          <figcaption><strong>Form.</strong> Two quick flashes of flickering dots. In one, some line up into a starburst. You say which flash.</figcaption>
+          <StimulusPreview kind="form" seed={202} playing={playing} id="pv-form" label={t.formPreviewLabel} />
+          <figcaption><Rich text={t.formCaption} /></figcaption>
         </figure>
       </div>
-      <p className="caption">Both examples are at 100% coherence. In the test, the share of organised dots falls until it's hard to tell.</p>
+      <p className="caption"><Rich text={t.previewsNote} /></p>
 
       <fieldset id="test-type">
-        <legend>Full or quick test</legend>
+        <legend>{t.testTypeQuestion}</legend>
         <label className="opt">
           <input type="radio" name="test-type" value="full" id="test-type-full" checked={chosen === "full"} disabled={locked} onChange={() => pick("full")} />
-          <span><strong>Full test</strong>, about {MINUTES.full} minutes. Each task runs as long as in the published studies it's based on.</span>
+          <span><Rich text={t.fullOption(MINUTES.full)} /></span>
         </label>
         <label className="opt">
           <input type="radio" name="test-type" value="quick" id="test-type-quick" checked={chosen === "quick"} disabled={locked} onChange={() => pick("quick")} />
-          <span><strong>Quick test</strong>, about {MINUTES.quick} minutes. Each task runs for about half as long, so the results are less precise. They're only ever compared with other quick-test results.</span>
+          <span><Rich text={t.quickOption(MINUTES.quick)} /></span>
         </label>
-        {locked && <p className="small-note">You've started the {chosen} test, so this stays as it is until you start again.</p>}
+        {locked && <p className="small-note">{t.locked[chosen]}</p>}
       </fieldset>
 
-      <h3>Before you start</h3>
+      <h3>{t.beforeYouStart}</h3>
       <ul className="checklist">
         {tablet
-          ? <li>Somewhere to stand the tablet: a stand, or propped against something on a table, turned sideways. Don't hold it while the tasks run, and don't move it once you've measured the screen.</li>
-          : <li>A laptop or desktop with a keyboard. Large tablets work in a stand; phones won't.</li>}
-        <li>A bank card, or any card the same size, to measure your screen.</li>
-        <li>About {MINUTES[chosen]} minutes in a dim room, sitting about an arm's length (50 cm) from the screen.</li>
-        <li>Your usual glasses or contact lenses.</li>
+          ? <li><Rich text={t.needTabletStand} /></li>
+          : <li><Rich text={t.needComputer} /></li>}
+        <li><Rich text={t.needCard} /></li>
+        <li><Rich text={t.needRoom(MINUTES[chosen])} /></li>
+        <li><Rich text={t.needGlasses} /></li>
       </ul>
-      <p className="notice"><strong>Please read.</strong> This is just for fun and isn't medical advice. The tasks show moving and flickering dots: don't run them if you have photosensitive epilepsy, and press Esc to stop if they make you feel unwell. If you chose to contribute, your results are sent anonymously when you finish. Otherwise they stay in this browser unless you save or copy them.</p>
-      {tooNarrow && <p className="small-note" id="setup-narrow">{tablet ? "The screen is too narrow this way round. Turn the tablet sideways to start." : "This window is too narrow to run the tasks. Make it wider or maximise it to start."}</p>}
+      <p className="notice"><Rich text={t.pleaseRead} /></p>
+      {tooNarrow && <p className="small-note" id="setup-narrow">{tablet ? t.tooNarrowTablet : t.tooNarrow}</p>}
 
       <div className="actions">
-        <button type="button" className="btn" id="start" disabled={tooNarrow} onClick={() => show("screen")}>Start</button>
-        <button type="button" className="btn secondary back" id="setup-back" onClick={() => show(getState().contribution?.contribute ? "questions" : "contribute")}>Back</button>
+        <button type="button" className="btn" id="start" disabled={tooNarrow} onClick={() => show("screen")}>{text.common.start}</button>
+        <button type="button" className="btn secondary back" id="setup-back" onClick={() => show(getState().contribution?.contribute ? "questions" : "contribute")}>{text.common.back}</button>
       </div>
     </section>
   );

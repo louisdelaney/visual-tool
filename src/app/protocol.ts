@@ -1,7 +1,9 @@
 // The test's fixed settings, task order and labels.
 import type { TestType } from "../core";
 import type { Settings, TaskName } from "./types";
+import { text } from "../text";
 
+/** Saved with each session and in the export, so it stays in English whatever the page language. */
 export const PAGE_NAME = "Form–Motion Coherence Test";
 
 export const SETTINGS: Readonly<Settings> = Object.freeze({ protocol: "clinic", motionDisplay: "brief", spiralDots: "flicker", order: "motion-first", run: "published" });
@@ -10,10 +12,10 @@ export const SETTINGS: Readonly<Settings> = Object.freeze({ protocol: "clinic", 
 export const settingsFor = (testType: TestType): Settings => ({ ...SETTINGS, run: testType === "quick" ? "quick" : "published" });
 
 /** How each test type is named on the page. */
-export const TEST_TYPE_LABEL: Record<TestType, string> = { full: "Full test", quick: "Quick test" };
+export const TEST_TYPE_LABEL: Record<TestType, string> = text.common.testTypeLabel;
 
 export const TASK_ORDER: readonly [TaskName, TaskName] = ["motion", "form"];
 
-export const TASK_LABEL: Record<TaskName, string> = { motion: "Motion task", form: "Form task" };
+export const TASK_LABEL: Record<TaskName, string> = text.common.taskLabel;
 
 export const dpr = (): number => window.devicePixelRatio || 1;

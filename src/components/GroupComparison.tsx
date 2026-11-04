@@ -5,13 +5,18 @@
 // It only shows the numbers: it draws no conclusions from where a value falls.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { API_URL, fetchGroups } from "../app/api";
-import { describeQuantiles, GROUP_INFO, groupLine, GROUPS, groupsIntro, MEASURE_INFO, MEASURES, ownValues, SAMPLE_GROUPS, sensitivities, sensitivityNote, shownGroups, THRESHOLD_CHARTS_NOTE, type ShownGroup, type GroupKey, type GroupsResponse, type MeasureKey, type Quantiles } from "../app/comparison";
+import { GROUPS, MEASURES, ownValues, SAMPLE_GROUPS, sensitivities, shownGroups, type ShownGroup, type GroupKey, type GroupsResponse, type MeasureKey, type Quantiles } from "../app/comparison";
+import { describeQuantiles, GROUP_INFO, groupLine, groupsIntro, MEASURE_INFO, sensitivityNote, THRESHOLD_CHARTS_NOTE } from "../app/groupText";
 import { rangeAxis, tickDecimals } from "../app/scales";
 import type { Session } from "../app/types";
 import type { TestType } from "../core/protocol";
 import { fmt } from "../app/format";
 import { useElementWidth } from "../hooks";
 import { SensitivityBars } from "./SensitivityBars";
+import { text } from "../text";
+import { Rich } from "../text/Rich";
+
+const t = text.charts;
 
 const LANE = 40;
 const TOP = 4;
@@ -32,8 +37,8 @@ function MeasureRow({ measure, lanes, value }: MeasureRowProps) {
   const x = (v: number): number => PAD.l + to(v) * (W - PAD.l - PAD.r);
   const H = TOP + lanes.length * LANE + AXIS_H;
   const decimals = tickDecimals(ticks, 0);
-  const yours = value == null ? "This run didn't reach a value for this." : `This run: ${info.format(value)}.`;
-  const groups = lanes.map(l => `${GROUP_INFO[l.group].name}: ${describeQuantiles(info, l.q)}.`);
+  const yours = value == null ? t.thresholdRow.noValue : t.thresholdRow.value(info.format(value));
+  const groups = lanes.map(l => t.thresholdRow.group(GROUP_INFO[l.group].name, describeQuantiles(info, l.q)));
 
   return (
     <div className={`cmp-row cmp-${info.series}`}>
@@ -62,12 +67,12 @@ function MeasureRow({ measure, lanes, value }: MeasureRowProps) {
               {lanes.map((l, i) => <circle key={l.group} className="cmp-you" cx={x(value)} cy={TOP + i * LANE + 27} r={5.5} />)}
             </>
           )}
-          {ticks.map(t => (
-            <text key={t} className="tick" x={x(t)} y={H - 4} textAnchor="middle">{info.log ? `${t}%` : fmt.signed(t, decimals)}</text>
+          {ticks.map(tick => (
+            <text key={tick} className="tick" x={x(tick)} y={H - 4} textAnchor="middle">{info.log ? `${tick}%` : fmt.signed(tick, decimals)}</text>
           ))}
         </svg>
       </div>
-      <p className="cmp-text">{yours} {groups.join(" ")} {info.reading}</p>
+      <p className="cmp-text">{yours} {groups.join(" ")} <Rich text={info.reading} /></p>
     </div>
   );
 }
@@ -112,7 +117,7 @@ export function GroupComparison({ session, groups: { load, retry, available } }:
   if (!available || !session.results) return null;
   return (
     <div className="panel" id="comparison" aria-labelledby="comparison-h">
-      <GroupSection testType={session.testType} load={load} own={ownValues(session.results)} retry={retry} heading={<h3 id="comparison-h">Compared with other groups</h3>} />
+      <GroupSection testType={session.testType} load={load} own={ownValues(session.results)} retry={retry} heading={<h3 id="comparison-h">{t.groups.heading}</h3>} />
     </div>
   );
 }
@@ -138,21 +143,21 @@ export function GroupSection({ testType, load, own, retry, heading }: GroupSecti
   return (
     <>
       {heading}
-      {load.state === "loading" && <p className="hint">Loading the comparison…</p>}
+      {load.state === "loading" && <p className="hint">{t.groups.loading}</p>}
       {load.state === "error" && (
         <>
-          <p className="hint">Couldn't load the comparison. Check your connection and try again.</p>
-          {retry && <div className="actions"><button type="button" className="btn secondary" onClick={retry}>Try again</button></div>}
+          <p className="hint">{t.groups.loadFailed}</p>
+          {retry && <div className="actions"><button type="button" className="btn secondary" onClick={retry}>{text.common.tryAgain}</button></div>}
         </>
       )}
       {load.state === "ready" && (
         <>
-          {load.sample && <p className="banner">Sample data for development. These are not real groups.</p>}
-          <p>{groupsIntro(testType)}</p>
+          {load.sample && <p className="banner">{t.groups.sample}</p>}
+          <p><Rich text={groupsIntro(testType)} /></p>
           <ul className="cmp-groups">
             {GROUPS.map(g => { const l = groupLine(g, load.stats.groups[g].n); return <li key={g}><strong>{l.name}</strong> {l.rest}</li>; })}
           </ul>
-          <p>{sensitivityNote(shown.length > 0)}</p>
+          <p><Rich text={sensitivityNote(shown.length > 0)} /></p>
           <SensitivityBars own={sensitivities(own)} groups={shown} />
           <ThresholdRows shown={shown} own={own} />
         </>
@@ -166,7 +171,7 @@ export function ThresholdRows({ shown, own }: { shown: { group: GroupKey; measur
   if (shown.length === 0) return null;
   return (
     <section className="threshold-charts">
-      <p>{THRESHOLD_CHARTS_NOTE}</p>
+      <p><Rich text={THRESHOLD_CHARTS_NOTE} /></p>
       <div className="cmp-rows">
         {MEASURES.map(m => <MeasureRow key={m} measure={m} lanes={shown.map(s => ({ group: s.group, q: s.measures[m] }))} value={own[m]} />)}
       </div>

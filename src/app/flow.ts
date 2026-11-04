@@ -12,6 +12,9 @@ import { taskEsc } from "../stage/pause";
 import { runTask } from "../stage/task";
 import { runBlindSpot } from "../stage/blindSpot";
 import { wantFullscreen } from "../stage/fullscreen";
+import { text } from "../text";
+
+const t = text.status;
 
 /** Shows a step or page, with an optional one-line message above it. Info pages get their own address. */
 export function show(view: View, message = "", fromAddress = false): void {
@@ -54,7 +57,7 @@ export function initRouting(): void {
  */
 export function goHome(): void {
   const { session } = getState();
-  if (session?.results && !window.confirm("Leave your results and start again? Save them first if you want a copy.")) return;
+  if (session?.results && !window.confirm(t.leaveResults)) return;
   setState({ contribution: null, session: null, distance: null, testType: "full", historyPseudonym: "" });
   show("contribute");
 }
@@ -66,7 +69,7 @@ export function backFromTask(task: TaskName): void {
   const prev = TASK_ORDER[i - 1]!;
   const s = getState().session;
   if (s?.tasks[prev]) {
-    if (!window.confirm(`Go back and redo the ${prev} task? Your ${prev} results so far will be replaced.`)) return;
+    if (!window.confirm(t.redoTask[prev])) return;
     s.trials = s.trials.filter(t => t.task !== prev);
     delete s.tasks[prev];
   }
@@ -90,7 +93,7 @@ export async function startTask(task: TaskName): Promise<void> {
   const st = getState();
   if (st.busy) return;
   if (!st.calib || !st.distance) { show("screen"); return; }
-  if (!calibMatchesScreen(st.calib)) { show("screen", "Your browser zoom or screen has changed since you measured the card. Measure it again."); return; }
+  if (!calibMatchesScreen(st.calib)) { show("screen", t.screenChanged); return; }
   const s = st.session ?? createSession();
   setState({ busy: true });
   try {
@@ -98,7 +101,7 @@ export async function startTask(task: TaskName): Promise<void> {
     openStage();
     input.esc = taskEsc;
     if (!s.frameMs) {
-      stageNote("Getting ready…");
+      stageNote(t.gettingReady);
       s.frameMs = await measureFrame();
       s.refreshHz = 1000 / s.frameMs;
       const g = stageGeom(), stage = getStage();
@@ -123,7 +126,7 @@ export async function startTask(task: TaskName): Promise<void> {
     console.error(err);
     input.esc = null;
     closeStage();
-    show(task, "Something went wrong while running the task. Try starting it again.");
+    show(task, t.taskFailed);
   } finally {
     setState({ busy: false });
   }

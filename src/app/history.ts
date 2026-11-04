@@ -6,7 +6,6 @@ import { TEST_TYPES, TEST_VERSION, type TestType } from "../core/protocol";
 import { AGE_RANGES, type AgeRange, type Condition, type ContributionAnswers, type DeviceKind, type FoundVia, type PsychedelicUse, type TaskName, type TaskResult, type Trial, type YesNo } from "./types";
 import type { AnySessionExport } from "./schema";
 import { ADJECTIVES, NOUNS } from "./words";
-import { fmt } from "./format";
 
 /** One scored trial on a staircase chart. */
 export interface StaircasePoint {
@@ -47,19 +46,6 @@ export function runInfoOf(s: AnySessionExport): RunInfo {
   return { status: { motion: r?.motion?.status ?? null, form: r?.form?.status ?? null }, checks_missed: missed, device, distance_cm: s.viewing_distance?.cm ?? null, fullscreen: s.display?.fullscreen ?? null };
 }
 
-/** The sentence both results pages show when easy check trials were answered wrongly. */
-export const missedChecksText = (missed: number): string =>
-  `${missed === 1 ? "One" : missed} of the easy check trials ${missed === 1 ? "was" : "were"} answered wrongly. That can mean lapses of attention or a display problem, so treat these thresholds with caution.`;
-
-/** "Computer · 55 cm away · full screen", leaving out what wasn't recorded. */
-export function takenOn(run: RunInfo): string {
-  const parts = [run.device === "tablet" ? "Tablet" : "Computer"];
-  if (run.distance_cm != null) parts.push(`${fmt.fixed(run.distance_cm, 0)} cm away`);
-  if (run.fullscreen != null) parts.push(run.fullscreen ? "full screen" : "not full screen");
-  return parts.join(" · ");
-}
-
-/** The answers sent with a past session, for filling the questions in again. Medications and notes are the entry's own fields. */
 export type PreviousAnswers = Omit<ContributionAnswers, "pseudonym" | "medications" | "notes">;
 
 /** One past session, as GET /history returns it. */

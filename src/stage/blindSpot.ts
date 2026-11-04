@@ -4,6 +4,9 @@ import { CALIBRATION, Core } from "../core";
 import type { BlindSpotReading, Calibration, Distance } from "../app/types";
 import { round } from "../app/format";
 import { clearStage, closeStage, getStage, input, openStage, setHud, stageMessage } from "./stage";
+import { text } from "../text";
+
+const t = text.calibration.blindSpot;
 
 // Where the fixation square goes. The page assumes you sit centred on the stage, so the
 // fixating left eye is half an interpupillary distance left of centre. A square ~3 cm right
@@ -78,7 +81,7 @@ function blindSpotTrial(pxPerCm: number, rep: number): Promise<TrialOutcome> {
     };
     stage.redraw = draw;
     draw();
-    setHud(`Reading ${rep} of ${CALIBRATION.blindSpotReps} · Space when the dot disappears · Esc to stop`);
+    setHud(t.hud(rep, CALIBRATION.blindSpotReps));
     blindCancel = () => { cleanup(); resolve("cancel"); };
     input.key = e => {
       if (e.key !== " " || e.repeat) return false;
@@ -96,12 +99,12 @@ export async function runBlindSpot(calib: Calibration): Promise<Distance | null>
   const stage = getStage();
   const pxPerCm = calib.pxPerMm * 10;
   const stop = (): null => { input.esc = null; closeStage(); return null; };
-  const retry = async (html: string): Promise<boolean> => (await stageMessage(html, { go: "Try again", alt: "Stop", altVerb: "stop" })) === "go";
+  const retry = async (html: string): Promise<boolean> => (await stageMessage(html, { go: text.common.tryAgain, alt: t.stop, altVerb: t.stopVerb })) === "go";
   stage.bg = BS.bg;
   stage.el.classList.add("light");
   openStage();
   input.esc = () => { if (blindCancel) blindCancel(); };
-  const intro = await stageMessage(`<h2>Blind-spot check</h2><ol><li>Sit centred in front of the screen, the way you will for the test, about an arm's length away.</li><li>Cover your <strong>right</strong> eye with your hand.</li><li>Look at the black square and keep looking at it. Don't follow the dot: you'll still see it out of the corner of your eye.</li><li>A red dot moves left, vanishes for a second or two, then comes back. Press <kbd>Space</kbd> the moment it vanishes.</li></ol><p>This repeats ${CALIBRATION.blindSpotReps} times. Press <kbd>Esc</kbd> at any point to stop.</p>`, { go: "Start", alt: "Cancel", altVerb: "cancel" });
+  const intro = await stageMessage(`<h2>${t.title}</h2><ol>${t.steps.map(s => `<li>${s}</li>`).join("")}</ol><p>${t.repeats(CALIBRATION.blindSpotReps)}</p>`, { go: text.common.start, alt: t.cancel, altVerb: t.cancelVerb });
   if (intro !== "go") return stop();
   const readings: number[] = [], detail: BlindSpotReading[] = [];
   while (readings.length < CALIBRATION.blindSpotReps) {
@@ -109,13 +112,13 @@ export async function runBlindSpot(calib: Calibration): Promise<Distance | null>
     if (r === "cancel") return stop();
     if (r === "resized") continue;
     if (r === "missed") {
-      if (!(await retry("<p>The dot reached the edge without you pressing <kbd>Space</kbd>. Check your right eye is fully covered, and keep your left eye on the square rather than the dot. If it still never vanishes, stop and enter your distance by hand.</p>"))) return stop();
+      if (!(await retry(`<p>${t.missed}</p>`))) return stop();
       continue;
     }
     const cm = Core.distanceFromBlindSpotGeometry(r.squareCm, r.dotCm);
     if (cm == null || cm < 20 || cm > 150) {
-      const what = cm == null ? "That reading doesn't fit the geometry." : `That reading works out at ${cm.toFixed(0)} cm, which is unlikely.`;
-      if (!(await retry(`<p>${what} Press <kbd>Space</kbd> only once the dot has vanished completely.</p>`))) return stop();
+      const what = cm == null ? t.noFit : t.unlikely(cm.toFixed(0));
+      if (!(await retry(`<p>${what} ${t.pressOnce}</p>`))) return stop();
       continue;
     }
     readings.push(cm);

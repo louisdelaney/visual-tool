@@ -7,6 +7,10 @@ import { round } from "../app/format";
 import { calibMatchesScreen, setState } from "../app/store";
 import { show } from "../app/flow";
 import { useWindowSize } from "../hooks";
+import { text } from "../text";
+import { Rich } from "../text/Rich";
+
+const t = text.calibration.screen;
 
 /** A card's width at the CSS reference 96 pixels per inch: where the slider starts. */
 const CARD_DEFAULT = CALIBRATION.cardMm.w * 96 / 25.4;
@@ -30,27 +34,27 @@ export function ScreenPage({ calib }: ScreenPageProps) {
 
   return (
     <section className="view panel" data-view="screen" aria-labelledby="screen-h">
-      <h2 id="screen-h">Measure your screen</h2>
-      <p>Hold a bank card, or any card the same size, flat against the screen over the outline. Move the slider until the outline is exactly as wide as the card.</p>
+      <h2 id="screen-h">{t.heading}</h2>
+      <p><Rich text={t.instructions} /></p>
       <div className="card-stage">
         <div className="card" id="card" style={{ "--card-w": `${cardPx}px` } as CSSProperties}>
           <span className="chip" />
-          <span className="card-label">ISO/IEC 7810 ID-1 · 85.60 × 53.98 mm</span>
+          <span className="card-label">{t.cardLabel}</span>
         </div>
       </div>
       <div className="slider-row">
-        <button type="button" className="btn secondary icon" id="card-minus" aria-label="Make the outline smaller" onClick={() => setCardPx(cardPx - 0.5)}>−</button>
-        <input type="range" id="card-size" min={160} max={max} step={0.5} aria-label="Card outline width" value={cardPx} onChange={e => setCardPx(parseFloat(e.target.value))} />
-        <button type="button" className="btn secondary icon" id="card-plus" aria-label="Make the outline larger" onClick={() => setCardPx(cardPx + 0.5)}>+</button>
+        <button type="button" className="btn secondary icon" id="card-minus" aria-label={t.smaller} onClick={() => setCardPx(cardPx - 0.5)}>−</button>
+        <input type="range" id="card-size" min={160} max={max} step={0.5} aria-label={t.sliderLabel} value={cardPx} onChange={e => setCardPx(parseFloat(e.target.value))} />
+        <button type="button" className="btn secondary icon" id="card-plus" aria-label={t.larger} onClick={() => setCardPx(cardPx + 0.5)}>+</button>
       </div>
-      <p className="readout" id="card-readout">{`${cardPx.toFixed(1)} px wide · ${pxPerMm.toFixed(3)} px per mm · ${(pxPerMm * 25.4).toFixed(0)} px per inch`}</p>
+      <p className="readout" id="card-readout">{t.readout(cardPx.toFixed(1), pxPerMm.toFixed(3), (pxPerMm * 25.4).toFixed(0))}</p>
       {saved && Math.abs(saved.cardPx - cardPx) < 0.01 && (
-        <p className="hint" id="saved-calib">The outline is set to the size saved on this browser. Check it still matches your card.</p>
+        <p className="hint" id="saved-calib"><Rich text={t.savedSize} /></p>
       )}
-      <p className="hint">Don't change the browser zoom after this step, and keep the window on this screen.</p>
+      <p className="hint"><Rich text={t.keepZoom} /></p>
       <div className="actions">
-        <button type="button" className="btn" id="screen-next" onClick={accept}>The outline matches my card</button>
-        <button type="button" className="btn secondary back" id="screen-back" onClick={() => show("setup")}>Back</button>
+        <button type="button" className="btn" id="screen-next" onClick={accept}>{t.matches}</button>
+        <button type="button" className="btn secondary back" id="screen-back" onClick={() => show("setup")}>{text.common.back}</button>
       </div>
     </section>
   );

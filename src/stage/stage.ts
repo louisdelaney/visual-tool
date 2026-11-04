@@ -6,6 +6,8 @@ import { dpr } from "../app/protocol";
 import { esc } from "../app/format";
 import { byId } from "./dom";
 import type { Geom } from "./drawing";
+import { text } from "../text";
+import { withoutLinks } from "../text/tags";
 
 export interface Stage {
   el: HTMLElement;
@@ -150,12 +152,13 @@ export interface MessageOptions {
  * Shows a message on the stage. Resolves "go" for the main button and "alt" for the second.
  * html is trusted markup written in this codebase; anything user-supplied must go through esc().
  */
-export function stageMessage(html: string, { go = "Continue", alt = null, altVerb = "" }: MessageOptions = {}): Promise<"go" | "alt"> {
+export function stageMessage(html: string, { go = text.common.continue, alt = null, altVerb = "" }: MessageOptions = {}): Promise<"go" | "alt"> {
   const stage = getStage();
   return new Promise(resolve => {
     const box = byId("stage-msg");
-    const hint = `<kbd>Space</kbd> to continue${alt ? ` · <kbd>Esc</kbd> to ${esc(altVerb || alt.toLowerCase())}` : ""}`;
-    box.innerHTML = `${html}<div class="msg-actions"><button class="btn" type="button" id="stage-msg-go">${esc(go)}</button>${alt ? `<button class="btn secondary" type="button" id="stage-msg-alt">${esc(alt)}</button>` : ""}<span class="hint">${hint}</span></div>`;
+    const hint = text.tasks.messageHint(alt ? esc(altVerb || alt.toLowerCase()) : null);
+    // Links can't be followed on the stage, so a sentence's links show as their words.
+    box.innerHTML = `${withoutLinks(html)}<div class="msg-actions"><button class="btn" type="button" id="stage-msg-go">${esc(go)}</button>${alt ? `<button class="btn secondary" type="button" id="stage-msg-alt">${esc(alt)}</button>` : ""}<span class="hint">${hint}</span></div>`;
     box.hidden = false;
     stage.el.classList.remove("hide-cursor");
     setHud("");
@@ -175,7 +178,7 @@ export function stageMessage(html: string, { go = "Continue", alt = null, altVer
 
 export async function feedback(correct: boolean, what: string): Promise<void> {
   const fb = byId("stage-fb");
-  fb.textContent = correct ? "Correct" : `Not quite. ${what}`;
+  fb.textContent = correct ? text.tasks.correct : text.tasks.notQuite(what);
   fb.hidden = false;
   await new Promise(r => setTimeout(r, correct ? 700 : 1400));
   fb.hidden = true;

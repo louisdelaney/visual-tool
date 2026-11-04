@@ -1,4 +1,5 @@
 // Number and text formatting for the pages.
+import { text } from "../text";
 
 export const round = (v: number, d: number): number => Math.round(v * Math.pow(10, d)) / Math.pow(10, d);
 
@@ -24,10 +25,10 @@ export const fmt = {
     return (r > 0 ? "+" : r < 0 ? "−" : "") + Math.abs(r).toFixed(d);
   },
   int(v: Num): string {
-    return v == null ? "–" : Math.round(v).toLocaleString("en-GB");
+    return v == null ? "–" : Math.round(v).toLocaleString(text.common.locale);
   },
   time(iso: string): string {
-    try { return new Date(iso).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }); } catch { return iso; }
+    try { return new Date(iso).toLocaleString(text.common.locale, { dateStyle: "medium", timeStyle: "short" }); } catch { return iso; }
   },
 };
 

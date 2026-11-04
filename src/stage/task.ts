@@ -6,17 +6,14 @@ import { TASK_LABEL } from "../app/protocol";
 import { feedback, stageMessage } from "./stage";
 import { waitForPauseDecision } from "./pause";
 import { runTrial } from "./trial";
+import { text } from "../text";
 
-function answerPhrase(t: Trial): string {
-  if (t.target === "up" || t.target === "down") return `The dots were drifting ${t.target}.`;
-  return `The starburst was in the ${t.target === "1" ? "first" : "second"} flash.`;
+const t = text.tasks;
+
+function answerPhrase(r: Trial): string {
+  if (r.target === "up" || r.target === "down") return t.answer[r.target];
+  return r.target === "1" ? t.answer.first : t.answer.second;
 }
-
-/** What to look for, shown before and after practice. */
-const RECAP: Record<TaskName, string> = {
-  motion: "Keep your eyes on the red spot. A square of dots appears for a moment: some drift together, up or down, while the rest jump about. Which way did the drifting dots go?",
-  form: "Keep your eyes on the grey spot. You'll see two quick flashes of dots. In one, some dots line up into a starburst, pointing out from the centre; the other is random. Which flash had the starburst?",
-};
 
 /**
  * Runs practice and the staircase for one task on the open stage. Resolves the task's record
@@ -25,11 +22,8 @@ const RECAP: Record<TaskName, string> = {
  */
 export async function runTask(s: Session, task: TaskName): Promise<TaskRecord | null> {
   const P = PROTOCOLS[s.testType], S = P.staircase;
-  const how = task === "motion"
-      ? "When the dots disappear, press <kbd>↑</kbd> for up or <kbd>↓</kbd> for down, or click the top or bottom half of the screen."
-      : "After the second flash, press <kbd>1</kbd> or <kbd>←</kbd> for the first flash, <kbd>2</kbd> or <kbd>→</kbd> for the second, or click the left or right half of the screen.";
-  const guess = task === "motion" ? "up or down" : "1 or 2";
-  const choice = await stageMessage(`<h2>${TASK_LABEL[task]}: practice</h2><p>${S.practiceTrials} easy examples first, with feedback.</p><p>${RECAP[task]}</p><p>${how} If you can't tell, guess ${guess} anyway.</p>`, { go: "Start practice", alt: "Back", altVerb: "go back" });
+  const how = t.how[task];
+  const choice = await stageMessage(`<h2>${t.practiceTitle(TASK_LABEL[task])}</h2><p>${t.practiceIntro(S.practiceTrials)}</p><p>${t.recap[task]}</p><p>${how} ${t.guess[task]}</p>`, { go: t.startPractice, alt: text.common.back, altVerb: t.backVerb });
   if (choice !== "go") return null;
   const sc = new Staircase({ start: S.start, factor: S.factor, down: S.down, min: S.min, max: S.max, maxTrials: S.maxTrials, ...P.run });
   const rec: TaskRecord = { task, staircase: sc, trials: [], endedEarly: false };
@@ -52,7 +46,7 @@ export async function runTask(s: Session, task: TaskName): Promise<TaskRecord | 
       if (!r) { rec.endedEarly = true; return rec; }
       await feedback(r.correct, answerPhrase(r));
     }
-    const next = await stageMessage(`<h2>Practice done</h2><p>${RECAP[task]} ${how}</p><p>Now the test. It gets harder until it's hard to tell. That's expected: answer every time, and guess when you're unsure. An easy one appears every few trials. During the test, press <kbd>Esc</kbd> to pause.</p><p>Not sure what to do yet? Practise again first.</p>`, { go: "Start the test", alt: "Practise again", altVerb: "practise again" });
+    const next = await stageMessage(`<h2>${t.practiceDone}</h2><p>${t.recap[task]} ${how}</p><p>${t.nowTheTest}</p><p>${t.practiseAgainPrompt}</p>`, { go: t.startTest, alt: t.practiseAgain, altVerb: t.practiseAgainVerb });
     if (next === "go") break;
   }
   let sinceCatch = 0;

@@ -3,6 +3,9 @@
 // happened ("Getting the data…", "Making the PDF…", "Saved …", or why it couldn't) shows in a small note under the
 // button, which clears itself after a few seconds.
 import { useEffect, useRef, useState } from "react";
+import { text } from "../text";
+
+const t = text.charts.save;
 
 export interface SaveOption {
   id?: string;
@@ -21,8 +24,6 @@ export interface SaveOption {
  * Drawn on a 28-unit grid shown at 28px, with 2px strokes on whole coordinates, so lines sit on
  * the pixel grid and stay sharp.
  */
-const GETTING = "Getting the data…";
-
 const DiskIcon = () => (
   <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" fill="none" stroke="currentColor"
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -43,9 +44,11 @@ interface SaveMenuProps {
   text?: string;
 }
 
-export function SaveMenu({ options, label = "Save your results", id, text }: SaveMenuProps) {
+export function SaveMenu({ options, label = t.label, id, text: words }: SaveMenuProps) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState("");
+  /** Whether the note says something was saved, which clears sooner than an error. */
+  const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -70,21 +73,24 @@ export function SaveMenu({ options, label = "Save your results", id, text }: Sav
   // The note clears itself: soon after a save, later after an error so there's time to read it.
   useEffect(() => {
     if (!status || busy) return;
-    const t = setTimeout(() => setStatus(""), status.startsWith("Saved") ? 4000 : 10000);
-    return () => clearTimeout(t);
-  }, [status, busy]);
+    const timer = setTimeout(() => setStatus(""), saved ? 4000 : 10000);
+    return () => clearTimeout(timer);
+  }, [status, busy, saved]);
 
   const pick = async (o: SaveOption): Promise<void> => {
     setOpen(false);
     button.current?.focus();
     const saving = o.save();
-    if (typeof saving === "string") { setStatus(`Saved ${saving}.`); return; }
-    setStatus(o.pending ?? GETTING);
+    if (typeof saving === "string") { setSaved(true); setStatus(t.saved(saving)); return; }
+    setSaved(false);
+    setStatus(o.pending ?? t.getting);
     setBusy(true);
     try {
-      setStatus(`Saved ${await saving}.`);
+      const file = await saving;
+      setSaved(true);
+      setStatus(t.saved(file));
     } catch (err) {
-      setStatus(err instanceof Error ? err.message : "Couldn't save it.");
+      setStatus(err instanceof Error ? err.message : t.failed);
     } finally {
       setBusy(false);
     }
@@ -92,10 +98,10 @@ export function SaveMenu({ options, label = "Save your results", id, text }: Sav
 
   return (
     <div className="save-menu" ref={wrap}>
-      <button type="button" className={text ? "save-btn with-text" : "save-btn"} id={id} ref={button} aria-label={text ? undefined : label} title={label}
+      <button type="button" className={words ? "save-btn with-text" : "save-btn"} id={id} ref={button} aria-label={words ? undefined : label} title={label}
         aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}>
         <DiskIcon />
-        {text && <span>{text}</span>}
+        {words && <span>{words}</span>}
       </button>
       <span className="save-status" role="status" aria-live="polite">{!open && status}</span>
       {open && (

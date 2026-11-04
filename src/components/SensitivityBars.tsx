@@ -3,17 +3,21 @@
 // medians, with a line across the middle half. It only shows the numbers: it draws no conclusions
 // from where a value falls.
 import { useRef } from "react";
-import { GROUP_INFO, groupSensitivities, type GroupKey, type MeasureKey, type Quantiles, type Sensitivities, type SensitivityRange } from "../app/comparison";
+import { groupSensitivities, type GroupKey, type MeasureKey, type Quantiles, type Sensitivities, type SensitivityRange } from "../app/comparison";
+import { GROUP_INFO } from "../app/groupText";
 import { fmt } from "../app/format";
 import { roundTicks, tickDecimals } from "../app/scales";
 import { useElementWidth } from "../hooks";
+import { text } from "../text";
+
+const t = text.charts.bars;
 
 type Series = keyof Sensitivities;
 
 const SERIES: readonly { key: Series; label: string }[] = [
-  { key: "motion", label: "Motion" },
-  { key: "form", label: "Form" },
-  { key: "diff", label: "Motion − form" },
+  { key: "motion", label: t.motion },
+  { key: "form", label: t.form },
+  { key: "diff", label: t.diff },
 ];
 
 interface Cluster {
@@ -40,13 +44,13 @@ export function SensitivityBars({ own, groups, ownSub }: SensitivityBarsProps) {
   const W = Math.max(320, Math.round(useElementWidth(hostRef, 640)));
 
   const clusters: Cluster[] = [
-    { key: "you", label: "This run", sub: ownSub ?? "", bars: { motion: { value: own.motion }, form: { value: own.form }, diff: { value: own.diff } } },
+    { key: "you", label: t.thisRun, sub: ownSub ?? "", bars: { motion: { value: own.motion }, form: { value: own.form }, diff: { value: own.diff } } },
     ...groups.map(({ group, n, measures }) => {
       const s = groupSensitivities(measures);
       return {
         key: group,
         label: GROUP_INFO[group].name,
-        sub: `${n} people`,
+        sub: t.people(n),
         bars: { motion: { value: s.motion.p50, range: s.motion }, form: { value: s.form.p50, range: s.form }, diff: { value: s.diff.p50, range: s.diff } },
       };
     }),
@@ -65,21 +69,21 @@ export function SensitivityBars({ own, groups, ownSub }: SensitivityBarsProps) {
 
   const describe = (c: Cluster): string => `${c.label}: ` + SERIES.map(({ key, label }) => {
     const b = c.bars[key];
-    if (b.value == null) return `${label} no value`;
-    return b.range ? `${label} median ${fmt.fixed(b.value, 3)}, middle half ${fmt.fixed(b.range.p25, 3)} to ${fmt.fixed(b.range.p75, 3)}` : `${label} ${fmt.fixed(b.value, 3)}`;
+    if (b.value == null) return t.noValue(label);
+    return b.range ? t.range(label, fmt.fixed(b.value, 3), fmt.fixed(b.range.p25, 3), fmt.fixed(b.range.p75, 3)) : t.single(label, fmt.fixed(b.value, 3));
   }).join(", ") + ".";
 
   return (
     <figure className="sens-bars">
       <div className="chart-host" ref={hostRef}>
-        <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="sens-chart" role="img" aria-label={`Sensitivity. ${clusters.map(describe).join(" ")}`}>
+        <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="sens-chart" role="img" aria-label={t.described(clusters.map(describe).join(" "))}>
           {ticks.map(t => (
             <g key={t}>
               <line className={t === 0 ? "sens-zero" : "sens-grid"} x1={M.l} x2={W - M.r} y1={y(t)} y2={y(t)} />
               <text className="tick" x={M.l - 8} y={y(t) + 4} textAnchor="end">{fmt.fixed(t, decimals)}</text>
             </g>
           ))}
-          <text className="sens-axis-label" transform={`translate(13 ${M.t + ih / 2}) rotate(-90)`} textAnchor="middle">Sensitivity</text>
+          <text className="sens-axis-label" transform={`translate(13 ${M.t + ih / 2}) rotate(-90)`} textAnchor="middle">{t.axis}</text>
           {clusters.map((c, i) => {
             const cx = M.l + cw * (i + 0.5);
             return (
@@ -94,8 +98,8 @@ export function SensitivityBars({ own, groups, ownSub }: SensitivityBarsProps) {
                     <g key={key} className={`sens-${key}`}>
                       <rect className="sens-bar" x={x} y={top} width={bw} height={h}>
                         <title>{b.range
-                          ? `${c.label}, ${SERIES[j]!.label.toLowerCase()}: median ${fmt.fixed(b.value, 3)}, middle half ${fmt.fixed(b.range.p25, 3)} to ${fmt.fixed(b.range.p75, 3)}`
-                          : `${c.label}, ${SERIES[j]!.label.toLowerCase()}: ${fmt.fixed(b.value, 3)}`}</title>
+                          ? t.barTipRange(c.label, SERIES[j]!.label, fmt.fixed(b.value, 3), fmt.fixed(b.range.p25, 3), fmt.fixed(b.range.p75, 3))
+                          : t.barTip(c.label, SERIES[j]!.label, fmt.fixed(b.value, 3))}</title>
                       </rect>
                       {b.range && (
                         <g className="sens-whisker">

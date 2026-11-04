@@ -7,8 +7,9 @@ import { ownValues, type GroupsResponse, type MeasureKey } from "./comparison";
 import { runInfoOf, staircasePoints, type HistoryEntry, type RunInfo, type Staircases } from "./history";
 import { downloadFile, exportObject } from "./export";
 import type { Session } from "./types";
-import { runNumbers, type RunNumbers } from "../components/RunSummary";
+import { runNumbers, type RunNumbers } from "./runNumbers";
 import type { Load as GroupLoad } from "../components/GroupComparison";
+import { text } from "../text";
 
 /**
  * The groups one session is shown beside. `none`: no groups on this copy of the test, or an
@@ -100,7 +101,7 @@ export async function savePDF(filename: string, report: Report): Promise<string>
   try {
     bytes = await summaryPDF(report);
   } catch {
-    throw new Error("Couldn't make the PDF. Try again, or reload the page.");
+    throw new Error(text.results.pdfFailed);
   }
   downloadFile(filename, bytes, "application/pdf");
   return filename;

@@ -1,6 +1,6 @@
 // The shapes of everything the app keeps and exports. Field names in snake_case are written
 // to the JSON and CSV exports as they are, so changing them changes the data format.
-import type { Staircase, TestType } from "../core";
+import type { Staircase, TestType } from "../core/index.ts";
 
 export type TaskName = "motion" | "form";
 export type Step = "contribute" | "questions" | "setup" | "screen" | "distance" | TaskName | "results";

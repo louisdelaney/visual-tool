@@ -1,43 +1,22 @@
-// The public dataset: what's in it, the license, and the download. Keep the
-// description in line with the export job (backend/src/jobs/export.ts) and the README.
+// The public dataset: what's in it, the license, and the download. The words are in
+// src/text/en/data.md; keep them in line with the export job (backend/src/jobs/export.ts) and the README.
 import { API_URL } from "../app/api";
 import { back } from "../app/flow";
+import { text } from "../text";
+import { Doc } from "../text/Doc";
+
+const t = text.infoPages.data;
 
 export function DataPage() {
+  const download = API_URL
+    ? <p><a className="btn" href={`${API_URL}/export`} target="_blank" rel="noreferrer">{t.download}</a></p>
+    : <p>{t.noDownload}</p>;
   return (
     <section className="view view-stack" data-view="data" aria-labelledby="data-h">
       <div className="panel prose">
-        <h2 id="data-h">Data</h2>
-        <p>Every result and answer people choose to contribute is free to download, use and investigate, by anyone, for any purpose.</p>
-        {API_URL
-          ? <p><a className="btn" href={`${API_URL}/export`} target="_blank" rel="noreferrer">Download the data</a></p>
-          : <p>The download isn't available on this copy of the site.</p>}
-
-        <h3>License</h3>
-        <p>
-          The data is licensed under{" "}
-          <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">Creative Commons Attribution 4.0 International (CC BY 4.0)</a>.
-          {" "}You can share and adapt it for any purpose, as long as you mention where it came from, with a link back to this site.
-        </p>
-        <p>Please don't try to work out who anyone is. Contributors are anonymous, and some of what they shared is personal.</p>
-
-        <h3>What's in it</h3>
-        <ul>
-          <li>Every contributed session, from every version of the test, with every trial, the screen calibration, the test's settings and the answers from the first step.</li>
-          <li>Only what's needed to read the results. Each session has the hour it started and how long it took, never exact times, and its trials have no times at all. Sessions sent before this was tightened are trimmed the same way.</li>
-          <li>It's refreshed once a day, so the latest results may take a day to appear.</li>
-        </ul>
-
-        <h3>Format</h3>
-        <p>
-          The download is one gzipped JSON file, <code>visual-data.json.gz</code>, hosted on GitHub. It holds every session in order of arrival, in the same format as the file you can save from your own results, plus the date each was received.
-          {" "}Each session records its <code>test_version</code>; only compare sessions from the same version, since a new version means the test itself changed.
-          {" "}Sessions also record <code>test_type</code>, <code>"full"</code> or <code>"quick"</code> (none means full). The quick test is a separate, shorter test with less precise results: keep it apart from the full test.
-        </p>
-        <p>The results come from people taking a casual online test on their own screens, unsupervised, so screens, viewing distances and attention vary.</p>
-        <p>This project only collects and shares the data. It doesn't analyse it or draw conclusions from it. Any analysis, and what it concludes, is the work of whoever does it, and crediting this site as the source doesn't mean the project agrees with it.</p>
+        <Doc blocks={t.page} titleId="data-h" parts={{ download }} />
       </div>
-      <div className="actions"><button type="button" className="btn secondary back" onClick={back}>Back</button></div>
+      <div className="actions"><button type="button" className="btn secondary back" onClick={back}>{text.common.back}</button></div>
     </section>
   );
 }

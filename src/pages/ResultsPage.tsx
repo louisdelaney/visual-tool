@@ -1,5 +1,5 @@
 // The last step: thresholds, staircase charts, session details, the data, and whether it was sent.
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Core, PROTOCOL, PROTOCOLS } from "../core";
 import type { Results, Session } from "../app/types";
 import { TASK_ORDER, TEST_TYPE_LABEL } from "../app/protocol";
@@ -17,44 +17,48 @@ import { RunSummary } from "../components/RunSummary";
 import { SaveMenu } from "../components/SaveMenu";
 import { FunNotice } from "../components/FunNotice";
 import { ResultsExplained } from "../components/ResultsExplained";
+import { text } from "../text";
+import { Rich } from "../text/Rich";
+
+const t = text.results, rt = t.rows;
 
 /** Label and value rows for the Session list. */
 function sessionRows(s: Session, R: Results): [string, string][] {
   const c = s.calibration, dist = s.distance;
   const rows: [string, string][] = [];
-  rows.push(["Test version", String(s.testVersion)]);
+  rows.push([rt.testVersion, String(s.testVersion)]);
   const run = PROTOCOLS[s.testType].run;
-  rows.push(["Test", `${TEST_TYPE_LABEL[s.testType]}: each task stops at ${run.stopReversals} reversals, threshold from the last ${run.meanOfLast}`]);
-  rows.push(["Started", fmt.time(s.startedAt)]);
-  rows.push(["Screen scale", c ? `${fmt.fixed(c.pxPerMm, 3)} px per mm, card ${fmt.fixed(c.cardPx, 1)} px wide` : "–"]);
+  rows.push([rt.test, rt.testValue(TEST_TYPE_LABEL[s.testType], run.stopReversals, run.meanOfLast)]);
+  rows.push([rt.started, fmt.time(s.startedAt)]);
+  rows.push([rt.screenScale, c ? rt.screenScaleValue(fmt.fixed(c.pxPerMm, 3), fmt.fixed(c.cardPx, 1)) : text.common.none]);
   if (dist) {
-    let how = "entered by hand";
-    if (dist.method === "blind-spot" && dist.readings.length) how = `blind spot, ${dist.readings.length} readings ${Math.min(...dist.readings).toFixed(0)}–${Math.max(...dist.readings).toFixed(0)} cm`;
-    rows.push(["Viewing distance", `${fmt.fixed(dist.cm, 1)} cm, ${how}`]);
+    let how = rt.distanceByHand;
+    if (dist.method === "blind-spot" && dist.readings.length) how = rt.distanceBlindSpot(dist.readings.length, Math.min(...dist.readings).toFixed(0), Math.max(...dist.readings).toFixed(0));
+    rows.push([rt.viewingDistance, rt.viewingDistanceValue(fmt.fixed(dist.cm, 1), how)]);
   }
   const scored = s.trials.filter(t => Number.isFinite(t.px_per_deg) && Number.isFinite(t.scale));
   if (scored.length) {
     const ppds = scored.map(t => t.px_per_deg), lo = Math.min(...ppds), hi = Math.max(...ppds);
     const minScale = Math.min(...scored.map(t => t.scale));
-    const ppdText = hi - lo < 0.05 ? fmt.fixed(lo, 1) : `${fmt.fixed(lo, 1)}–${fmt.fixed(hi, 1)}`;
-    rows.push(["Pixels per degree", `${ppdText}${minScale < 0.999 ? `, stimuli shrunk to ${Math.round(minScale * 100)}% of protocol size to fit` : ", stimuli at full protocol size"}`]);
+    const ppdText = hi - lo < 0.05 ? fmt.fixed(lo, 1) : rt.pixelsPerDegreeRange(fmt.fixed(lo, 1), fmt.fixed(hi, 1));
+    rows.push([rt.pixelsPerDegree, rt.pixelsPerDegreeValue(ppdText, minScale < 0.999 ? Math.round(minScale * 100) : null)]);
   }
-  if (s.display) rows.push(["Window", s.display.fullscreen ? "Full screen" : `Not full screen, ${Math.round(100 * s.display.viewport[0] / Math.max(1, window.screen.width))}% of the screen's width`]);
-  rows.push(["Display refresh", s.refreshHz ? `${fmt.fixed(s.refreshHz, 0)} Hz, median frame ${fmt.fixed(s.frameMs, 1)} ms` : "–"]);
+  if (s.display) rows.push([rt.window, s.display.fullscreen ? rt.fullScreen : rt.notFullScreen(Math.round(100 * s.display.viewport[0] / Math.max(1, window.screen.width)))]);
+  rows.push([rt.displayRefresh, s.refreshHz ? rt.displayRefreshValue(fmt.fixed(s.refreshHz, 0), fmt.fixed(s.frameMs, 1)) : text.common.none]);
   const dropped = (["motion", "form"] as const).map(task => {
     const tt = s.trials.filter(t => t.task === task && t.frames != null && t.dropped_frames != null);
     if (!tt.length) return null;
     const fr = tt.reduce((a, t) => a + (t.frames ?? 0), 0), dr = tt.reduce((a, t) => a + (t.dropped_frames ?? 0), 0);
-    return `${task === "form" ? "form flashes" : "motion"} ${fmt.int(dr)} of ${fmt.int(fr)} (${fmt.fixed(100 * dr / Math.max(1, fr), 1)}%)`;
+    return rt.droppedValue(rt.droppedTask[task], fmt.int(dr), fmt.int(fr), fmt.fixed(100 * dr / Math.max(1, fr), 1));
   }).filter((v): v is string => v != null);
-  if (dropped.length) rows.push(["Dropped frames", dropped.join(", ")]);
-  const catchText = (["motion", "form"] as const).flatMap(t => { const r = R[t]; return r && r.catch_total ? [`${t} ${r.catch_correct} of ${r.catch_total}`] : []; }).join(", ");
-  if (catchText) rows.push(["Easy check trials correct", catchText]);
-  rows.push(["Motion display", `${PROTOCOL.motion.briefMs} ms flash`]);
+  if (dropped.length) rows.push([rt.droppedFrames, dropped.join(", ")]);
+  const catchText = (["motion", "form"] as const).flatMap(t => { const r = R[t]; return r && r.catch_total ? [rt.easyChecksValue(rt.easyCheckTask[t], r.catch_correct, r.catch_total)] : []; }).join(", ");
+  if (catchText) rows.push([rt.easyChecks, catchText]);
+  rows.push([rt.motionDisplay, rt.motionDisplayValue(PROTOCOL.motion.briefMs)]);
   const fl = s.trials.flatMap(t => [t.flash1_ms, t.flash2_ms]).filter((v): v is number => v != null && Number.isFinite(v));
-  if (fl.length) rows.push(["Flash length", `median ${fmt.fixed(Core.median(fl), 0)} ms, range ${fmt.fixed(Math.min(...fl), 0)}–${fmt.fixed(Math.max(...fl), 0)} ms (target 200 ms)`]);
-  if (s.endedEarly) rows.push(["Ended", "Early, at your request"]);
-  rows.push(["Browser", s.env.browser]);
+  if (fl.length) rows.push([rt.flashLength, rt.flashLengthValue(fmt.fixed(Core.median(fl), 0), fmt.fixed(Math.min(...fl), 0), fmt.fixed(Math.max(...fl), 0))]);
+  if (s.endedEarly) rows.push([rt.ended, rt.endedEarly]);
+  rows.push([rt.browser, s.env.browser]);
   return rows;
 }
 
@@ -63,25 +67,18 @@ function contributionNote(s: Session): string {
   if (!c) return "";
   // Not contributing, or sent: the anonymity note above already says so.
   if (!c.contribute) return "";
-  if (c.removal === "removed") return "Removed from the database. It's already out of the group figures, and it leaves the public download at its next daily refresh.";
+  if (c.removal === "removed") return t.removed;
   if (c.sent_at) return "";
-  if (c.sending) return "Sending your results…";
-  if (c.failed) return "Couldn't send your results. Check your connection and try again.";
-  return "Sending isn't set up on this copy of the test yet, so nothing was sent. Your answers are included when you save the session as JSON.";
+  if (c.sending) return t.sending;
+  if (c.failed) return t.sendFailed;
+  return t.sendingNotSetUp;
 }
 
 /** What happens to these results, carrying on the "just for fun" line: they're anonymous. The Privacy and risks page has the detail. */
 function AnonymityNote({ session: s }: { session: Session }) {
   const c = s.contribution;
-  const privacy = <a href={pageHref("privacy")} onClick={e => { e.preventDefault(); show("privacy"); }}>Privacy and risks</a>;
-  if (!c?.contribute) {
-    return <span id="anonymity-note">Nothing was sent: these results stay in this browser tab, and nothing that identifies you is collected. More in {privacy}.</span>;
-  }
-  return (
-    <span id="anonymity-note">
-      Your results are anonymous. Nothing that identifies you, such as your name, email address or IP address, is collected or stored. More in {privacy}.
-    </span>
-  );
+  const tags = { "privacy-link": (children: ReactNode) => <a href={pageHref("privacy")} onClick={e => { e.preventDefault(); show("privacy"); }}>{children}</a> };
+  return <span id="anonymity-note"><Rich text={c?.contribute ? t.anonymousNote : t.notSentNote} tags={tags} /></span>;
 }
 
 /**
@@ -94,10 +91,10 @@ export function ResultsNotice({ session: s }: { session: Session }) {
   const failureId = failed && s.contribution?.contribute ? s.contribution.failure_id : undefined;
   return (
     <FunNotice more={<AnonymityNote session={s} />}>
-      <section id="your-data" aria-label="Sending your results">
-        {note && <p className="hint" id="contrib-note">{note}</p>}
-        {failureId && <p className="hint" id="contrib-failure-id">Reference: {failureId}. You can quote it if you report a problem.</p>}
-        {failed && <div className="actions"><button type="button" className="btn secondary" id="contrib-retry" onClick={() => void sendContribution(s)}>Try sending again</button></div>}
+      <section id="your-data" aria-label={t.sendingLabel}>
+        {note && <p className="hint" id="contrib-note"><Rich text={note} /></p>}
+        {failureId && <p className="hint" id="contrib-failure-id">{t.failureReference(failureId)}</p>}
+        {failed && <div className="actions"><button type="button" className="btn secondary" id="contrib-retry" onClick={() => void sendContribution(s)}>{t.trySendingAgain}</button></div>}
         <RemoveContribution session={s} />
       </section>
     </FunNotice>
@@ -114,19 +111,19 @@ function RemoveContribution({ session: s }: { session: Session }) {
     <div id="remove">
       {asking ? (
         <>
-          <p className="hint">Remove this session from the database? This can't be undone.</p>
+          <p className="hint">{t.removeQuestion}</p>
           <div className="actions">
-            <button type="button" className="btn secondary" id="remove-confirm" disabled={busy} onClick={() => void removeContribution(s)}>{busy ? "Removing…" : "Remove it"}</button>
-            <button type="button" className="btn secondary" id="remove-cancel" disabled={busy} onClick={() => setAsking(false)}>Keep it</button>
+            <button type="button" className="btn secondary" id="remove-confirm" disabled={busy} onClick={() => void removeContribution(s)}>{busy ? t.removing : t.removeIt}</button>
+            <button type="button" className="btn secondary" id="remove-cancel" disabled={busy} onClick={() => setAsking(false)}>{t.keepIt}</button>
           </div>
         </>
       ) : (
         <>
-          <p className="hint">Changed your mind, or something got in the way during the test? You can remove this session from the database until you run the test again or close this tab.</p>
-          <div className="actions"><button type="button" className="btn secondary" id="remove-start" onClick={() => setAsking(true)}>Remove from the database</button></div>
+          <p className="hint"><Rich text={t.removeOffer} /></p>
+          <div className="actions"><button type="button" className="btn secondary" id="remove-start" onClick={() => setAsking(true)}>{t.removeStart}</button></div>
         </>
       )}
-      {c.removal === "failed" && <p className="hint" id="remove-failed" role="status">Couldn't remove it. Check your connection and try again.{c.failure_id ? ` Reference: ${c.failure_id}.` : ""}</p>}
+      {c.removal === "failed" && <p className="hint" id="remove-failed" role="status">{t.removeFailed(c.failure_id)}</p>}
     </div>
   );
 }
@@ -161,7 +158,7 @@ function SessionResults({ session: s }: { session: Session }) {
 
   // Back returns here with everything, but a reload or a closed tab loses this run: ask first.
   const openHistory = (p: string): void => {
-    if (window.confirm("Leave this page to see all your results? Back brings you here again, but if the page is reloaded or closed, these results are gone unless you've saved them.")) showHistory(p);
+    if (window.confirm(t.leaveForHistory)) showHistory(p);
   };
 
   const pseudonym = s.contribution?.contribute ? s.contribution.answers.pseudonym : null;
@@ -173,25 +170,25 @@ function SessionResults({ session: s }: { session: Session }) {
         <ResultsExplained groups={groups.available} thresholdCharts />
       </div>
       <div className="panel save-card">
-        <h2 id="results-h">Results{s.testType === "quick" && <> <span className="pill type-pill" id="type-pill">{TEST_TYPE_LABEL.quick}</span></>}</h2>
+        <h2 id="results-h">{t.heading}{s.testType === "quick" && <> <span className="pill type-pill" id="type-pill">{TEST_TYPE_LABEL.quick}</span></>}</h2>
         <SaveMenu id="save-menu" options={[
-          { id: "save-pdf", label: "Save summary (PDF)", description: "These results, charts and the groups as they are now, to read or print.", pending: "Making the PDF…", save: savePdf },
-          { id: "save-summary", label: "Save summary (JSON)", description: "Your pseudonym, answers, results and the points on the staircase charts.", save: () => save("summary") },
-          { id: "save-json", label: "Save full data (JSON)", description: `Everything recorded, exactly as ${s.contribution?.contribute ? "it's" : "it would be"} sent to the database.`, save: () => save("full") },
+          { id: "save-pdf", label: t.savePdf.label, description: t.savePdf.description, pending: t.savePdf.pending, save: savePdf },
+          { id: "save-summary", label: t.saveSummary.label, description: t.saveSummary.description, save: () => save("summary") },
+          { id: "save-json", label: t.saveFull.label, description: t.saveFull.description(!!s.contribution?.contribute), save: () => save("full") },
         ]} />
-        {s.testType === "quick" && <p className="hint" id="test-type-note">This was the quick test: a shorter run, so these results are less precise than a full test's would be. They're only ever shown beside other quick-test results{s.contribution?.contribute ? ", and they're sent labelled as quick" : ""}.</p>}
+        {s.testType === "quick" && <p className="hint" id="test-type-note"><Rich text={t.quickNote(!!s.contribution?.contribute)} /></p>}
         {pseudonym && (
           <header className="as-pseudonym" id="pseudonym-note">
             <p>
               {sent ? (
                 <button type="button" className="pseudonym pseudonym-link" id="history-link" onClick={() => openHistory(pseudonym)}>
-                  <span className="visually-hidden">See all results for </span>{pseudonym}
+                  <span className="visually-hidden">{t.seeAllFor}</span>{pseudonym}
                 </button>
               ) : (
-                <span className="pseudonym"><span className="visually-hidden">Your pseudonym: </span>{pseudonym}</span>
+                <span className="pseudonym"><span className="visually-hidden">{t.yourPseudonym}</span>{pseudonym}</span>
               )}
             </p>
-            <p className="hint">{sent ? "Your results are saved under this pseudonym. Select it to see all your results." : "Your pseudonym. Use it to find these results again on the Results by pseudonym page, once they've been sent."}</p>
+            <p className="hint"><Rich text={sent ? t.savedUnderPseudonym : t.findAgainPseudonym} /></p>
           </header>
         )}
         <RunSummary results={R} ids />
@@ -200,17 +197,17 @@ function SessionResults({ session: s }: { session: Session }) {
       </div>
       <GroupComparison session={s} groups={groups} />
       <div className="panel">
-        <h3>Staircases</h3>
+        <h3>{t.staircasesHeading}</h3>
         <div className="charts" id="charts">
-          {tasks.length ? tasks.map(t => (
-            <StaircaseChart key={t} task={t} points={staircasePoints(s.tasks[t]!.trials, t)} threshold={R[t]?.threshold_pct ?? null}
-              subtitle="Coherence (%) on each scored trial, log scale" />
-          )) : <p className="hint">No trials were completed.</p>}
+          {tasks.length ? tasks.map(task => (
+            <StaircaseChart key={task} task={task} points={staircasePoints(s.tasks[task]!.trials, task)} threshold={R[task]?.threshold_pct ?? null}
+              subtitle={t.staircaseSubtitle} />
+          )) : <p className="hint">{t.noTrials}</p>}
         </div>
         <StaircaseKey />
       </div>
       <details className="panel more-stats" id="session-details">
-        <summary><h3>Session</h3></summary>
+        <summary><h3>{t.sessionHeading}</h3></summary>
         <dl className="meta" id="meta">
           {sessionRows(s, R).map(([k, v]) => [<dt key={`${k}-dt`}>{k}</dt>, <dd key={`${k}-dd`}>{v}</dd>])}
         </dl>
