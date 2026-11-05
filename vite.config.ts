@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { INFO_PAGES } from "./src/app/types.ts";
 import { markdownText } from "./src/text/markdownPlugin.ts";
+import { LANGUAGES, OTHER_LANGUAGES, type Language } from "./src/text/languages.ts";
 
 // The built page may contact only itself and the backend. The browser blocks everything else,
 // so no future change can quietly add a tracker, a CDN or a font host. Only added to builds:
@@ -31,27 +32,40 @@ function contentSecurityPolicy(apiUrl: string): Plugin {
   };
 }
 
-// A copy of the page at each info page's address (dist/privacy/index.html and so on), so
-// /privacy/ loads on a static host like GitHub Pages, which can't send every address to one
-// page. One folder down, so its relative paths point up a level.
-function infoPageCopies(): Plugin {
+// A copy of the page at every address it has, so each loads on a static host like GitHub Pages,
+// which can't send every address to one page: each info page (dist/privacy/index.html and so on),
+// and each other language's folder with its own info pages (dist/es/, dist/es/privacy/). A copy's
+// relative paths point back up to the site's folder, and it says its language and title, so the
+// page is right before any script runs.
+function pageCopies(): Plugin {
   let outDir = "dist";
   return {
-    name: "info-page-copies",
+    name: "page-copies",
     apply: "build",
     configResolved: config => { outDir = path.resolve(config.root, config.build.outDir); },
     writeBundle: () => {
-      const html = fs.readFileSync(path.join(outDir, "index.html"), "utf8").replace(/(src|href)="\.\//g, '$1="../');
-      for (const page of INFO_PAGES) {
-        fs.mkdirSync(path.join(outDir, page), { recursive: true });
-        fs.writeFileSync(path.join(outDir, page, "index.html"), html);
+      const built = fs.readFileSync(path.join(outDir, "index.html"), "utf8");
+      const english = { lang: '<html lang="en">', title: `<title>${LANGUAGES.en.title}</title>` };
+      if (!built.includes(english.lang) || !built.includes(english.title)) throw new Error("index.html must have <html lang=\"en\"> and the English title for the build to make each language's copy");
+      const copy = (folder: string, language: Language): void => {
+        const html = built
+          .replace(/(src|href)="\.\//g, `$1="${"../".repeat(folder.split("/").length)}`)
+          .replace(english.lang, `<html lang="${language}">`)
+          .replace(english.title, `<title>${LANGUAGES[language].title}</title>`);
+        fs.mkdirSync(path.join(outDir, folder), { recursive: true });
+        fs.writeFileSync(path.join(outDir, folder, "index.html"), html);
+      };
+      for (const page of INFO_PAGES) copy(page, "en");
+      for (const language of OTHER_LANGUAGES) {
+        copy(language, language);
+        for (const page of INFO_PAGES) copy(`${language}/${page}`, language);
       }
     },
   };
 }
 
 export default defineConfig(({ mode }) => ({
-  plugins: [markdownText, react(), contentSecurityPolicy(loadEnv(mode, process.cwd(), "VITE_").VITE_API_URL ?? ""), infoPageCopies()],
+  plugins: [markdownText, react(), contentSecurityPolicy(loadEnv(mode, process.cwd(), "VITE_").VITE_API_URL ?? ""), pageCopies()],
   // Relative asset paths, so the build works under GitHub Pages' /visual-tool/ path or any other.
   base: "./",
   // Never inline assets as data: URLs: the security policy allows files from this site only.

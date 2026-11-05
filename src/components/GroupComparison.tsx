@@ -68,7 +68,7 @@ function MeasureRow({ measure, lanes, value }: MeasureRowProps) {
             </>
           )}
           {ticks.map(tick => (
-            <text key={tick} className="tick" x={x(tick)} y={H - 4} textAnchor="middle">{info.log ? `${tick}%` : fmt.signed(tick, decimals)}</text>
+            <text key={tick} className="tick" x={x(tick)} y={H - 4} textAnchor="middle">{info.log ? fmt.percent(tick) : fmt.signed(tick, decimals)}</text>
           ))}
         </svg>
       </div>

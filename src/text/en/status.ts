@@ -4,6 +4,8 @@
 export const status = {
   /** Asked before going home from the results, which clears them. */
   leaveResults: "Leave your results and start again? Save them first if you want a copy.",
+  /** Asked before following the link to another language once a test is under way: that's a new page, so it starts again. */
+  changeLanguage: "Change language? The page reloads, so the test starts again and any results you haven't saved are lost.",
   /** Asked before going back from the second task to redo the first, by the task to redo. */
   redoTask: {
     motion: "Go back and redo the motion task? Your motion results so far will be replaced.",

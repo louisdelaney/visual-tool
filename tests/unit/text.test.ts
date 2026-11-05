@@ -1,10 +1,15 @@
-// The site's words in src/text: every sentence's tags are ones the pages can show, the PDF's text
-// has none, no sentence uses a word AGENTS.md rules out for describing results, every block in the
-// Markdown files is used, and the Markdown reader reads them as CONTRIBUTING.md says.
+// The site's words in src/text, in every language: every sentence's tags are ones the pages can
+// show, the PDF's text has none, no sentence uses a word AGENTS.md rules out for describing
+// results, every block in the Markdown files is used, the Markdown reader reads them as
+// CONTRIBUTING.md says, and each translation has the same pieces as the English.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { text } from "../../src/text";
+import { text, type Text } from "../../src/text";
+import { words as enWords } from "../../src/text/en";
+import { es, words as esWords } from "../../src/text/es";
+import type { Words } from "../../src/text/words";
+import { LANGUAGES, type Language } from "../../src/text/languages";
 import { document, fill, isFromMarkdown, markdown, parseBlocks, sealMarkdown, TextError, unusedBlocks } from "../../src/text/markdown";
 import { allowedTag, PAGE_LINKS, parseTags, plainText, tagNames, withoutLinks } from "../../src/text/tags";
 import { INFO_PAGES } from "../../src/app/types";
@@ -35,9 +40,26 @@ function strings(v: unknown, path = ""): [string, string][] {
   return [];
 }
 
-const all = strings(text);
+/** Every language's words. `text` is the English until a page asks for another (src/text/index.ts). */
+const TEXTS: Record<Language, Text> = { en: text, es };
+/** Every language's own files: the plain words that wiring/ builds the above from. */
+const WORDS: Record<Language, Words> = { en: enWords, es: esWords };
+// The Spanish files loaded after the English was sealed: seal them too, so a block read inside a
+// function throws when the walk below calls it.
+sealMarkdown();
 
-describe("site text", () => {
+/**
+ * Words AGENTS.md rules out for describing a result, in each language. Tests can't check meaning:
+ * this only catches the commonest ones, so a translation still needs reading by someone fluent.
+ */
+const JUDGING: Record<Language, RegExp> = {
+  en: /\b(ab)?normal\b|\btypical\b|\bhealthy\b|\bimpaired\b|\bat risk\b|\b(below|above) most people\b/i,
+  es: /\ba?normal(es|mente)?\b|\ba?t[ií]pic[oa]s?\b|\bsan[oa]s?\b|\bsaludables?\b|\bdeteriorad[oa]s?\b|\ben riesgo\b|\bpor (debajo|encima) de la mayor[ií]a\b/i,
+};
+
+describe.each(Object.keys(LANGUAGES) as Language[])("site text (%s)", language => {
+  const all = strings(TEXTS[language]);
+
   it("has text to check", () => {
     expect(all.length).toBeGreaterThan(100);
   });
@@ -55,7 +77,7 @@ describe("site text", () => {
 
   it("has no tags in pdf.ts, whose words the PDF draws as they are", () => {
     // The PDF shows its Markdown paragraphs' bold (pdfRuns in app/pdf.ts); its own labels are plain.
-    for (const [path, s] of strings(text.pdf, "pdf")) if (!isFromMarkdown(s)) expect(tagNames(s), path).toEqual([]);
+    for (const [path, s] of strings(TEXTS[language].pdf, "pdf")) if (!isFromMarkdown(s)) expect(tagNames(s), path).toEqual([]);
   });
 
   it("links only to pages that exist", () => {
@@ -66,8 +88,112 @@ describe("site text", () => {
   });
 
   it("uses no words that judge a result", () => {
-    const judging = /\b(ab)?normal\b|\btypical\b|\bhealthy\b|\bimpaired\b|\bat risk\b|\b(below|above) most people\b/i;
-    for (const [path, s] of all) expect(s, path).not.toMatch(judging);
+    for (const [path, s] of all) expect(s, path).not.toMatch(JUDGING[language]);
+  });
+
+  it("keeps the language's .ts files to plain words: text in quotes, and nothing that runs", () => {
+    // They're the files for people who don't program (CONTRIBUTING.md); the code is in src/text/wiring.
+    const check = (v: unknown, at: string): void => {
+      if (v && typeof v === "object") for (const [k, x] of Object.entries(v)) check(x, at ? `${at}.${k}` : k);
+      else if (typeof v !== "number") expect(typeof v, at).toBe("string");
+    };
+    check(WORDS[language], "");
+    // The labels are shown in the PDF as well as on the pages, so they carry no formatting.
+    for (const [name, value] of Object.entries(WORDS[language].labels)) expect(tagNames(value), `labels.${name}`).toEqual([]);
+  });
+
+  it("fills every {value}: none is left showing on a page", () => {
+    // The long pages keep theirs for the page to fill (Doc.tsx); everywhere else a leftover is a
+    // value the wiring doesn't know, such as a misspelt name.
+    for (const [path, s] of all) if (!/^infoPages\.(privacy|data\.page|references\.page)\./.test(path)) expect(s, path).not.toMatch(/\{[a-zA-Z][a-zA-Z0-9]*\}/);
+  });
+});
+
+// A translation is checked against the English piece by piece, so one that falls behind fails here
+// rather than quietly showing less. What a test can't see is a piece that's there but out of date:
+// CONTRIBUTING.md asks for the translations to change in the same pull request as the English.
+describe.each((Object.keys(LANGUAGES) as Language[]).filter(l => l !== "en"))("the %s translation", language => {
+  /** For each piece of text, by its path: the formatting it uses and the {values} left for the page to fill. */
+  const pieces = (t: Text): Map<string, { tags: Set<string>; values: Set<string> }> => {
+    const out = new Map<string, { tags: Set<string>; values: Set<string> }>();
+    for (const [path, s] of strings(t)) {
+      // A web address can differ by language (a licence's own translation); the link's place can't.
+      if (/\.hrefs\.\d+$/.test(path)) continue;
+      const piece = out.get(path) ?? { tags: new Set<string>(), values: new Set<string>() };
+      piece.tags.add(tagNames(s).sort().join(" "));
+      for (const v of s.match(/\{[a-zA-Z][a-zA-Z0-9]*\}/g) ?? []) piece.values.add(v);
+      out.set(path, piece);
+    }
+    return out;
+  };
+  const english = pieces(text), translated = pieces(TEXTS[language]);
+
+  it("has every piece of the English, and no others: every paragraph, list item, table row and section", () => {
+    expect([...translated.keys()].sort()).toEqual([...english.keys()].sort());
+  });
+
+  it("keeps each piece's formatting: the same bold, keys and links", () => {
+    for (const [path, piece] of english) expect([...(translated.get(path)?.tags ?? [])].sort(), path).toEqual([...piece.tags].sort());
+  });
+
+  it("keeps each {value} the page fills in", () => {
+    for (const [path, piece] of english) expect([...(translated.get(path)?.values ?? [])].sort(), path).toEqual([...piece.values].sort());
+    // A template's values are filled by the time it's read above, so its Markdown is compared directly.
+    const folder = path.resolve(__dirname, "../../src/text");
+    const wholePages = ["privacy.md", "references.md", "data.md"];
+    for (const file of fs.readdirSync(path.join(folder, "en")).filter(f => f.endsWith(".md") && !wholePages.includes(f))) {
+      const blocks = (lang: string) => parseBlocks(fs.readFileSync(path.join(folder, lang, file), "utf8"), `${lang}/${file}`);
+      const theirs = blocks(language);
+      for (const [name, block] of blocks("en")) {
+        const values = (parts: string[] | undefined): string[] => [...new Set((parts ?? []).join(" ").match(/\{[a-zA-Z][a-zA-Z0-9]*\}/g) ?? [])].sort();
+        expect(values(theirs.get(name)?.parts), `${language}/${file}: ${name}`).toEqual(values(block.parts));
+      }
+    }
+  });
+
+  it("keeps each {value} in the .ts files' sentences, where the page fills it in", () => {
+    const values = (w: unknown, at = ""): [string, string][] => {
+      if (typeof w === "string") return [[at, [...new Set(w.match(/\{[a-zA-Z][a-zA-Z0-9]*\}/g) ?? [])].sort().join(" ")]];
+      if (w && typeof w === "object") return Object.entries(w).flatMap(([k, x]) => values(x, at ? `${at}.${k}` : k));
+      return [];
+    };
+    expect(values(WORDS[language])).toEqual(values(enWords));
+  });
+
+  it("describes the same versions of the test", () => {
+    expect(TEXTS[language].method.versions.map(v => v.version)).toEqual(text.method.versions.map(v => v.version));
+  });
+});
+
+describe("what a language is free to decide", () => {
+  it("takes the singular where the language does, not only for 1", () => {
+    // English and Spanish: only 1. The browser's rules decide, so French's "0 session" needs no code.
+    expect(text.history.selectedCount(1)).toContain("session selected");
+    expect(text.history.selectedCount(0)).toContain("sessions selected");
+    expect(text.history.selectedCount(2)).toContain("sessions selected");
+    expect(es.history.selectedCount(1)).toContain("sesión seleccionada");
+    expect(es.history.selectedCount(0)).toContain("sesiones seleccionadas");
+    expect(text.charts.groups.line("who", 1)).toBe("who. 1 person so far.");
+    expect(text.history.run.missedChecks(1)).toMatch(/^One of/);
+    expect(text.history.run.missedChecks(3)).toMatch(/^3 of/);
+  });
+
+  it("writes a name inside a sentence, a percentage and a label before a value its own way", () => {
+    expect(text.charts.bars.barTip("This run", "motion", "0.098")).toBe("This run, motion: 0.098");
+    expect(es.charts.bars.barTip("Esta sesión", "diff", "0,050")).toBe("Esta sesión, movimiento − forma: 0,050");
+    expect(text.common.percent("12.5")).toBe("12.5%");
+    expect(text.pdf.medications).toBe("Medications: ");
+    expect(text.pdf.staircaseSubtitle).toBe("Coherence (%) on each scored trial, log scale.");
+    expect(text.history.run.separator).toBe(" · ");
+  });
+
+  it("is listed in the layout test, which runs every page in each language", () => {
+    // That test is plain JavaScript, so nothing else makes a new language's pages get checked.
+    const layout = fs.readFileSync(path.resolve(__dirname, "../e2e/layout.cjs"), "utf8");
+    for (const language of Object.keys(LANGUAGES) as Language[]) {
+      expect(layout, `tests/e2e/layout.cjs has no entry for "${language}"`).toContain(`lang: "${language}"`);
+      expect(layout, `tests/e2e/layout.cjs has the wrong title for "${language}"`).toContain(`title: "${LANGUAGES[language].title}"`);
+    }
   });
 });
 
@@ -120,6 +246,7 @@ describe("the Markdown files", () => {
     expect(() => md.list("two")).toThrow("isn't a list");
     expect(() => md.template("sum")({})).toThrow("nothing fills {a}");
     expect(() => fill("{a}", { a: 1 })).not.toThrow();
+    expect(fill("{p25} to {p75}", { p25: "1", p75: "2" })).toBe("1 to 2");
   });
 
   it("shows each place as much formatting as it can", () => {

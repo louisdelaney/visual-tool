@@ -10,7 +10,7 @@ import { Rich } from "../text/Rich";
 const t = text.charts.summary;
 
 function Tile({ task, result }: { task: TaskName; result: TaskNumbers | null }) {
-  const head = <span className="label"><span className={`key key-${task}`} />{t.threshold(text.charts.taskName[task])}</span>;
+  const head = <span className="label"><span className={`key key-${task}`} />{t.threshold[task]}</span>;
   if (!result) return <div className="tile">{head}<span className="value">{text.common.none}</span><span className="sub">{t.notRun}</span></div>;
   return (
     <div className="tile">

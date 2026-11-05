@@ -3,7 +3,7 @@ import { useState, type CSSProperties } from "react";
 import { CALIBRATION } from "../core";
 import type { Calibration } from "../app/types";
 import { dpr } from "../app/protocol";
-import { round } from "../app/format";
+import { fmt, round } from "../app/format";
 import { calibMatchesScreen, setState } from "../app/store";
 import { show } from "../app/flow";
 import { useWindowSize } from "../hooks";
@@ -47,7 +47,7 @@ export function ScreenPage({ calib }: ScreenPageProps) {
         <input type="range" id="card-size" min={160} max={max} step={0.5} aria-label={t.sliderLabel} value={cardPx} onChange={e => setCardPx(parseFloat(e.target.value))} />
         <button type="button" className="btn secondary icon" id="card-plus" aria-label={t.larger} onClick={() => setCardPx(cardPx + 0.5)}>+</button>
       </div>
-      <p className="readout" id="card-readout">{t.readout(cardPx.toFixed(1), pxPerMm.toFixed(3), (pxPerMm * 25.4).toFixed(0))}</p>
+      <p className="readout" id="card-readout">{t.readout(fmt.fixed(cardPx, 1), fmt.fixed(pxPerMm, 3), fmt.fixed(pxPerMm * 25.4, 0))}</p>
       {saved && Math.abs(saved.cardPx - cardPx) < 0.01 && (
         <p className="hint" id="saved-calib"><Rich text={t.savedSize} /></p>
       )}

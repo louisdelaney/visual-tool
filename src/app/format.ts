@@ -11,21 +11,28 @@ export const esc = (s: unknown): string =>
 
 type Num = number | null | undefined;
 
+/** A number to `d` decimal places, with the language's decimal mark (12.5 in English, 12,5 in Spanish). */
+const places = (v: number, d: number): string => v.toFixed(d).replace(".", text.common.decimal);
+
 export const fmt = {
   pct(v: Num): string {
-    if (v == null || !Number.isFinite(v)) return "–";
-    return (v >= 10 ? v.toFixed(1) : v.toFixed(2)) + "%";
+    if (v == null || !Number.isFinite(v)) return text.common.none;
+    return text.common.percent(places(v, v >= 10 ? 1 : 2));
   },
   fixed(v: Num, d: number): string {
-    return v == null || !Number.isFinite(v) ? "–" : v.toFixed(d);
+    return v == null || !Number.isFinite(v) ? text.common.none : places(v, d);
   },
   signed(v: Num, d: number): string {
-    if (v == null || !Number.isFinite(v)) return "–";
+    if (v == null || !Number.isFinite(v)) return text.common.none;
     const r = Number(v.toFixed(d));
-    return (r > 0 ? "+" : r < 0 ? "−" : "") + Math.abs(r).toFixed(d);
+    return (r > 0 ? "+" : r < 0 ? "−" : "") + places(Math.abs(r), d);
+  },
+  /** A whole number of percent, for an axis label. */
+  percent(v: number): string {
+    return text.common.percent(v);
   },
   int(v: Num): string {
-    return v == null ? "–" : Math.round(v).toLocaleString(text.common.locale);
+    return v == null ? text.common.none : Math.round(v).toLocaleString(text.common.locale);
   },
   time(iso: string): string {
     try { return new Date(iso).toLocaleString(text.common.locale, { dateStyle: "medium", timeStyle: "short" }); } catch { return iso; }

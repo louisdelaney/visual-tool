@@ -126,7 +126,7 @@ The Privacy and risks page promises these, so the backend has to keep them:
 - **Only what's needed to read the results is collected** (AGENTS.md, "What's collected"). The page sends `started_at` to the hour and `duration_s`, no trial times, the browser and major version only, and `environment.device`. It doesn't send a language, screen resolution, operating system or the card-measuring time. Pages opened before this was tightened still send some of those, and sessions stored then have them, so `backend/src/scrub.ts` strips them before a session is stored and again as the download is written. `received_at` is stored to the hour.
 - **The public download** is the stored sessions, scrubbed as above: exact times can help single someone out and aren't needed to analyse the results.
 
-If any of this changes, update the Privacy and risks page, `src/text/en/privacy.md`, to match.
+If any of this changes, update the Privacy and risks page, `src/text/en/privacy.md` and its translation in `src/text/es/`, to match.
 
 ## How it's built
 
@@ -152,7 +152,7 @@ The stage's markup lives in `index.html`, outside the React root. The pages hand
 
 ### Hosting on GitHub Pages
 
-`npm run build` writes the static site to `dist/`, with relative paths so it works under any folder. The info pages have real addresses (`/privacy/`, `/references/`, `/data/`, `/history/`): GitHub Pages can't send every address to one page, so the build writes a copy of the page into each of those folders. Old `#privacy`-style links are moved to the new address. `.github/workflows/pages.yml` builds and publishes it on every push to `main`, or when started from the Actions tab. Pages is set to build from GitHub Actions (Settings → Pages → Source). The backend URL comes from the repository variable `API_URL`.
+`npm run build` writes the static site to `dist/`, with relative paths so it works under any folder. The info pages have real addresses (`/privacy/`, `/references/`, `/data/`, `/history/`): GitHub Pages can't send every address to one page, so the build writes a copy of the page into each of those folders. The Spanish site is the same pages under `/es/` (`/es/privacy/` and so on), each with its own copy: the address alone picks the language, so nothing is stored or sent to choose it. Old `#privacy`-style links are moved to the new address. `.github/workflows/pages.yml` builds and publishes it on every push to `main`, or when started from the Actions tab. Pages is set to build from GitHub Actions (Settings → Pages → Source). The backend URL comes from the repository variable `API_URL`.
 
 The page contacts nothing but its own site and the backend. Fonts are bundled, the built page carries a Content Security Policy that makes the browser block any other server (added in `vite.config.ts`), and requests send no referrer or cookies. The layout test fails if the page requests anything from another origin. GitHub, as the host, still sees visitors' IP addresses in its own server logs, which the Privacy and risks page says.
 

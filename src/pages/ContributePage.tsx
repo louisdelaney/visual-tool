@@ -366,7 +366,7 @@ export function ContributePage({ part }: { part: "contribute" | "questions" }) {
             </fieldset>
             <fieldset>
               <legend><label htmlFor="cq-psychedelics-used">{t.psychedelicsUsedQuestion}</label></legend>
-              <ChipInput id="cq-psychedelics-used" noun={t.psychedelicNoun} value={d.psychedelicsUsed} onChange={c => set("psychedelicsUsed", c)} />
+              <ChipInput id="cq-psychedelics-used" addLabel={t.chips.addPsychedelic} value={d.psychedelicsUsed} onChange={c => set("psychedelicsUsed", c)} />
               <p className="hint"><Rich text={t.psychedelicsUsedHint} /></p>
             </fieldset>
           </div>
@@ -382,7 +382,7 @@ export function ContributePage({ part }: { part: "contribute" | "questions" }) {
           <div className="follow-up" id="cq-medication-more">
             <fieldset>
               <legend><label htmlFor="cq-meds">{t.medicationsQuestion}</label></legend>
-              <ChipInput id="cq-meds" noun={t.medicationNoun} value={d.medications} onChange={c => set("medications", c)} />
+              <ChipInput id="cq-meds" addLabel={t.chips.addMedication} value={d.medications} onChange={c => set("medications", c)} />
               <p className="hint"><Rich text={t.medicationsHint} /></p>
             </fieldset>
           </div>

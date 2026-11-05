@@ -384,6 +384,13 @@ th {
   font-weight: 700;
 }
 
+/* The link to the page in another language, at the far end of the row. */
+.site-nav a.lang {
+  margin-left: auto;
+  padding-right: 0;
+  border-left: 0;
+}
+
 /* Phones: the links wrap, so a plain gap replaces the dividers, which would start each new line. */
 @media (max-width:560px){
   .site-nav {

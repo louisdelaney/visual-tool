@@ -381,7 +381,7 @@ function measureRow(w: Writer, measure: MeasureKey, lanes: { group: ShownGroup["
     w.line(x(value), top + TOP + 12, x(value), top + TOP + lanes.length * LANE, C.ink, 0.75, { dash: [1.5, 2.5] });
     lanes.forEach((_, i) => w.circle(x(value), top + TOP + i * LANE + 21, 4, { fill: C.ink, stroke: C.white, width: 1.5 }));
   }
-  for (const t of ticks) w.label(info.log ? `${t}%` : fmt.signed(t, decimals), x(t), top + H - 2, 7.5, { color: C.muted, anchor: "middle" });
+  for (const t of ticks) w.label(info.log ? fmt.percent(t) : fmt.signed(t, decimals), x(t), top + H - 2, 7.5, { color: C.muted, anchor: "middle" });
   w.y = top + H + 6;
   w.para(pdfRuns(caption), { size: 8.5, color: C.ink2 });
   w.gap(10);

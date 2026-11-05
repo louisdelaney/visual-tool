@@ -1,17 +1,20 @@
 // Every parameter of the test and where it comes from, and the papers it's built on. Each version
 // of the test is a different test, so a drop-down picks which one is shown. The quick test is the
 // same test with fewer trials, so it's explained with its version rather than picked separately.
-// The page's words are in src/text/en/references.md; the tables and papers are in methodData.ts.
+// The page's words are in src/text/en/references.md and its tables in method.ts beside it; the
+// papers are in methodData.ts.
 import { useState } from "react";
 import { back } from "../app/flow";
 import { TEST_VERSION } from "../core";
-import { CALIBRATION_TABLE, METHOD_VERSIONS, REFERENCES, type ProtocolGroup } from "../components/methodData";
+import { REFERENCES } from "../components/methodData";
+import type { ProtocolGroup } from "../text/method";
 import { GROUPS, MIN_GROUP } from "../app/comparison";
 import { GROUP_INFO } from "../app/groupText";
 import { text } from "../text";
 import { Doc } from "../text/Doc";
 
 const t = text.infoPages.references;
+const { versions: METHOD_VERSIONS, calibration: CALIBRATION_TABLE } = text.method;
 
 export function ReferencesPage() {
   const [version, setVersion] = useState(TEST_VERSION);

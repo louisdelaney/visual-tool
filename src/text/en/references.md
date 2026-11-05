@@ -1,8 +1,8 @@
 <!--
 The Method and references page, as it appears. "#" is the page's title and "##" starts a section.
 The lines like {version} are the parts the page draws from code: the version picker, what each
-version was, the list of groups, the table of parameters and the list of papers. Those are in
-src/components/methodData.ts. {minGroup} is the smallest group that's shown. CONTRIBUTING.md
+version was, the list of groups, the table of parameters and the list of papers. The tables are
+in method.ts, beside this file. {minGroup} is the smallest group that's shown. CONTRIBUTING.md
 explains the rest.
 
 The groups are information only: nothing is concluded from where a result falls (see AGENTS.md).

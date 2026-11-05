@@ -28,12 +28,13 @@ export function chipValues(c: Chips): string[] | null {
 interface ChipInputProps {
   id: string;
   /** Names one entry, for the buttons: "medication" gives "Add medication" and "Remove …". */
-  noun: string;
+  /** What the + button does, for screen readers: "Add medication". */
+  addLabel: string;
   value: Chips;
   onChange: (c: Chips) => void;
 }
 
-export function ChipInput({ id, noun, value, onChange }: ChipInputProps) {
+export function ChipInput({ id, addLabel, value, onChange }: ChipInputProps) {
   const input = useRef<HTMLInputElement>(null);
   const full = value.items.length >= MAX_CHIPS;
   const add = (): void => {
@@ -64,7 +65,7 @@ export function ChipInput({ id, noun, value, onChange }: ChipInputProps) {
       )}
       <div className="inline">
         <input ref={input} type="text" id={id} maxLength={MAX_CHIP_LENGTH} autoComplete="off" disabled={full} value={value.typing} onChange={e => onChange({ ...value, typing: e.target.value })} onKeyDown={onKeyDown} />
-        <button type="button" className="btn secondary chip-add" aria-label={t.add(noun)} disabled={full || !clean(value.typing)} onClick={add}>+</button>
+        <button type="button" className="btn secondary chip-add" aria-label={addLabel} disabled={full || !clean(value.typing)} onClick={add}>+</button>
       </div>
     </div>
   );

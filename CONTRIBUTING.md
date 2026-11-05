@@ -105,13 +105,16 @@ Run `npm run test:e2e` if you change anything in `src/core/` or `src/stage/`. Fo
 
 ## Changing the words on the site
 
-The words on the pages, the test screens and the PDF are in `src/text/en/`, and you don't need to touch the components to change them. There are three kinds of file:
+The words on the pages, the test screens and the PDF are in `src/text/en/`, and you don't need to touch the components to change them. Each translation has the same files in a folder beside it (`src/text/es/` for Spanish): see "Translations" below. There are four kinds of file:
 
 - **A page's Markdown file** (`contribute.md`, `results.md`, `tasks.md` and so on) has its paragraphs: introductions, notes, hints, instructions and explanations. It's written to be read and edited without knowing any code, including in GitHub's editor.
-- **The TypeScript file with the same name** (`contribute.ts` and so on) has the short words: headings, questions and their answers, buttons, labels on the charts, and short messages like errors.
+- **The TypeScript file with the same name** (`contribute.ts` and so on) has the short words: headings, questions and their answers, buttons, labels on the charts, and short messages like errors. It's only words: every entry is a name, a colon and plain text in quotes.
 - **A long page's Markdown file** (`privacy.md`, `references.md`, `data.md`) is the whole page, written as it appears.
+- **`labels.ts`** has the short words that appear in more than one place, such as on both results pages and in the PDF: "Motion threshold", "This run", "Save summary (PDF)". Each is written once there, so the places that show it can't drift apart.
 
-The tables and papers on Method and references are in `src/components/methodData.ts`.
+None of these files has any code in it. The code that goes with the words is in `src/text/wiring/`, written once for every language: see "Adding a piece of text" below.
+
+The tables on Method and references are in `method.ts`, one row of plain strings for each parameter. The papers, cited as published, are the same in every language and are in `src/components/methodData.ts`.
 
 ### Formatting, in every Markdown file
 
@@ -136,13 +139,45 @@ A line that's only `{name}`, like `{download}` or `{protocol}`, is a part the pa
 
 ### In a TypeScript file
 
-- Most entries are plain strings in quotes. Where a number or name goes into a sentence, the entry is a small function, like `` (n: number) => `${n} scored trials` ``; keep its parameters as they are.
-- Inside a sentence, `<strong>`, `<em>` and `<kbd>` work as in HTML, and `<privacy-link>…</privacy-link>` (or `history`, `references`, `data`) links to that page. A few other hyphenated tags are filled in by the component that shows the sentence; keep the tag and change the words inside it. Nothing else: no other HTML and no attributes. `pdf.ts` holds the PDF's labels, drawn as they are, so no tags there; the paragraphs it shares with the pages keep their bold.
-- A `.ts` file reads its Markdown file's pieces at the top, as it loads, never inside a function, so a missing piece stops the site loading instead of failing later.
+Every entry looks like this, and only the words between the quotes change:
+
+```ts
+sendFailed: "Couldn't send your results. Check your connection and try again.",
+```
+
+- `{pseudonym}`, `{n}`, `{cm}` and the like are filled in by the page, as in a Markdown file. Keep them, and move them anywhere in the sentence. The comment above an entry says what a value is when it isn't obvious.
+- Where a sentence changes with a number or a situation, there's one entry for each form, such as `sessionsHeadingOne` and `sessionsHeadingMany`, or `removeFailed` and `removeFailedReference`. Write each as a whole sentence.
+- Inside a sentence, `<strong>` marks bold and `<kbd>` a key, as in HTML. Nothing else: no other HTML and no attributes. The PDF draws its words as they are, so `pdf.ts` and `labels.ts` have no formatting at all.
+- If the words you're looking for aren't in the page's own file, they're in `labels.ts`, because another place shows them too. The test's name is in `src/text/languages.ts`.
+
+### Adding a piece of text
+
+This is the one part that needs code. Add the words to the English file and to each translation, then one line to the page's file in `src/text/wiring/`, which is what the components read:
+
+- A paragraph: a `## name` block in the Markdown file, and `name: md("name")` in the wiring. Blocks are read as the text is built, never inside a function, so a missing one stops the site loading instead of failing later.
+- Short words: an entry in the `.ts` file. Plain entries reach the page with no wiring at all.
+- A sentence with values: an entry with `{values}`, and in the wiring a function that fills them, like `` lookingUp: (pseudonym: string) => fill(h.lookingUp, { pseudonym }) ``. The components keep calling a typed function, and the words stay plain.
+- A sentence with forms: one entry for each, and the wiring picks between them.
+
+`npm test` fails if a value is left unfilled, if a Markdown block isn't used, or if a translation is missing a piece.
+
+### Translations
+
+The site is in English at its own address and in Spanish under `/es/` (`/es/privacy/` and so on). The address alone picks the language: nothing is stored on the device, nothing about it is sent, and a contributed session doesn't record which language it was taken in. The languages are listed in `src/text/languages.ts`.
+
+- `src/text/es/` has the same files as `src/text/en/`, with the same `##` names, the same entries and the same `{values}`. Only the words change. The English files are the list of what a language must provide: each translated file is checked against its English one, so a missing or misspelt entry is an error in that file.
+- **Change the translation in the same pull request as the English.** If you can't write Spanish, change the English and say so in the pull request, so someone who can will do the rest before it's merged.
+- `npm test` compares each translation with the English piece by piece: every paragraph, list item, table row and section is there, with the same bold, keys, links and `{values}`. It can't tell whether a translation still says what the English now says, or whether it reads well. That needs a fluent reader, so every change to a translation is reviewed by one.
+- The instructions on the test screens (`calibration.md`, `tasks.md` and their `.ts` files) must mean exactly what the English means. A translation is the same test, not a new version of it, only while that holds.
+- The Spanish uses informal "tú" and words that read naturally in both Spain and Latin America.
+- How a language writes numbers is its own choice, in its `common.ts`: `decimal` is the decimal mark, `percent` is a number with its percent sign, and dates follow `locale`. Which numbers count as singular also follows `locale`: English and Spanish use the singular only for 1, French for 0 as well, and the sentence's `...One` or `...Many` entry is picked to match. A language with more than two forms needs more entries, and a line in `src/text/wiring/plural.ts`.
+- Punctuation belongs to the words, not the code. Where a name appears inside a sentence, or a label comes before a value, the language has an entry for exactly that, so nothing is lower-cased or given a colon behind its back.
+- Field names and values in the exported data stay in English in every language.
+- To add a language: add it to `src/text/languages.ts`, copy `src/text/es/` to a folder named after it and translate it (the Spanish files already carry the type that checks them), add it to `OTHERS` in `src/text/index.ts`, give it a list of judging words in `tests/unit/text.test.ts`, and add it to the languages in `tests/e2e/layout.cjs`. The compiler and `npm test` name each of these until it's done. The pages are laid out left to right: a right-to-left language needs layout work first.
 
 ### For all of them
 
-- The wording rulings in `AGENTS.md` apply to every line: no medical claims, and nothing that judges a result.
+- The wording rulings in `AGENTS.md` apply to every line, in every language: no medical claims, and nothing that judges a result.
 - `npm test` checks the text (`tests/unit/text.test.ts`): every piece the site needs is there and each one is used, every link goes to a page that exists, the long pages have their parts, the formatting is one the pages can show, and the most common judging words are caught. A mistake in a Markdown file names the file and the piece.
 - Rewording instructions on the test screens (`calibration.md`, `tasks.md`, and their `.ts` files) can change how people answer: see the next section.
 

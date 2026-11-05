@@ -98,8 +98,8 @@ export function SensitivityBars({ own, groups, ownSub }: SensitivityBarsProps) {
                     <g key={key} className={`sens-${key}`}>
                       <rect className="sens-bar" x={x} y={top} width={bw} height={h}>
                         <title>{b.range
-                          ? t.barTipRange(c.label, SERIES[j]!.label, fmt.fixed(b.value, 3), fmt.fixed(b.range.p25, 3), fmt.fixed(b.range.p75, 3))
-                          : t.barTip(c.label, SERIES[j]!.label, fmt.fixed(b.value, 3))}</title>
+                          ? t.barTipRange(c.label, SERIES[j]!.key, fmt.fixed(b.value, 3), fmt.fixed(b.range.p25, 3), fmt.fixed(b.range.p75, 3))
+                          : t.barTip(c.label, SERIES[j]!.key, fmt.fixed(b.value, 3))}</title>
                       </rect>
                       {b.range && (
                         <g className="sens-whisker">

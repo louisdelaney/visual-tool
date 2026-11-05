@@ -100,7 +100,7 @@ export function parseBlocks(source: string, file: string): Map<string, Block> {
 
 /** Fills each {name} in `template` with its value. Every {name} must be given one. */
 export function fill(template: string, values: Record<string, string | number>, where = "text"): string {
-  return template.replace(/\{([a-zA-Z]+)\}/g, (_, key: string) => {
+  return template.replace(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g, (_, key: string) => {
     if (!(key in values)) throw new TextError(`${where}: nothing fills {${key}}`);
     return String(values[key]);
   });
@@ -126,12 +126,12 @@ export function unusedBlocks(): string[] {
 }
 
 /**
- * The blocks of one Markdown file, for its .ts file to read by name.
+ * The blocks of one Markdown file, for its page in src/text/wiring to read by name.
  *   md("name")            one paragraph
  *   md.paragraphs("name") several paragraphs
  *   md.list("name")       the items of a list
  *   md.template("name")   a paragraph with {values}: call the result with them
- * Read every block as the file loads, at the top of its .ts file, never inside a function: then a
+ * Read every block as the text is built (src/text/wiring), never inside a function there: then a
  * missing block, or one of the wrong shape, throws as the site loads and the unit tests catch it.
  */
 export function markdown(source: string, file: string) {
@@ -139,7 +139,7 @@ export function markdown(source: string, file: string) {
   const record = { names: new Set<string>(), all: [...blocks.keys()], sealed: false };
   used.set(file, record);
   const get = (name: string, shape: "paragraph" | "paragraphs" | "list"): string[] => {
-    if (record.sealed) throw new TextError(`${file}: "## ${name}" is read inside a function; read it at the top of ${file.replace(/\.md$/, ".ts")}`);
+    if (record.sealed) throw new TextError(`${file}: "## ${name}" is read inside a function; read it as the text is built, at the top of its page in src/text/wiring/`);
     const block = blocks.get(name);
     if (!block) throw new TextError(`${file}: no "## ${name}" block`);
     if ((shape === "list") !== block.isList) throw new TextError(`${file}: "## ${name}" ${block.isList ? "is" : "isn't"} a list`);
@@ -157,6 +157,9 @@ export function markdown(source: string, file: string) {
   };
   return md;
 }
+
+/** One Markdown file's blocks, ready to be read by name. */
+export type Md = ReturnType<typeof markdown>;
 
 // ---- Whole pages ----
 //
@@ -189,7 +192,7 @@ export function document(source: string, file: string, { parts = [], values = []
   const words = (s: string): Words => {
     const hrefs: string[] = [];
     const text = inline(s, file, hrefs);
-    for (const [, name] of text.matchAll(/\{([a-zA-Z]+)\}/g)) {
+    for (const [, name] of text.matchAll(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g)) {
       if (!values.includes(name!)) throw new TextError(`${file}: nothing fills {${name}}${values.length ? `; use ${values.map(v => `{${v}}`).join(", ")}` : ""}`);
     }
     return { text, hrefs };
@@ -199,7 +202,7 @@ export function document(source: string, file: string, { parts = [], values = []
   const chunks: string[][] = [[]];
   for (const line of source.replace(/<!--[\s\S]*?-->/g, "").split(/\r?\n/)) {
     if (!line.trim()) chunks.push([]);
-    else if (/^#{1,2}\s/.test(line) || /^\{[a-zA-Z]+\}\s*$/.test(line)) chunks.push([line], []);
+    else if (/^#{1,2}\s/.test(line) || /^\{[a-zA-Z][a-zA-Z0-9]*\}\s*$/.test(line)) chunks.push([line], []);
     else if (line.startsWith("#")) throw new TextError(`${file}: "${line.trim()}" isn't a heading; a page has one "# Title" and "## Heading" sections, nothing deeper`);
     else chunks[chunks.length - 1]!.push(line);
   }
@@ -212,7 +215,7 @@ export function document(source: string, file: string, { parts = [], values = []
       out.push({ kind: "title", words: words(first.slice(2).trim()) });
     } else if (first.startsWith("## ")) {
       out.push({ kind: "heading", words: words(first.slice(3).trim()) });
-    } else if (/^\{[a-zA-Z]+\}$/.test(first)) {
+    } else if (/^\{[a-zA-Z][a-zA-Z0-9]*\}$/.test(first)) {
       const name = first.slice(1, -1);
       if (!parts.includes(name)) throw new TextError(`${file}: the page has no part {${name}}${parts.length ? `; use ${parts.map(p => `{${p}}`).join(", ")}` : ""}`);
       if (out.some(b => b.kind === "part" && b.name === name)) throw new TextError(`${file}: {${name}} appears twice`);

@@ -1,0 +1,66 @@
+// Spanish for ../en/results.ts, where the comments say what each entry is for.
+// Only words: plain text in quotes. Change the words, leave the name before the colon, and keep
+// each {value}, which the page fills in.
+// Show numbers only: no words that judge a result, like "normal" or "típico" (see AGENTS.md).
+import type { Words } from "../words";
+
+export const results: Words["results"] = {
+  sendingLabel: "Envío de tus resultados",
+  sending: "Enviando tus resultados…",
+  sendFailed: "No se pudieron enviar tus resultados. Comprueba tu conexión e inténtalo de nuevo.",
+  failureReference: "Referencia: {id}. Puedes citarla si informas de un problema.",
+  trySendingAgain: "Intentar enviar de nuevo",
+
+  removeStart: "Eliminar de la base de datos",
+  removeQuestion: "¿Eliminar esta sesión de la base de datos? No se puede deshacer.",
+  removeIt: "Eliminarla",
+  removing: "Eliminando…",
+  keepIt: "Conservarla",
+  removeFailed: "No se pudo eliminar. Comprueba tu conexión e inténtalo de nuevo.",
+  removeFailedReference: "No se pudo eliminar. Comprueba tu conexión e inténtalo de nuevo. Referencia: {reference}.",
+
+  heading: "Resultados",
+  savePdfDescription: "Estos resultados, los gráficos y los grupos tal como están ahora, para leer o imprimir.",
+  saveSummaryDescription: "Tu seudónimo, tus respuestas, tus resultados y los puntos de los gráficos de escalera.",
+  saveFullDescriptionSent: "Todo lo registrado, exactamente como se envía a la base de datos.",
+  saveFullDescriptionNotSent: "Todo lo registrado, exactamente como se enviaría a la base de datos.",
+  pdfFailed: "No se pudo crear el PDF. Inténtalo de nuevo, o vuelve a cargar la página.",
+  seeAllFor: "Ver todos los resultados de",
+  yourPseudonym: "Tu seudónimo:",
+  leaveForHistory: "¿Salir de esta página para ver todos tus resultados? Con Atrás vuelves aquí, pero si la página se carga de nuevo o se cierra, estos resultados se pierden a menos que los hayas guardado.",
+
+  sessionHeading: "Sesión",
+  rows: {
+    testVersion: "Versión de la prueba",
+    test: "Prueba",
+    testValue: "{testType}: cada tarea se detiene a las {stopReversals} inversiones, umbral a partir de las últimas {meanOfLast}",
+    started: "Empezó",
+    screenScale: "Escala de la pantalla",
+    screenScaleValue: "{pxPerMm} px por mm, tarjeta de {cardPx} px de ancho",
+    viewingDistanceValue: "{cm} cm, {how}",
+    distanceByHand: "escrita a mano",
+    distanceBlindSpot: "punto ciego, {readings} mediciones de {lo}–{hi} cm",
+    pixelsPerDegree: "Píxeles por grado",
+    pixelsPerDegreeRange: "{lo}–{hi}",
+    pixelsPerDegreeFull: "{ppd}, estímulos al tamaño completo del protocolo",
+    pixelsPerDegreeShrunk: "{ppd}, estímulos reducidos al {pct}% del tamaño del protocolo para que quepan",
+    window: "Ventana",
+    fullScreen: "Pantalla completa",
+    notFullScreen: "Sin pantalla completa, {widthPct}% del ancho de la pantalla",
+    displayRefresh: "Frecuencia de la pantalla",
+    displayRefreshValue: "{hz} Hz, fotograma mediano de {frameMs} ms",
+    droppedFrames: "Fotogramas perdidos",
+    droppedTask: { motion: "movimiento", form: "destellos de forma" },
+    droppedValue: "{task} {dropped} de {frames} ({pct}%)",
+    easyChecks: "Ensayos fáciles de control acertados",
+    easyCheckTask: { motion: "movimiento", form: "forma" },
+    easyChecksValue: "{task} {correct} de {total}",
+    motionDisplay: "Presentación del movimiento",
+    motionDisplayValue: "destello de {ms} ms",
+    flashLength: "Duración del destello",
+    flashLengthValue: "mediana {median} ms, rango {lo}–{hi} ms (objetivo: 200 ms)",
+    ended: "Terminó",
+    endedEarly: "Antes de tiempo, a petición tuya",
+    browser: "Navegador",
+  },
+};

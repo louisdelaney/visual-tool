@@ -1,26 +1,25 @@
-// The three long pages: Privacy and risks, Method and references, and Data. Each page's words are
-// one Markdown file that reads like the page (privacy.md, references.md, data.md); this file reads
-// them, and has the short words the pages draw around them.
-import privacySource from "./privacy.md";
-import referencesSource from "./references.md";
-import dataSource from "./data.md";
-import { document } from "../markdown";
+// The short words on the long pages. The pages themselves are privacy.md, references.md and
+// data.md, each written as it appears.
+//
+// This file is only words: every entry is plain text in quotes. Change the words between the
+// quotes, and leave the name before the colon as it is. {version} is a number the page fills in.
 
 export const infoPages = {
-  privacy: document(privacySource, "privacy.md"),
+  // The Data page.
   data: {
-    page: document(dataSource, "data.md", { parts: ["download"] }),
     download: "Download the data",
     noDownload: "The download isn't available on this copy of the site.",
   },
+
+  // Method and references.
   references: {
-    page: document(referencesSource, "references.md", { parts: ["versionPicker", "version", "groups", "protocol", "references"], values: ["minGroup"] }),
-    /** The version picker: its label, and each version in it ("Version 2 (current)"). */
+    // The version picker: its label, and each version in it, the current one marked.
     versionLabel: "Version",
-    versionOption: (version: number, current: boolean) => `Version ${version}${current ? " (current)" : ""}`,
-    changedFrom: (version: number) => `What changed from version ${version}`,
+    versionOption: "Version {version}",
+    versionOptionCurrent: "Version {version} (current)",
+    changedFrom: "What changed from version {version}",
     quickHeading: "The quick test",
-    /** The table's column headings. */
+    // The table's column headings.
     parameter: "Parameter",
     value: "Value",
     source: "Source",

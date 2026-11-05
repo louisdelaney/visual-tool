@@ -15,38 +15,52 @@ fs.mkdirSync(OUT, { recursive: true });
   const PAGE_URL = server.url;
   const browser = await chromium.launch();
   const errors = [], failures = [];
-  for (const vw of [360, 400, 1440]) {
-    for (const scheme of ["light", "dark"]) {
-      const ctx = await browser.newContext({ viewport: { width: vw, height: 860 }, colorScheme: scheme });
-      const p = await ctx.newPage();
-      p.on("pageerror", e => errors.push(`${vw}px ${scheme}: ${e.message}`));
-      // The page promises it contacts nothing but itself: fonts, scripts and all are served from the site.
-      p.on("request", r => { const u = new URL(r.url()); if (u.protocol !== "blob:" && u.protocol !== "data:" && u.origin !== new URL(PAGE_URL).origin) failures.push(`${vw}px ${scheme}: request to ${u.origin}`); });
-      p.on("console", m => { if (m.type() === "error") errors.push(`${vw}px ${scheme} console: ${m.text()}`); });
-      await p.goto(PAGE_URL); await p.waitForTimeout(400);
-      // Step 1's questions with every follow-up open, the longest the form gets.
-      await p.check('#contrib-form input[name="contribute"][value="yes"]');
-      await p.click("#contrib-go"); await p.waitForTimeout(150);
-      for (const v of ["disorder", "psychedelics", "medication"]) await p.check(`#questions-form input[name="${v}"][value="yes"]`);
-      await p.check("#cq-other"); await p.waitForTimeout(150);
-      const contribOverflow = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-      await p.screenshot({ path: path.join(OUT, `layout-contribute-${vw}-${scheme}.png`), fullPage: true });
-      await p.click("#questions-back"); await p.waitForTimeout(150);
-      await p.check('#contrib-form input[name="contribute"][value="no"]');
-      await p.click("#contrib-go"); await p.waitForTimeout(300);
-      const setupOverflow = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-      await p.screenshot({ path: path.join(OUT, `layout-setup-${vw}-${scheme}.png`), fullPage: true });
-      const pageOverflow = {};
-      for (const page of ["privacy", "references", "history"]) {
-        await p.goto(`${PAGE_URL}${page}/`); await p.waitForTimeout(300);
-        pageOverflow[page] = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-        if (!(await p.$(`[data-view="${page}"]`))) failures.push(`${vw}px ${scheme}: /${page}/ didn't open the ${page} page`);
-        await p.screenshot({ path: path.join(OUT, `layout-${page}-${vw}-${scheme}.png`), fullPage: true });
+  // Each language has its own folder (src/text/languages.ts), English at the site's own address.
+  // Translated words run longer, so every width is checked in each.
+  const languages = [
+    { lang: "en", folder: "", file: "", title: "Form–Motion Coherence Test", other: `${PAGE_URL}es/` },
+    { lang: "es", folder: "es/", file: "-es", title: "Prueba de coherencia de forma y movimiento", other: PAGE_URL },
+  ];
+  for (const language of languages) {
+    const HOME = `${PAGE_URL}${language.folder}`;
+    for (const vw of [360, 400, 1440]) {
+      for (const scheme of ["light", "dark"]) {
+        const ctx = await browser.newContext({ viewport: { width: vw, height: 860 }, colorScheme: scheme });
+        const p = await ctx.newPage();
+        const at = `${language.lang} ${vw}px ${scheme}`;
+        p.on("pageerror", e => errors.push(`${at}: ${e.message}`));
+        // The page promises it contacts nothing but itself: fonts, scripts and all are served from the site.
+        p.on("request", r => { const u = new URL(r.url()); if (u.protocol !== "blob:" && u.protocol !== "data:" && u.origin !== new URL(PAGE_URL).origin) failures.push(`${at}: request to ${u.origin}`); });
+        p.on("console", m => { if (m.type() === "error") errors.push(`${at} console: ${m.text()}`); });
+        await p.goto(HOME); await p.waitForTimeout(400);
+        // The address alone picks the language: the page says which it is, in its own words, and links to the other.
+        const shown = await p.evaluate(() => ({ lang: document.documentElement.lang, title: document.title, h1: document.querySelector("h1")?.textContent, other: document.querySelector(".site-nav a.lang")?.getAttribute("href") }));
+        if (shown.lang !== language.lang || shown.title !== language.title || shown.h1 !== language.title) failures.push(`${at}: the ${language.lang} home page shows lang "${shown.lang}", title "${shown.title}", heading "${shown.h1}"`);
+        if (!shown.other || new URL(shown.other, HOME).href !== language.other) failures.push(`${at}: the link to the other language goes to ${shown.other}`);
+        // Step 1's questions with every follow-up open, the longest the form gets.
+        await p.check('#contrib-form input[name="contribute"][value="yes"]');
+        await p.click("#contrib-go"); await p.waitForTimeout(150);
+        for (const v of ["disorder", "psychedelics", "medication"]) await p.check(`#questions-form input[name="${v}"][value="yes"]`);
+        await p.check("#cq-other"); await p.waitForTimeout(150);
+        const contribOverflow = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+        await p.screenshot({ path: path.join(OUT, `layout-contribute${language.file}-${vw}-${scheme}.png`), fullPage: true });
+        await p.click("#questions-back"); await p.waitForTimeout(150);
+        await p.check('#contrib-form input[name="contribute"][value="no"]');
+        await p.click("#contrib-go"); await p.waitForTimeout(300);
+        const setupOverflow = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+        await p.screenshot({ path: path.join(OUT, `layout-setup${language.file}-${vw}-${scheme}.png`), fullPage: true });
+        const pageOverflow = {};
+        for (const page of ["privacy", "references", "history"]) {
+          await p.goto(`${HOME}${page}/`); await p.waitForTimeout(300);
+          pageOverflow[page] = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+          if (!(await p.$(`[data-view="${page}"]`))) failures.push(`${at}: ${language.folder}${page}/ didn't open the ${page} page`);
+          await p.screenshot({ path: path.join(OUT, `layout-${page}${language.file}-${vw}-${scheme}.png`), fullPage: true });
+        }
+        console.log(`${at}: horizontal overflow on contribute ${contribOverflow > 0}, on setup ${setupOverflow > 0}, on ${Object.entries(pageOverflow).map(([k, v]) => `${k} ${v > 0}`).join(", ")}`);
+        if (Object.values(pageOverflow).some(v => v > 0)) failures.push(`${at}: an info page scrolls horizontally`);
+        if (contribOverflow > 0 || setupOverflow > 0) failures.push(`${at} scrolls horizontally`);
+        await ctx.close();
       }
-      console.log(`${vw}px ${scheme}: horizontal overflow on contribute ${contribOverflow > 0}, on setup ${setupOverflow > 0}, on ${Object.entries(pageOverflow).map(([k, v]) => `${k} ${v > 0}`).join(", ")}`);
-      if (Object.values(pageOverflow).some(v => v > 0)) failures.push(`${vw}px ${scheme}: an info page scrolls horizontally`);
-      if (contribOverflow > 0 || setupOverflow > 0) failures.push(`${vw}px ${scheme} scrolls horizontally`);
-      await ctx.close();
     }
   }
   // Touch-only devices: a phone can't start the test but can open the other pages; a large tablet
