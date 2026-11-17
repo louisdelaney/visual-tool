@@ -250,3 +250,7 @@ The end-to-end tests serve `dist/` locally, drive the real page with a simulated
 - Pavan A, Skujevskis M, Baggio G (2013). Motion words selectively modulate direction discrimination sensitivity for threshold motion. *Frontiers in Human Neuroscience* 7:134. https://doi.org/10.3389/fnhum.2013.00134
 - Roccato M, Campana G, Vicovaro M, Donato R, Pavan A (2024). Perception of complex Glass patterns through spatial summation across unique frames. *Vision Research* 216:108364. https://doi.org/10.1016/j.visres.2024.108364
 - Seu L, Ferrera VP (2001). Detection thresholds for spiral Glass patterns. *Vision Research* 41:3785–3790. https://pmc.ncbi.nlm.nih.gov/articles/PMC4487671
+
+## License
+
+The code is under the [MIT License](LICENSE). The contributed data is under [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/), as the site's Data page says.

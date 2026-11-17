@@ -1,6 +1,7 @@
 {
   "name": "visual-tool",
   "private": true,
+  "license": "MIT",
   "description": "Browser test of global motion and global form (Glass pattern) coherence thresholds.",
   "scripts": {
     "dev": "vite",
