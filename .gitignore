@@ -2,7 +2,14 @@ node_modules/
 dist/
 tests/output/
 .env
-.env.local
+# Local env files, such as .env.local and .env.production.local (.env.example is kept).
+*.local
+npm-debug.log*
+*.log
+
+# Claude Code: per-machine settings and the worktrees it makes for parallel sessions.
+.claude/settings.local.json
+.claude/worktrees/
 
 # Exported sessions are people's results: keep them out of git.
 data/
@@ -14,6 +21,8 @@ infra/**/.terraform/
 infra/**/*.tfstate*
 infra/**/*.tfvars
 !infra/**/*.tfvars.example
+infra/**/override.tf
+infra/**/*_override.tf
 
 # Impeccable design tool: per-machine install (skills, agents, hooks) and its local state.
 .impeccable/
